@@ -197,6 +197,7 @@ async fn managed_agent_steps_keep_identity_and_allow_only_existing_cleanup_after
     let paper = w.submit(&author, "t", false).await;
     let paper = w.review_paper(&author, &paper).await;
     let mut step = AgentStep {
+        cma_attempts: vec![],
         version: 1,
         claims_revision: paper.claims_revision,
         progress: serde_json::json!({"agent_id":"agt_test"}),
@@ -212,6 +213,7 @@ async fn managed_agent_steps_keep_identity_and_allow_only_existing_cleanup_after
         .await
         .unwrap();
     let changed = AgentStep {
+        cma_attempts: vec![],
         version: 2,
         ..step.clone()
     };
@@ -2495,3 +2497,553 @@ async fn conjecture_listing_pages_past_other_kinds_and_private_records_in_record
 }
 
 mod solving;
+
+struct EnabledCma;
+#[async_trait::async_trait]
+impl crate::ports::CmaSetup for EnabledCma {
+    fn enabled(&self) -> bool {
+        true
+    }
+    async fn validate(&self, binding: &CmaBinding, _: &str) -> CoreResult<CmaWorkspaceCheck> {
+        Ok(CmaWorkspaceCheck::Resources(CmaWorkspaceFacts {
+            sandbox_id: "sbx_author".into(),
+            sandbox_profile: CmaProfile {
+                id: "sbp_author".into(),
+                revision: 1,
+            },
+            owner: binding.subject.to_string(),
+            workspace_status: "ready".into(),
+            sandbox_status: "active".into(),
+            model_access: "own_credentials".into(),
+        }))
+    }
+}
+async fn cma_world() -> World {
+    let mut w = World::new().await;
+    Arc::get_mut(&mut w.app).unwrap().ports.cma_setup = Arc::new(EnabledCma);
+    w
+}
+async fn ready_binding(w: &World, person: &Caller) {
+    w.app.begin_cma_connect(person).await.unwrap();
+    let b = w.app.my_cma(person).await.unwrap().binding;
+    w.app
+        .complete_cma_connect(&person.person, b.generation)
+        .await
+        .unwrap();
+    let b = w.app.my_cma(person).await.unwrap().binding;
+    w.app
+        .set_cma_workspace(
+            person,
+            SetCmaWorkspace {
+                workspace_id: "wks_author".into(),
+                expected_revision: b.revision,
+            },
+        )
+        .await
+        .unwrap();
+}
+#[tokio::test]
+async fn cma_payer_table_uses_only_submitter_and_replays_are_immutable() {
+    let w = cma_world().await;
+    let author = w.person("author", &[]).await;
+    let coauthor = w.person("coauthor", &[]).await;
+    let reviewer = w.person("reviewer", &[Role::Reviewer]).await;
+    let mut paper = w.submit(&author, "t", false).await;
+    paper.authors.push(Author {
+        name: "Coauthor".into(),
+        person: Some(coauthor.person.clone()),
+        orcid: None,
+        affiliation: None,
+    });
+    let revision = paper.revision;
+    paper.revision += 1;
+    crate::ports::SubmissionStore::replace(w.stores.as_ref(), &paper, revision)
+        .await
+        .unwrap();
+    let paper = w.review_paper(&author, &paper).await;
+    ready_binding(&w, &coauthor).await;
+    let first = w
+        .app
+        .admit_cma_attempt(&reviewer, &paper.id, "audit", "r1:audit", "wks_operator")
+        .await
+        .unwrap();
+    assert_eq!(first.payer, CmaPayer::Operator);
+    assert_eq!(first.reason, "not_connected");
+    assert_eq!(
+        w.app
+            .referee(&coauthor, &paper.id)
+            .await
+            .unwrap()
+            .cma_attempts[0]
+            .payer,
+        CmaPayer::Operator
+    );
+    ready_binding(&w, &author).await;
+    assert_eq!(
+        w.app
+            .admit_cma_attempt(
+                &reviewer,
+                &paper.id,
+                "audit",
+                "r1:audit",
+                "changed_operator"
+            )
+            .await
+            .unwrap(),
+        first
+    );
+    let own = w
+        .app
+        .admit_cma_attempt(&reviewer, &paper.id, "advice", "r1:advice", "wks_operator")
+        .await
+        .unwrap();
+    assert_eq!(own.payer, CmaPayer::Author);
+    assert_eq!(own.owner, Some(author.person.clone()));
+    assert_eq!(own.workspace, "wks_author");
+    w.app.disconnect_cma(&author).await.unwrap();
+    assert_eq!(
+        w.app
+            .admit_cma_attempt(&reviewer, &paper.id, "advice", "r1:advice", "wks_operator")
+            .await
+            .unwrap(),
+        own
+    );
+    let disconnected = w
+        .app
+        .admit_cma_attempt(&reviewer, &paper.id, "letter", "r1:letter", "wks_operator")
+        .await
+        .unwrap();
+    assert_eq!(disconnected.payer, CmaPayer::Operator);
+    let mut saved = w
+        .app
+        .agent_step(&reviewer, &paper.id, "advice")
+        .await
+        .unwrap()
+        .unwrap();
+    saved.cma_attempts[0].payer = CmaPayer::Operator;
+    assert!(matches!(
+        w.app
+            .save_agent_step(&reviewer, &paper.id, "advice", saved)
+            .await,
+        Err(CoreError::Conflict(_))
+    ));
+    assert!(
+        w.app
+            .admit_cma_attempt(&author, &paper.id, "other", "audit", "wks_operator")
+            .await
+            .is_err()
+    );
+}
+#[tokio::test]
+async fn cma_fallback_is_a_single_cas_successor_and_projection_is_private() {
+    let mut w = cma_world().await;
+    let author = w.person("author", &[]).await;
+    let stranger = w.person("stranger", &[]).await;
+    let reviewer = w.person("reviewer", &[Role::Reviewer]).await;
+    let paper = w.submit(&author, "t", false).await;
+    let paper = w.review_paper(&author, &paper).await;
+    ready_binding(&w, &author).await;
+    w.app
+        .admit_cma_attempt(&reviewer, &paper.id, "audit", "r1:audit", "wks_operator")
+        .await
+        .unwrap();
+    assert!(
+        !w.app
+            .fallback_cma_attempt(
+                &reviewer,
+                &paper.id,
+                "audit",
+                0,
+                CmaFailure::Output,
+                "wks_operator"
+            )
+            .await
+            .unwrap()
+    );
+    let racing = Arc::new(BarrierReferees {
+        stores: w.stores.clone(),
+        reads: std::sync::atomic::AtomicUsize::new(0),
+        barrier: tokio::sync::Barrier::new(2),
+    });
+    Arc::get_mut(&mut w.app).unwrap().ports.referees = racing;
+    let (left, right) = tokio::join!(
+        w.app.fallback_cma_attempt(
+            &reviewer,
+            &paper.id,
+            "audit",
+            0,
+            CmaFailure::Quota,
+            "wks_operator"
+        ),
+        w.app.fallback_cma_attempt(
+            &reviewer,
+            &paper.id,
+            "audit",
+            0,
+            CmaFailure::Quota,
+            "wks_operator"
+        )
+    );
+    assert_ne!(left.is_ok(), right.is_ok(), "exactly one CAS must win");
+    assert!(matches!(
+        left.as_ref().err().or(right.as_ref().err()),
+        Some(CoreError::StaleRevision { .. })
+    ));
+    assert!(
+        w.app
+            .fallback_cma_attempt(
+                &reviewer,
+                &paper.id,
+                "audit",
+                0,
+                CmaFailure::Quota,
+                "wks_operator"
+            )
+            .await
+            .unwrap()
+    );
+    assert!(
+        !w.app
+            .fallback_cma_attempt(
+                &reviewer,
+                &paper.id,
+                "audit",
+                1,
+                CmaFailure::Auth,
+                "wks_operator"
+            )
+            .await
+            .unwrap()
+    );
+    let step = w
+        .app
+        .agent_step(&reviewer, &paper.id, "audit")
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(step.cma_attempts.len(), 2);
+    assert_eq!(step.cma_attempts[0].failure, Some(CmaFailure::Quota));
+    assert_eq!(step.cma_attempts[1].fallback_from, Some(0));
+    let view = serde_json::to_value(w.app.referee(&author, &paper.id).await.unwrap()).unwrap();
+    assert_eq!(view["cma_attempts"][1]["payer"], "operator");
+    for field in ["workspace", "owner", "binding_generation", "progress"] {
+        assert!(view["cma_attempts"][0].get(field).is_none());
+    }
+    assert!(matches!(
+        w.app.referee(&stranger, &paper.id).await,
+        Err(CoreError::NotFound { .. })
+    ));
+}
+#[tokio::test]
+async fn legacy_cma_progress_stays_operator_and_disconnect_fences_consent() {
+    let w = cma_world().await;
+    let author = w.person("author", &[]).await;
+    let reviewer = w.person("reviewer", &[Role::Reviewer]).await;
+    let paper = w.submit(&author, "t", false).await;
+    let paper = w.review_paper(&author, &paper).await;
+    ready_binding(&w, &author).await;
+    w.app
+        .save_agent_step(
+            &reviewer,
+            &paper.id,
+            "legacy",
+            AgentStep {
+                cma_attempts: vec![],
+                version: 1,
+                claims_revision: paper.claims_revision,
+                progress: serde_json::json!({"agent_id":"agt_legacy"}),
+            },
+        )
+        .await
+        .unwrap();
+    let a = w
+        .app
+        .admit_cma_attempt(&reviewer, &paper.id, "legacy", "r1:audit", "wks_operator")
+        .await
+        .unwrap();
+    assert_eq!(a.payer, CmaPayer::Operator);
+    assert_eq!(a.reason, "legacy_unknown");
+    assert_eq!(
+        w.app
+            .agent_step(&reviewer, &paper.id, "legacy")
+            .await
+            .unwrap()
+            .unwrap()
+            .progress["agent_id"],
+        "agt_legacy"
+    );
+    let b = w.app.begin_cma_connect(&author).await.unwrap();
+    let disconnected = w.app.disconnect_cma(&author).await.unwrap();
+    assert_eq!(disconnected.generation, b.generation + 1);
+    assert!(
+        w.app
+            .complete_cma_connect(&author.person, b.generation)
+            .await
+            .is_err()
+    );
+    assert!(
+        w.app
+            .set_cma_workspace(
+                &author,
+                SetCmaWorkspace {
+                    workspace_id: "wks_test".into(),
+                    expected_revision: b.revision
+                }
+            )
+            .await
+            .is_err()
+    );
+}
+
+struct TestAgentLease(bool);
+#[async_trait::async_trait]
+impl crate::ports::JobLease for TestAgentLease {
+    async fn claim(&self) -> CoreResult<Option<crate::ports::LeasedJob>> {
+        unreachable!()
+    }
+    async fn renew(&self, _: &crate::ports::LeasedJob) -> CoreResult<bool> {
+        Ok(self.0)
+    }
+    async fn complete(&self, _: &crate::ports::LeasedJob) -> CoreResult<()> {
+        unreachable!()
+    }
+    async fn defer(&self, _: &crate::ports::LeasedJob, _: std::time::Duration) -> CoreResult<()> {
+        unreachable!()
+    }
+    async fn retry(&self, _: &crate::ports::LeasedJob, _: &str) -> CoreResult<()> {
+        unreachable!()
+    }
+}
+impl App {
+    // Fixture helper; production callers send progress under their source revision and lease.
+    async fn save_agent_step(
+        &self,
+        caller: &Caller,
+        id: &SubmissionId,
+        key: &str,
+        step: AgentStep,
+    ) -> CoreResult<()> {
+        let (source_revision, old) = self.agent_step_snapshot(caller, id, key).await?;
+        if old
+            .as_ref()
+            .is_some_and(|s| s.cma_attempts != step.cma_attempts)
+        {
+            return Err(CoreError::conflict("CMA admission is immutable"));
+        }
+        let cleanup = step.progress["deleted"] == true;
+        self.persist_agent_step(
+            caller,
+            &crate::ports::LeasedJob {
+                submission: id.clone(),
+                kind: crate::ports::JobKind::Referee,
+                attempts: 0,
+                lease: "test".into(),
+            },
+            &TestAgentLease(true),
+            key,
+            AgentStepUpdate {
+                source_revision,
+                ordinal: step.cma_attempts.last().map(|a| a.ordinal),
+                version: step.version,
+                claims_revision: step.claims_revision,
+                progress: step.progress,
+                cleanup,
+            },
+        )
+        .await?;
+        Ok(())
+    }
+}
+
+#[tokio::test]
+async fn cma_progress_fences_stale_snapshots_leases_and_terminal_answers() {
+    let w = cma_world().await;
+    let author = w.person("author", &[]).await;
+    let reviewer = w.person("reviewer", &[Role::Reviewer]).await;
+    let paper = w.submit(&author, "t", false).await;
+    let paper = w.review_paper(&author, &paper).await;
+    ready_binding(&w, &author).await;
+    w.app
+        .admit_cma_attempt(&reviewer, &paper.id, "audit", "r1:audit", "wks_operator")
+        .await
+        .unwrap();
+    let job = crate::ports::LeasedJob {
+        submission: paper.id.clone(),
+        kind: crate::ports::JobKind::Referee,
+        attempts: 0,
+        lease: "live".into(),
+    };
+    let revision = w
+        .app
+        .agent_step_snapshot(&reviewer, &paper.id, "audit")
+        .await
+        .unwrap()
+        .0;
+    let update = |source_revision, progress| AgentStepUpdate {
+        source_revision,
+        ordinal: Some(0),
+        version: 1,
+        claims_revision: paper.claims_revision,
+        progress,
+        cleanup: false,
+    };
+    let settled = w
+        .app
+        .persist_agent_step(
+            &reviewer,
+            &job,
+            &TestAgentLease(true),
+            "audit",
+            update(revision, serde_json::json!({"answer":"immutable"})),
+        )
+        .await
+        .unwrap();
+    assert!(matches!(
+        w.app
+            .persist_agent_step(
+                &reviewer,
+                &job,
+                &TestAgentLease(true),
+                "audit",
+                update(revision, serde_json::json!({"answer":null}))
+            )
+            .await,
+        Err(CoreError::StaleRevision { .. })
+    ));
+    assert!(
+        w.app
+            .persist_agent_step(
+                &reviewer,
+                &job,
+                &TestAgentLease(true),
+                "audit",
+                update(settled, serde_json::json!({"answer":"replacement"}))
+            )
+            .await
+            .is_err()
+    );
+    assert!(
+        w.app
+            .persist_agent_step(
+                &reviewer,
+                &job,
+                &TestAgentLease(false),
+                "audit",
+                update(settled, serde_json::json!({"answer":"immutable"}))
+            )
+            .await
+            .is_err()
+    );
+    let saved = w
+        .app
+        .agent_step(&reviewer, &paper.id, "audit")
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(saved.progress["answer"], "immutable");
+    assert_eq!(saved.cma_attempts[0].outcome, CmaOutcome::Succeeded);
+}
+
+struct BarrierReferees {
+    stores: Arc<MemoryStores>,
+    reads: std::sync::atomic::AtomicUsize,
+    barrier: tokio::sync::Barrier,
+}
+#[async_trait::async_trait]
+impl crate::ports::RefereeStore for BarrierReferees {
+    async fn get(&self, id: &SubmissionId) -> CoreResult<Option<RefereeFile>> {
+        let snapshot = crate::ports::RefereeStore::get(self.stores.as_ref(), id).await?;
+        if self.reads.fetch_add(1, std::sync::atomic::Ordering::SeqCst) < 2 {
+            self.barrier.wait().await;
+        }
+        Ok(snapshot)
+    }
+    async fn insert(&self, file: &RefereeFile) -> CoreResult<()> {
+        crate::ports::RefereeStore::insert(self.stores.as_ref(), file).await
+    }
+    async fn replace(&self, file: &RefereeFile, revision: u64) -> CoreResult<()> {
+        crate::ports::RefereeStore::replace(self.stores.as_ref(), file, revision).await
+    }
+}
+
+#[tokio::test]
+async fn cma_payer_all_binding_statuses_and_disabled_feature() {
+    for enabled in [true, false] {
+        for status in [
+            CmaStatus::Disconnected,
+            CmaStatus::SetupNeeded,
+            CmaStatus::Ready,
+            CmaStatus::Unusable,
+        ] {
+            let w = if enabled {
+                cma_world().await
+            } else {
+                World::new().await
+            };
+            let author = w.person("author", &[]).await;
+            let reviewer = w.person("reviewer", &[Role::Reviewer]).await;
+            let paper = w.submit(&author, "t", false).await;
+            let paper = w.review_paper(&author, &paper).await;
+            let mut binding = CmaBinding::disconnected(author.person.clone(), chrono::Utc::now());
+            binding.status = status;
+            binding.generation = 7;
+            binding.revision = 1;
+            binding.workspace_id = Some("wks_author".into());
+            binding.reason = match status {
+                CmaStatus::Disconnected => "not_connected",
+                CmaStatus::SetupNeeded => "workspace_not_ready",
+                CmaStatus::Ready => "author_connected",
+                CmaStatus::Unusable => "authorization_refused",
+            }
+            .into();
+            crate::ports::CmaBindingStore::replace(w.stores.as_ref(), &binding, 0)
+                .await
+                .unwrap();
+            let attempt = w
+                .app
+                .admit_cma_attempt(&reviewer, &paper.id, "audit", "r1:audit", "wks_operator")
+                .await
+                .unwrap();
+            let author_pays = enabled && status == CmaStatus::Ready;
+            assert_eq!(
+                attempt.payer,
+                if author_pays {
+                    CmaPayer::Author
+                } else {
+                    CmaPayer::Operator
+                }
+            );
+            assert_eq!(attempt.owner, author_pays.then(|| author.person.clone()));
+            assert_eq!(attempt.binding_generation, author_pays.then_some(7));
+            assert_eq!(
+                attempt.workspace,
+                if author_pays {
+                    "wks_author"
+                } else {
+                    "wks_operator"
+                }
+            );
+            assert_eq!(
+                attempt.reason,
+                if enabled {
+                    binding.reason.as_str()
+                } else {
+                    "byok_disabled"
+                }
+            );
+        }
+    }
+}
+
+#[test]
+fn legacy_agent_step_deserializes_without_funding_history() {
+    let step: AgentStep = serde_json::from_value(
+        serde_json::json!({"version":1,"claims_revision":2,"progress":{"answer":"legacy answer"}}),
+    )
+    .unwrap();
+    assert!(step.cma_attempts.is_empty());
+    let view = CmaAttemptView::legacy(&step.progress);
+    assert_eq!(view.payer, CmaPayer::Operator);
+    assert_eq!(view.reason, "legacy_unknown");
+    assert_eq!(view.status, CmaOutcome::Succeeded);
+}

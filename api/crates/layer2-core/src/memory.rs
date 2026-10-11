@@ -65,6 +65,7 @@ pub fn display_name(identity: &VerifiedIdentity) -> String {
 
 #[derive(Default)]
 pub struct MemoryStores {
+    cma_bindings: Mutex<BTreeMap<PersonId, CmaBinding>>,
     solving: Mutex<BTreeMap<String, SolveFile>>,
     agents: Mutex<BTreeMap<String, Entrant>>,
     people: Mutex<BTreeMap<String, Person>>,
@@ -84,6 +85,8 @@ pub struct MemoryStores {
 impl MemoryStores {
     pub fn ports(self: &Arc<Self>, clock: Arc<dyn Clock>, reader: Arc<dyn PaperReader>) -> Ports {
         Ports {
+            cma_bindings: self.clone(),
+            cma_setup: Arc::new(UnavailableCmaSetup),
             solving: self.clone(),
             verifier: Arc::new(UnavailableVerifier),
             clock,
@@ -637,6 +640,25 @@ impl SolvingStore for MemoryStores {
         }
         *stored = agent.clone();
         stored.revision = expected + 1;
+        Ok(())
+    }
+}
+
+#[async_trait]
+impl CmaBindingStore for MemoryStores {
+    async fn get(&self, person: &PersonId) -> CoreResult<Option<CmaBinding>> {
+        Ok(self.cma_bindings.lock().await.get(person).cloned())
+    }
+    async fn replace(&self, binding: &CmaBinding, expected: u64) -> CoreResult<()> {
+        let mut bindings = self.cma_bindings.lock().await;
+        let actual = bindings.get(&binding.person).map_or(0, |b| b.revision);
+        if actual != expected {
+            return Err(CoreError::StaleRevision {
+                kind: "CMA binding",
+                id: binding.person.to_string(),
+            });
+        }
+        bindings.insert(binding.person.clone(), binding.clone());
         Ok(())
     }
 }

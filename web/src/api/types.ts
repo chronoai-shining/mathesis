@@ -149,6 +149,7 @@ export type FeedbackLetter = {
   sent_at: string;
 };
 export type RefereeFile = {
+  cma_attempts?: CmaAttemptView[];
   id: string;
   rounds: RefereeRound[];
   letters: FeedbackLetter[];
@@ -696,4 +697,40 @@ export type SolveNotification = {
   claim: string;
   entrant: Entrant;
   at: string;
+};
+
+export type CmaBinding = {
+  person: string;
+  subject: string;
+  revision: number;
+  generation: number;
+  status: 'disconnected' | 'setup_needed' | 'ready' | 'unusable';
+  reason: string;
+  workspace_id: string | null;
+  sandbox_id: string | null;
+  sandbox_profile: { id: string; revision: number } | null;
+  checked_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+export type MyCmaStatus = { enabled: boolean; binding: CmaBinding; setup_url: string };
+export type CmaAttemptView = {
+  kind?:
+    | 'audit'
+    | 'advice'
+    | 'letter'
+    | 'lean_probe'
+    | 'conjecture_target'
+    | 'problem_audit'
+    | 'legacy_unknown';
+  round?: number | null;
+  claim?: string | null;
+  target_generation?: number | null;
+  step: string;
+  attempt: number;
+  payer: 'author' | 'operator';
+  reason: string;
+  status: 'running' | 'succeeded' | 'failed';
+  admitted_at: string | null;
+  finished_at: string | null;
 };

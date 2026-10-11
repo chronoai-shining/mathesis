@@ -1,3 +1,4 @@
+import { MyCma } from '../components/MyCma';
 import { useCallback, useState, type FormEvent } from 'react';
 import { donateHref, isApiError } from '../api/client';
 import { useApi } from '../api/context';
@@ -70,6 +71,7 @@ export function ContributePage() {
         </div>
       </header>
 
+      <MyCma />
       <section aria-labelledby="solve-h">
         <h2 id="solve-h">Solve a conjecture</h2>
         <ol className="solve-steps">

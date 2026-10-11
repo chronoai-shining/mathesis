@@ -587,3 +587,72 @@ exec sleep 10
     assert_eq!(reply.response_id().unwrap(), "resp_cli");
     assert!(std::fs::read_dir(scratch).unwrap().next().is_none());
 }
+
+#[test]
+fn typed_refusals_exclude_transient_and_ambiguous_requests() {
+    for status in [429, 500, 502, 503] {
+        assert_eq!(
+            failure_kind(&ReviewError::Provider {
+                status,
+                body: "quota_exceeded".into()
+            }),
+            None
+        );
+    }
+    assert_eq!(
+        failure_kind(&ReviewError::Transport("uncertain write".into())),
+        None
+    );
+    assert_eq!(failure_kind(&invalid("invalid mathematical JSON")), None);
+    assert_eq!(
+        failure_kind(&ReviewError::Provider {
+            status: 409,
+            body: "conflict".into()
+        }),
+        None
+    );
+    for (status, code, kind) in [
+        (401, "not_authenticated", FailureKind::Auth),
+        (409, "sandbox_credential_setup_required", FailureKind::Setup),
+        (403, "credential_revoked", FailureKind::Credential),
+        (409, "agent_resource_quota", FailureKind::Quota),
+    ] {
+        assert_eq!(
+            failure_kind(&ReviewError::Provider {
+                status,
+                body: code.into()
+            }),
+            Some(kind)
+        );
+    }
+}
+#[tokio::test]
+async fn terminal_agent_failure_retains_typed_reason_across_restarts() {
+    let (client, fake) = client(vec![
+        reply(json!({"id":"agt_test"})),
+        receipt("resp_test"),
+        reply(json!({"status":"failed","error":{"message":"untrusted provider diagnostic"}})),
+        reply(json!({"target_active":false,"target":{}})),
+        accepted(),
+        accepted(),
+    ]);
+    let store = Memory::default();
+    let result = client
+        .answer(&store, "input".into(), Duration::from_secs(30))
+        .await;
+    assert!(matches!(
+        result,
+        Err(ReviewError::CmaRefusal(FailureKind::CauseUnknown))
+    ));
+    let state = store.load().await.unwrap().unwrap();
+    assert_eq!(state["typed_failure"], "cause_unknown");
+    assert!(!state.to_string().contains("untrusted provider diagnostic"));
+    let calls = fake.calls.lock().await.len();
+    assert!(matches!(
+        client
+            .answer(&store, "input".into(), Duration::from_secs(30))
+            .await,
+        Err(ReviewError::CmaRefusal(FailureKind::CauseUnknown))
+    ));
+    assert_eq!(fake.calls.lock().await.len(), calls);
+}

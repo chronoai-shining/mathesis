@@ -245,6 +245,8 @@ pub trait GrantStore: Send + Sync {
 
 /// Everything Layer 2 needs, bundled for composition.
 pub struct Ports {
+    pub cma_bindings: Arc<dyn CmaBindingStore>,
+    pub cma_setup: Arc<dyn CmaSetup>,
     pub solving: Arc<dyn SolvingStore>,
     pub verifier: Arc<dyn Verifier>,
     pub clock: Arc<dyn Clock>,
@@ -288,6 +290,42 @@ impl Verifier for UnavailableVerifier {
     ) -> CoreResult<crate::model::VerificationReceipt> {
         Err(crate::CoreError::Unavailable(
             "verifier is not configured".into(),
+        ))
+    }
+}
+
+#[async_trait]
+pub trait CmaBindingStore: Send + Sync {
+    async fn get(&self, person: &PersonId) -> CoreResult<Option<crate::model::CmaBinding>>;
+    async fn replace(&self, binding: &crate::model::CmaBinding, expected: u64) -> CoreResult<()>;
+}
+#[async_trait]
+pub trait CmaSetup: Send + Sync {
+    async fn revoke(&self, _: &PersonId, _: u64) -> CoreResult<()> {
+        Ok(())
+    }
+    fn enabled(&self) -> bool {
+        false
+    }
+    fn setup_url(&self) -> String {
+        String::new()
+    }
+    async fn validate(
+        &self,
+        binding: &crate::model::CmaBinding,
+        workspace: &str,
+    ) -> CoreResult<crate::model::CmaWorkspaceCheck>;
+}
+pub struct UnavailableCmaSetup;
+#[async_trait]
+impl CmaSetup for UnavailableCmaSetup {
+    async fn validate(
+        &self,
+        _: &crate::model::CmaBinding,
+        _: &str,
+    ) -> CoreResult<crate::model::CmaWorkspaceCheck> {
+        Err(crate::CoreError::Unavailable(
+            "CMA connection is disabled".into(),
         ))
     }
 }

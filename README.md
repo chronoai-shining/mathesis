@@ -259,3 +259,28 @@ pinned artifacts. The service serializes checks to keep memory bounded.
 The optional real-Lean test uses `WISHPOOL_TEST_LEAN_WORKSPACE`; ordinary tests
 use fake verifiers and fake compiler executables. Review tests use fake Oracle
 and Codex backends. Mongo tests allocate their own databases.
+
+Authors can bring their own CMA account for the Codex review steps of their own
+submissions. Wishpool continues to cover the GPT Pro Oracle referee and the
+operator default during the early phase; uploads never require BYOK. Each CMA
+attempt records and privately shows its payer, including an explicit operator
+fallback when author credentials or quota are refused.
+
+To enable author CMA connections, set `WISHPOOL_CMA_BYOK_ENABLED=true` and
+`WISHPOOL_CMA_PUBLIC_URL` to the CMA web origin. NyxID authentication, the HTTP
+CMA backend, an operator workspace/token source and `WISHPOOL_TOKEN_KEY` are
+required. Hosted donations may remain disabled. Authors consent through NyxID,
+open CMA setup, provision a Sandbox with `own_credentials`, and paste a ready
+workspace ID in My CMA account. Wishpool validates ownership, readiness and the
+exact Sandbox profile revision. Automatic provisioning is a follow-up.
+
+Author CMA execution requires `WISHPOOL_CMA_AGENT_PROFILE` with an exact
+`{"id":"agp_…","revision":1}` pin to a published agent profile readable by
+both the operator and author accounts. The exact pin is retained in each
+creation intent for retries. Workspace facts are fetched and decoded in Layer 3;
+Layer 2 checks ownership, readiness and `own_credentials` before saving the
+binding under its source revision. Refresh throttling, outages, ambiguous
+refusals and concurrent token rotation remain transient, with the same payer.
+Disconnect/reconnect revokes the old generation; outstanding agent cleanup is
+best effort and may fail after revocation. Cleanup never substitutes operator
+credentials for author resources.

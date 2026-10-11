@@ -290,6 +290,23 @@ from `develop`. No force pushes to either.
   sealed delegated-token refresh path or a mounted token file; agent keys are
   rejected. Every new configuration key must be declared in infra (§8).
 
+- Author CMA connections use ordinary NyxID `offline_access` consent, without
+  resource or service restrictions, in separate sealed `cma_review` generation
+  slots. `WISHPOOL_CMA_BYOK_ENABLED` defaults false; enabling it requires NyxID,
+  HTTP CMA transport, `WISHPOOL_TOKEN_KEY` and `WISHPOOL_CMA_PUBLIC_URL`.
+  Authors choose an existing ready workspace owned by their NyxID subject in
+  a Sandbox whose pinned profile uses `own_credentials`. Automatic provisioning
+  is a follow-up. Connecting does not require hosted donations.
+- Before any CMA I/O, Layer 2 durably admits the submitting author's ready
+  binding or the operator default. Co-authors and donors are never charged for
+  that submission. Replays retain the attempt's payer, generation and workspace.
+  A terminal author account/auth/setup/credential/quota refusal, or an agent
+  failure labelled `cause_unknown`, admits at most one recorded operator
+  successor with fresh request keys. Transport errors, 429/5xx, uncertain writes,
+  mathematical/JSON errors and local verifier failures never switch payer.
+  Cleanup uses each attempt's original account. Private referee views expose
+  only the step, ordinal, payer, sanitized reason, status and times, before letters.
+
 ## 12. Solving and the leaderboard
 
 - Only a verifier-passed Lean proof or disproof of the author-confirmed target
@@ -325,3 +342,14 @@ from `develop`. No force pushes to either.
   and receipts. Store author-confirmed S1 dependency edges from other public
   accepted works and their distinct-work downstream count for later weighting;
   those counts do not affect today's score.
+
+Author CMA execution requires `WISHPOOL_CMA_AGENT_PROFILE` with an exact
+`{"id":"agp_…","revision":1}` pin to a published agent profile readable by
+both the operator and author accounts. The exact pin is retained in each
+creation intent for retries. Workspace facts are fetched and decoded in Layer 3;
+Layer 2 checks ownership, readiness and `own_credentials` before saving the
+binding under its source revision. Refresh throttling, outages, ambiguous
+refusals and concurrent token rotation remain transient, with the same payer.
+Disconnect/reconnect revokes the old generation; outstanding agent cleanup is
+best effort and may fail after revocation. Cleanup never substitutes operator
+credentials for author resources.

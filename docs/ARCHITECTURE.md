@@ -390,3 +390,48 @@ then earlier last solve and entrant id. Month means the current UTC calendar
 month. Visibility and version fences apply to all public solve projections.
 Author-confirmed cross-work S1 dependencies retain source version and claim
 revision, and a distinct-public-work downstream count; weighting is deferred.
+
+### Author CMA execution
+
+Layer 2 owns private, revision-fenced CMA bindings and payer admission in the
+existing referee aggregate. A binding has a generation and an exact validated
+Sandbox profile pin, without credentials. Its port has memory and Mongo
+implementations (unique person index, compare-and-swap). Author binding consent
+and validation use the binary's ordinary NyxID OAuth flow and Layer 3 CMA HTTP
+transport. Refresh tokens use the existing TokenCipher and shared hosted-worker
+refresh helper, in a separate `cma_tokens` collection keyed by purpose, person
+and generation. Rotation compares the sealed value so a deleted slot cannot be
+resurrected. Donation grants and their custody are independent.
+
+The leased durable RunStore admits a payer before any CMA request. Every CMA
+entry point (audit, advice, letter, accepted Lean probe, conjecture target and
+paper-problem audit) routes through a client factory using that saved attempt.
+Author transports have only that person's generation slot; they have no mounted
+operator-token fallback. The operator uses its existing configured transport.
+Stable initial keys retain legacy replay compatibility, and one recorded
+operator successor gets a new ordinal/key. Original progress and cleanup
+receipts remain attached to each payer's attempt. Cleanup selects the original
+account even after a successor has started.
+
+Typed refusals survive durable CMA progress. Account/auth/setup/credential/quota
+failures and generic terminal agent failure (`cause_unknown`) may close an
+author attempt and append one operator attempt in a single referee CAS write.
+Transport/429/5xx/uncertain mutations keep the original payer, key and body.
+Mathematical reading, JSON validation and credential-free local Lean checks do
+not trigger payer fallback. Oracle, Policy, solution verification and leaderboard
+semantics remain unchanged. Private author/staff projections show safe funding
+history. `WISHPOOL_CMA_BYOK_ENABLED` defaults false and requires NyxID, HTTP CMA,
+`WISHPOOL_TOKEN_KEY` and `WISHPOOL_CMA_PUBLIC_URL`; infra declares each key.
+Automatic Sandbox/workspace provisioning is a follow-up to existing-resource
+validation in v1.
+
+Author CMA execution requires `WISHPOOL_CMA_AGENT_PROFILE` with an exact
+`{"id":"agp_…","revision":1}` pin to a published agent profile readable by
+both the operator and author accounts. The exact pin is retained in each
+creation intent for retries. Workspace facts are fetched and decoded in Layer 3;
+Layer 2 checks ownership, readiness and `own_credentials` before saving the
+binding under its source revision. Refresh throttling, outages, ambiguous
+refusals and concurrent token rotation remain transient, with the same payer.
+Disconnect/reconnect revokes the old generation; outstanding agent cleanup is
+best effort and may fail after revocation. Cleanup never substitutes operator
+credentials for author resources.

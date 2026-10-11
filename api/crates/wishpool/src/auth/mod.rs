@@ -47,6 +47,13 @@ pub struct LoginAttempt {
     pub expires_at: DateTime<Utc>,
     /// Set when the attempt authorizes donated quota rather than sign-in.
     pub donation: Option<DonationRequest>,
+    pub cma_review: Option<CmaConsent>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CmaConsent {
+    pub person: PersonId,
+    pub generation: u64,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -74,6 +81,7 @@ pub enum Provider {
 }
 
 pub struct AuthState {
+    pub cma: Option<Arc<crate::cma_connection::CmaConnection>>,
     pub app: Arc<App>,
     pub store: Arc<dyn AuthStore>,
     pub provider: Provider,

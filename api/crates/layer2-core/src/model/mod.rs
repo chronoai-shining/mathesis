@@ -3,6 +3,7 @@
 //! revision is not the stored one.
 
 pub(crate) mod claim;
+mod cma;
 mod common;
 mod conjecture;
 mod donation;
@@ -17,6 +18,7 @@ mod solving;
 mod task;
 
 pub use claim::*;
+pub use cma::*;
 pub use common::*;
 pub use conjecture::*;
 pub use donation::*;
@@ -26,12 +28,12 @@ pub use paper::*;
 pub use person::*;
 pub use record::*;
 pub use referee::{
-    Advice, AgentStep, AuditedClaim, AuditedConcern, ConcernStatus, Correctness, Effort,
-    Evidence as ImprovementEvidence, Feasibility, FeedbackLetter, FormalAttempt, FormalProbe,
-    FormalProbeView, FormalizationCandidate, Improvement, ImprovementKind, LetterDraft,
-    MAX_LETTER_CHARS, NewLetter, ProbeOutcome, ProbeOutcomeView, Recommendation, RefereeAudit,
-    RefereeClaim, RefereeConcern, RefereeFile, RefereeReport, RefereeRound, RefereeRoundView,
-    RefereeView, RoundUpdate, Severity, Step, StepState,
+    Advice, AgentStep, AgentStepUpdate, AuditedClaim, AuditedConcern, ConcernStatus, Correctness,
+    Effort, Evidence as ImprovementEvidence, Feasibility, FeedbackLetter, FormalAttempt,
+    FormalProbe, FormalProbeView, FormalizationCandidate, Improvement, ImprovementKind,
+    LetterDraft, MAX_LETTER_CHARS, NewLetter, ProbeOutcome, ProbeOutcomeView, Recommendation,
+    RefereeAudit, RefereeClaim, RefereeConcern, RefereeFile, RefereeReport, RefereeRound,
+    RefereeRoundView, RefereeView, RoundUpdate, Severity, Step, StepState,
 };
 pub use review::*;
 pub use solving::*;

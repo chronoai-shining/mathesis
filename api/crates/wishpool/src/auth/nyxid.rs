@@ -132,6 +132,27 @@ impl NyxIdClient {
         Ok(url.into())
     }
 
+    /// CMA commands require ordinary user tokens, with no service restrictions.
+    pub fn cma_authorize_url(
+        &self,
+        state: &str,
+        challenge: &str,
+        nonce: &str,
+    ) -> CoreResult<String> {
+        let mut url = Url::parse(&self.authorize_url(state, challenge, nonce)?)
+            .map_err(|_| CoreError::Unavailable("authorization endpoint unavailable".into()))?;
+        let pairs: Vec<(String, String)> = url
+            .query_pairs()
+            .filter(|(k, _)| k != "scope")
+            .map(|(k, v)| (k.into_owned(), v.into_owned()))
+            .collect();
+        url.query_pairs_mut()
+            .clear()
+            .extend_pairs(pairs)
+            .append_pair("scope", "openid profile email offline_access");
+        Ok(url.into())
+    }
+
     /// An authorization request that adds delegated scopes to an existing
     /// grant (incremental consent), for donated model quota.
     pub fn donation_authorize_url(
@@ -174,16 +195,40 @@ impl NyxIdClient {
             ])
             .send()
             .await
-            .map_err(|e| CoreError::Unavailable(format!("NyxID token endpoint: {e}")))?;
-        if !response.status().is_success() {
-            return Err(CoreError::Unauthenticated);
+            .map_err(|_| CoreError::Unavailable("NyxID token endpoint unavailable".into()))?;
+        let status = response.status();
+        if !status.is_success() {
+            if status.as_u16() == 400 || status.as_u16() == 401 {
+                let error = response.json::<serde_json::Value>().await.ok();
+                if error
+                    .as_ref()
+                    .and_then(|v| v["error"].as_str())
+                    .is_some_and(|e| {
+                        matches!(
+                            e,
+                            "invalid_grant"
+                                | "invalid_client"
+                                | "unauthorized_client"
+                                | "access_denied"
+                        )
+                    })
+                {
+                    return Err(CoreError::Unauthenticated);
+                }
+            }
+            return Err(CoreError::Unavailable(
+                "NyxID credential refresh temporarily unavailable".into(),
+            ));
         }
         let tokens: TokenResponse = response
             .json()
             .await
-            .map_err(|e| CoreError::Unavailable(format!("NyxID token response: {e}")))?;
+            .map_err(|_| CoreError::Unavailable("NyxID token response unavailable".into()))?;
         Ok(DelegatedTokens {
-            access_token: tokens.access_token.ok_or(CoreError::Unauthenticated)?,
+            access_token: tokens
+                .access_token
+                .filter(|t| !t.is_empty())
+                .ok_or_else(|| CoreError::Unavailable("NyxID access token missing".into()))?,
             refresh_token: tokens.refresh_token,
         })
     }
@@ -209,7 +254,7 @@ impl NyxIdClient {
             ])
             .send()
             .await
-            .map_err(|e| CoreError::Unavailable(format!("NyxID token endpoint: {e}")))?;
+            .map_err(|_| CoreError::Unavailable("NyxID token endpoint unavailable".into()))?;
         if !response.status().is_success() {
             let status = response.status();
             tracing::warn!(%status, "NyxID refused the authorization code");

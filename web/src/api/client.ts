@@ -1,4 +1,5 @@
 import type {
+  MyCmaStatus,
   ConjectureSummary,
   ConjectureDetail,
   Entrant,
@@ -213,6 +214,9 @@ export function versionBody(source: File, note: string): FormData {
 }
 
 export interface ApiClient {
+  getCma(options?: RequestOptions): Promise<MyCmaStatus>;
+  setCmaWorkspace(input: { workspace_id: string; expected_revision: number }): Promise<MyCmaStatus>;
+  disconnectCma(): Promise<MyCmaStatus>;
   session(options?: RequestOptions): Promise<Session>;
   logout(): Promise<void>;
   policy(options?: RequestOptions): Promise<PolicyDocument>;
@@ -481,6 +485,9 @@ export function createApiClient(fetchImpl: FetchLike = (input, init) => fetch(in
       request('POST', api(`/contributions/${seg(id)}/review`), review),
     listContributors: (contributor, o) =>
       request('GET', api(`/contributors${buildQuery({ contributor })}`), undefined, o),
+    getCma: (o) => request('GET', api('/me/cma'), undefined, o),
+    setCmaWorkspace: (input) => request('PUT', api('/me/cma'), input),
+    disconnectCma: () => request('DELETE', api('/me/cma')),
     getDonation: (o) => request('GET', api('/donation'), undefined, o),
     updateDonation: (patch) => request('PATCH', api('/donation'), patch),
   };

@@ -428,7 +428,7 @@ impl Worker {
                             self.audit_budget,
                             advisor.audit_with_store(
                                 &input,
-                                &self.agent_store(job, submission, &format!("r{number}:audit:a0")),
+                                &self.agent_store(job, submission, &format!("r{number}:audit")),
                             ),
                         )
                         .await
@@ -529,7 +529,7 @@ impl Worker {
                         advice.state = match advisor
                             .advise_with_store(
                                 &input,
-                                &self.agent_store(job, submission, &format!("r{number}:advice:a0")),
+                                &self.agent_store(job, submission, &format!("r{number}:advice")),
                             )
                             .await
                         {
@@ -602,7 +602,7 @@ impl Worker {
                                     &self.agent_store(
                                         job,
                                         submission,
-                                        &format!("r{number}:letter:a0"),
+                                        &format!("r{number}:letter"),
                                     ),
                                 )
                                 .await
@@ -754,7 +754,7 @@ impl Worker {
                                     &self.agent_store(
                                         job,
                                         submission,
-                                        &format!("r{number}:formal:a0"),
+                                        &format!("r{number}:formal"),
                                     ),
                                 ),
                             )

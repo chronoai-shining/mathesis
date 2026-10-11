@@ -65,6 +65,9 @@ impl AuthStore for MongoStore {
                 "nonce": &attempt.nonce,
                 "return_to": &attempt.return_to,
                 "expires_at": BsonDateTime::from_chrono(attempt.expires_at),
+                "purpose": if attempt.cma_review.is_some() { "cma_review" } else { "login_or_donation" },
+                "cma_person": attempt.cma_review.as_ref().map(|c| c.person.0.clone()),
+                "cma_generation": attempt.cma_review.as_ref().map(|c| c.generation as i64),
                 "donation_donor": attempt.donation.as_ref().map(|d| d.donor.0.clone()),
                 "donation_cap": attempt.donation.as_ref().map(|d| d.monthly_cap as i64),
                 "donation_model": attempt.donation.as_ref().map(|d| d.model.clone()),
@@ -96,6 +99,19 @@ impl AuthStore for MongoStore {
                         .get_datetime("expires_at")
                         .map_err(|_| decode_error("expires_at"))?
                         .to_chrono(),
+                    cma_review: match (
+                        d.get_str("purpose"),
+                        d.get_str("cma_person"),
+                        d.get_i64("cma_generation"),
+                    ) {
+                        (Ok("cma_review"), Ok(person), Ok(generation)) => {
+                            Some(crate::auth::CmaConsent {
+                                person: PersonId(person.into()),
+                                generation: generation as u64,
+                            })
+                        }
+                        _ => None,
+                    },
                     donation: match (
                         d.get_str("donation_donor"),
                         d.get_i64("donation_cap"),

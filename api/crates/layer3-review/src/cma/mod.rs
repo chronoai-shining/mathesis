@@ -1,5 +1,6 @@
 //! Durable CMA conversations through NyxID. Output remains untrusted.
 mod adapters;
+pub mod resources;
 mod transport;
 use crate::{ReviewError, ReviewResult};
 pub use adapters::{CmaAdvisor, CmaLean};
@@ -20,11 +21,81 @@ const CHUNK: usize = 200 * 1024;
 #[async_trait]
 pub trait RunStore: Send + Sync {
     fn key(&self) -> &str;
+    async fn execution(&self) -> ReviewResult<Option<Execution>> {
+        Ok(None)
+    }
+    async fn fallback(&self, _: FailureKind) -> ReviewResult<bool> {
+        Ok(false)
+    }
     async fn active(&self) -> ReviewResult<bool> {
         Ok(true)
     }
     async fn load(&self) -> ReviewResult<Option<Value>>;
     async fn save(&self, state: Value) -> ReviewResult<()>;
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum FailureKind {
+    Account,
+    Auth,
+    Setup,
+    Credential,
+    Quota,
+    CauseUnknown,
+    Output,
+    Cancelled,
+}
+fn failure_kind(error: &ReviewError) -> Option<FailureKind> {
+    match error {
+        ReviewError::CmaRefusal(kind) => Some(*kind),
+        ReviewError::Provider {
+            status: 429 | 500..=599,
+            ..
+        }
+        | ReviewError::Transport(_) => None,
+        ReviewError::Provider { status: 401, .. } => Some(FailureKind::Auth),
+        ReviewError::Provider { body, .. } => match body.as_str() {
+            "not_authenticated" | "forbidden" | "invalid_token" => Some(FailureKind::Auth),
+            "sandbox_credential_setup_required" | "sandbox_not_ready" | "workspace_not_ready" => {
+                Some(FailureKind::Setup)
+            }
+            "credential_refused" | "credential_revoked" | "model_credentials_required" => {
+                Some(FailureKind::Credential)
+            }
+            "resource_quota"
+            | "workspace_resource_quota"
+            | "agent_resource_quota"
+            | "quota_exceeded"
+            | "insufficient_quota" => Some(FailureKind::Quota),
+            "account_disabled" | "account_unavailable" => Some(FailureKind::Account),
+            _ => None,
+        },
+        _ => None,
+    }
+}
+pub struct Execution {
+    pub client: Arc<Client>,
+    pub key: String,
+}
+struct ExecutionStore<'a> {
+    inner: &'a dyn RunStore,
+    key: String,
+}
+#[async_trait]
+impl RunStore for ExecutionStore<'_> {
+    fn key(&self) -> &str {
+        &self.key
+    }
+    async fn active(&self) -> ReviewResult<bool> {
+        self.inner.active().await
+    }
+    async fn load(&self) -> ReviewResult<Option<Value>> {
+        self.inner.load().await
+    }
+    async fn save(&self, value: Value) -> ReviewResult<()> {
+        self.inner.save(value).await
+    }
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -39,6 +110,7 @@ pub struct RunState {
     pub input: String,
     pub answer: Option<String>,
     pub failure: Option<String>,
+    pub typed_failure: Option<FailureKind>,
     pub stopped: bool,
     pub deleted: bool,
     /// Original revision-bound control intent survives an uncertain POST.
@@ -123,6 +195,38 @@ impl Client {
         prompt: String,
         timeout: Duration,
     ) -> ReviewResult<String> {
+        loop {
+            let result = match store.execution().await {
+                Ok(Some(execution)) => {
+                    execution
+                        .client
+                        .answer_inner(
+                            &ExecutionStore {
+                                inner: store,
+                                key: execution.key,
+                            },
+                            prompt.clone(),
+                            timeout,
+                        )
+                        .await
+                }
+                Ok(None) => self.answer_inner(store, prompt.clone(), timeout).await,
+                Err(error) => Err(error),
+            };
+            if let Err(ReviewError::CmaRefusal(kind)) = &result
+                && store.fallback(*kind).await?
+            {
+                continue;
+            }
+            return result;
+        }
+    }
+    async fn answer_inner(
+        &self,
+        store: &dyn RunStore,
+        prompt: String,
+        timeout: Duration,
+    ) -> ReviewResult<String> {
         if timeout.is_zero() || timeout > Duration::from_secs(3600) {
             return Err(invalid("CMA deadline must be 1..3600 seconds"));
         }
@@ -164,12 +268,16 @@ impl Client {
             if matches!(&error, ReviewError::Transport(s) if s == "CMA persistence fence lost") {
                 return Err(error);
             }
+            state.typed_failure = failure_kind(&error);
             state.failure = Some(error.to_string());
             Self::save(store, &state).await?;
         }
         // Persist terminal output before cleanup: a crash cannot lose the answer.
         self.cleanup(store, &mut state).await;
         if let Some(error) = state.failure {
+            if let Some(kind) = state.typed_failure {
+                return Err(ReviewError::CmaRefusal(kind));
+            }
             return Err(ReviewError::Output(error));
         }
         state
@@ -252,8 +360,18 @@ impl Client {
                     state.response_id = None;
                     Self::save(store, state).await?;
                 }
-                Some("failed" | "cancelled" | "incomplete") => {
-                    return Err(invalid("CMA response failed, cancelled or incomplete"));
+                Some("failed") => {
+                    let code = v["error"]["code"].as_str().unwrap_or("cause_unknown");
+                    let error = ReviewError::Provider {
+                        status: 400,
+                        body: code.into(),
+                    };
+                    return Err(ReviewError::CmaRefusal(
+                        failure_kind(&error).unwrap_or(FailureKind::CauseUnknown),
+                    ));
+                }
+                Some("cancelled" | "incomplete") => {
+                    return Err(ReviewError::CmaRefusal(FailureKind::Cancelled));
                 }
                 _ => return Err(invalid("unknown CMA response status")),
             }
@@ -277,6 +395,18 @@ impl Client {
         Ok(false)
     }
     pub async fn cancel(&self, store: &dyn RunStore) -> ReviewResult<()> {
+        if let Some(execution) = store.execution().await? {
+            return execution
+                .client
+                .cancel_inner(&ExecutionStore {
+                    inner: store,
+                    key: execution.key,
+                })
+                .await;
+        }
+        self.cancel_inner(store).await
+    }
+    async fn cancel_inner(&self, store: &dyn RunStore) -> ReviewResult<()> {
         if let Some(v) = store.load().await? {
             let mut state: RunState =
                 serde_json::from_value(v).map_err(|_| invalid("invalid stored CMA state"))?;

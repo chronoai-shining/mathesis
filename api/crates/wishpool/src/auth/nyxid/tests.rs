@@ -122,6 +122,7 @@ struct Harness {
     donations: Arc<crate::donations::Donations>,
     gateway: String,
     stores: Arc<MemoryStores>,
+    cma: Option<Arc<crate::cma_connection::CmaConnection>>,
 }
 
 /// A fake NyxID LLM gateway: answers one statement judgement with usage.
@@ -144,6 +145,10 @@ async fn gateway(
 }
 
 async fn harness() -> Harness {
+    harness_with_cma(false).await
+}
+
+async fn harness_with_cma(enabled: bool) -> Harness {
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let issuer = format!("http://{}", listener.local_addr().unwrap());
     let provider = Arc::new(FakeNyxId {
@@ -166,6 +171,19 @@ async fn harness() -> Harness {
             "/.well-known/jwks.json",
             get(move || async move { Json(json!({ "keys": [jwk] })) }),
         )
+        .route("/api/v1/workspaces/{id}", get(|axum::extract::Path(id):axum::extract::Path<String>| async move {
+            use axum::response::IntoResponse;
+            let status = match id.as_str() { "wks_outage" => Some(StatusCode::SERVICE_UNAVAILABLE), "wks_refused" => Some(StatusCode::FORBIDDEN), "wks_missing" => Some(StatusCode::NOT_FOUND), _=>None };
+            if let Some(status) = status { return (status,Json(json!({"code":"forbidden"}))).into_response(); }
+            Json(json!({"id":id, "sandbox_id":if id == "wks_foreign" {"sbx_foreign"} else if id == "wks_managed" {"sbx_managed"} else if id == "wks_inactive" {"sbx_inactive"} else {"sbx_mine"}, "status":if id == "wks_pending" {"pending"} else {"ready"}})).into_response()
+        }))
+        .route("/api/v1/sandboxes/{id}", get(|axum::extract::Path(id):axum::extract::Path<String>| async move {
+            Json(json!({"id":id, "owner":if id == "sbx_foreign" {"other_user"} else {"user-1"}, "status":if id == "sbx_inactive" {"stopped"} else {"active"}, "profile":{"id":if id == "sbx_managed" {"sbp_managed"} else {"sbp_mine"},"revision":3}}))
+        }))
+        .route("/api/v1/sandbox-profiles/{id}/revisions/{revision}", get(|axum::extract::Path((id,revision)):axum::extract::Path<(String,u64)>| async move {
+            assert_eq!(revision,3);
+            Json(json!({"content":{"model_access":if id == "sbp_managed" {"chronoai_managed"} else {"own_credentials"}}}))
+        }))
         .route("/oauth/token", post(token))
         .route("/gateway/v1/chat/completions", post(gateway))
         .with_state(provider.clone());
@@ -180,12 +198,24 @@ async fn harness() -> Harness {
     .await
     .unwrap();
     let stores = Arc::new(MemoryStores::default());
-    let app = App::new(
-        stores.ports(Arc::new(SystemClock), Arc::new(crate::latex::LatexReader)),
-        Policy::default(),
-        BTreeSet::from(["editor".into()]),
-    );
     let client = Arc::new(client);
+    let cma = enabled.then(|| {
+        Arc::new(crate::cma_connection::CmaConnection {
+            tokens: Arc::new(crate::donations::MemoryDonorTokens::default()),
+            cipher: crate::donations::TokenCipher::from_base64(
+                &base64::engine::general_purpose::STANDARD.encode(rand::random::<[u8; 32]>()),
+            )
+            .unwrap(),
+            nyxid: client.clone(),
+            base_url: issuer.clone(),
+            public_url: issuer.clone(),
+        })
+    });
+    let mut ports = stores.ports(Arc::new(SystemClock), Arc::new(crate::latex::LatexReader));
+    if let Some(cma) = &cma {
+        ports.cma_setup = Arc::new(crate::cma_connection::CmaSetupAdapter(cma.clone()));
+    }
+    let app = App::new(ports, Policy::default(), BTreeSet::from(["editor".into()]));
     let gateway = format!("{issuer}/gateway/v1");
     let donations = Arc::new(crate::donations::Donations {
         tokens: Arc::new(crate::donations::MemoryDonorTokens::default()),
@@ -199,6 +229,7 @@ async fn harness() -> Harness {
         default_model: "claude-test".into(),
     });
     let auth = Arc::new(AuthState {
+        cma: cma.clone(),
         app: app.clone(),
         store: Arc::new(MemoryAuthStore::default()),
         provider: Provider::NyxId(client.clone()),
@@ -214,6 +245,7 @@ async fn harness() -> Harness {
         donations,
         gateway,
         stores,
+        cma,
     }
 }
 
@@ -832,5 +864,147 @@ async fn lean_target_response_requires_cookie_provenance_even_with_a_valid_beare
     assert_eq!(
         confirmed.json["lean_statements"][0]["response"]["author"],
         "user-1"
+    );
+}
+
+#[tokio::test]
+async fn author_cma_consent_is_ordinary_generation_fenced_and_donation_slots_are_independent() {
+    let h = harness_with_cma(true).await;
+    let donated = crate::auth::random_token();
+    h.donations
+        .tokens
+        .put(&"user-1".into(), &donated)
+        .await
+        .unwrap();
+
+    let (state, nonce, challenge, browser) = begin(&h, "/").await;
+    h.provider
+        .codes
+        .lock()
+        .unwrap()
+        .insert("login".into(), (challenge, nonce));
+    let login = send(
+        &h.router,
+        get_req(
+            &format!("/auth/callback?code=login&state={state}"),
+            Some(&browser),
+        ),
+    )
+    .await;
+    let session = cookie_pair(&login.cookies, "wp_session");
+    let begin = send(
+        &h.router,
+        get_req("/auth/cma/connect?return_to=/submit", Some(&session)),
+    )
+    .await;
+    let query: HashMap<String, String> = Url::parse(begin.location.as_deref().unwrap())
+        .unwrap()
+        .query_pairs()
+        .into_owned()
+        .collect();
+    assert_eq!(query["scope"], "openid profile email offline_access");
+    for key in [
+        "resource",
+        "requested_service_ids",
+        "include_granted_scopes",
+    ] {
+        assert!(!query.contains_key(key));
+    }
+    let donor_url = h
+        .client
+        .donation_authorize_url(
+            "state",
+            "challenge",
+            "nonce",
+            "openid offline_access proxy",
+            &["cma".into()],
+        )
+        .unwrap();
+    assert!(donor_url.contains("requested_service_ids"));
+    h.provider.codes.lock().unwrap().insert(
+        "cma".into(),
+        (query["code_challenge"].clone(), query["nonce"].clone()),
+    );
+    let browser = cookie_pair(&begin.cookies, "wp_login");
+    let consent = send(
+        &h.router,
+        get_req(
+            &format!("/auth/callback?code=cma&state={}", query["state"]),
+            Some(&format!("{session}; {browser}")),
+        ),
+    )
+    .await;
+    assert_eq!(consent.status, StatusCode::SEE_OTHER);
+    let session = cookie_pair(&consent.cookies, "wp_session");
+    let status = send(&h.router, get_req("/api/v1/me/cma", Some(&session))).await;
+    assert_eq!(status.json["binding"]["reason"], "workspace_needed");
+    let cma = h.cma.as_ref().unwrap();
+    let slot = crate::cma_connection::slot(&"user-1".into(), 1);
+    assert!(cma.tokens.get(&slot).await.unwrap().is_some());
+    assert_eq!(
+        h.donations.tokens.get(&"user-1".into()).await.unwrap(),
+        Some(donated.clone())
+    );
+    let text = status.json.to_string();
+    for token in ["refresh-1", "opaque", "sealed", "delegated-access"] {
+        assert!(!text.contains(token));
+    }
+    let mut revision = status.json["binding"]["revision"].as_u64().unwrap();
+    for (workspace, reason, expected_status) in [
+        ("wks_foreign", "workspace_not_owned", "setup_needed"),
+        ("wks_pending", "workspace_not_ready", "setup_needed"),
+        ("wks_inactive", "workspace_not_ready", "setup_needed"),
+        ("wks_managed", "own_credentials_required", "setup_needed"),
+        ("wks_refused", "authorization_refused", "unusable"),
+        ("wks_missing", "workspace_setup_needed", "setup_needed"),
+        ("wks_mine", "author_connected", "ready"),
+    ] {
+        let request = Request::put("/api/v1/me/cma")
+            .header(header::COOKIE, &session)
+            .header(header::ORIGIN, PUBLIC)
+            .header(header::CONTENT_TYPE, "application/json")
+            .body(Body::from(
+                json!({"workspace_id":workspace,"expected_revision":revision}).to_string(),
+            ))
+            .unwrap();
+        let result = send(&h.router, request).await;
+        assert_eq!(result.status, StatusCode::OK, "{}", result.json);
+        assert_eq!(result.json["binding"]["reason"], reason);
+        assert_eq!(result.json["binding"]["status"], expected_status);
+        revision = result.json["binding"]["revision"].as_u64().unwrap();
+    }
+    let before = h.app.cma_binding(&"user-1".into()).await.unwrap();
+    let outage = send(
+        &h.router,
+        Request::put("/api/v1/me/cma")
+            .header(header::COOKIE, &session)
+            .header(header::ORIGIN, PUBLIC)
+            .header(header::CONTENT_TYPE, "application/json")
+            .body(Body::from(
+                json!({"workspace_id":"wks_outage","expected_revision":revision}).to_string(),
+            ))
+            .unwrap(),
+    )
+    .await;
+    assert_eq!(outage.status, StatusCode::SERVICE_UNAVAILABLE);
+    assert_eq!(h.app.cma_binding(&"user-1".into()).await.unwrap(), before);
+    let request = Request::delete("/api/v1/me/cma")
+        .header(header::COOKIE, &session)
+        .header(header::ORIGIN, PUBLIC)
+        .body(Body::empty())
+        .unwrap();
+    let deleted = send(&h.router, request).await;
+    assert_eq!(deleted.json["binding"]["generation"], 2);
+    assert!(cma.tokens.get(&slot).await.unwrap().is_none());
+    assert_eq!(
+        h.donations.tokens.get(&"user-1".into()).await.unwrap(),
+        Some(donated)
+    );
+
+    assert_eq!(
+        send(&h.router, get_req("/api/v1/me/cma", None))
+            .await
+            .status,
+        StatusCode::UNAUTHORIZED
     );
 }

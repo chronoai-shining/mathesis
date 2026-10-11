@@ -18,6 +18,7 @@ use wishpool_core::{
 
 use crate::{auth::AuthenticatedCaller, problems::Problem};
 
+mod cma;
 mod network;
 mod papers;
 mod review;
@@ -44,6 +45,7 @@ pub(crate) fn routes() -> Router<Arc<App>> {
         .merge(papers::routes())
         .merge(review::routes())
         .merge(network::routes())
+        .merge(cma::routes())
         .route("/policy", get(policy))
         .route("/me", get(me))
         .route("/people", get(list_people))
