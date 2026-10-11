@@ -236,8 +236,8 @@ mod tests {
 
     #[test]
     fn sealed_tokens_round_trip_and_resist_other_keys() {
-        let key = base64::engine::general_purpose::STANDARD.encode([7_u8; 32]);
-        let other = base64::engine::general_purpose::STANDARD.encode([8_u8; 32]);
+        let key = base64::engine::general_purpose::STANDARD.encode(rand::random::<[u8; 32]>());
+        let other = base64::engine::general_purpose::STANDARD.encode(rand::random::<[u8; 32]>());
         let cipher = TokenCipher::from_base64(&key).unwrap();
         let sealed = cipher.seal("refresh-token").unwrap();
         assert_ne!(
@@ -252,7 +252,8 @@ mod tests {
                 .open(&sealed)
                 .is_err()
         );
-        assert!(TokenCipher::from_base64("c2hvcnQ=").is_err());
+        let short = base64::engine::general_purpose::STANDARD.encode(rand::random::<[u8; 5]>());
+        assert!(TokenCipher::from_base64(&short).is_err());
     }
 
     #[test]

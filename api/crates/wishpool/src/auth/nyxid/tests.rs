@@ -27,7 +27,7 @@ use wishpool_core::{app::App, memory::MemoryStores, policy::Policy, ports::Syste
 
 use super::NyxIdClient;
 use crate::{
-    auth::{AuthState, MemoryAuthStore, Provider, pkce_challenge},
+    auth::{AuthState, MemoryAuthStore, Provider, pkce_challenge, random_token},
     composition::http_router,
     health::Readiness,
 };
@@ -220,7 +220,7 @@ async fn harness_with_cma(enabled: bool) -> Harness {
     let donations = Arc::new(crate::donations::Donations {
         tokens: Arc::new(crate::donations::MemoryDonorTokens::default()),
         cipher: crate::donations::TokenCipher::from_base64(
-            &base64::engine::general_purpose::STANDARD.encode([9_u8; 32]),
+            &base64::engine::general_purpose::STANDARD.encode(rand::random::<[u8; 32]>()),
         )
         .unwrap(),
         scope: "openid offline_access proxy".into(),
@@ -416,12 +416,14 @@ async fn callback_requires_the_initiating_browser_and_nonce() {
     .await;
     assert_eq!(foreign.status, StatusCode::UNAUTHORIZED);
 
-    let (state, _nonce, challenge, binding) = begin(&h, "/").await;
+    let (state, nonce, challenge, binding) = begin(&h, "/").await;
+    let wrong_nonce = random_token();
+    assert_ne!(wrong_nonce, nonce);
     h.provider
         .codes
         .lock()
         .unwrap()
-        .insert("c2".into(), (challenge, "wrong-nonce".into()));
+        .insert("c2".into(), (challenge, wrong_nonce));
     let reply = send(
         &h.router,
         get_req(
@@ -901,9 +903,9 @@ async fn author_cma_consent_is_ordinary_generation_fenced_and_donation_slots_are
     let donor_url = h
         .client
         .donation_authorize_url(
-            "state",
-            "challenge",
-            "nonce",
+            &random_token(),
+            &pkce_challenge(&random_token()),
+            &random_token(),
             "openid offline_access proxy",
             &["cma".into()],
         )
