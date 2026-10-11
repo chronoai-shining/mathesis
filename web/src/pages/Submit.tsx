@@ -1,3 +1,4 @@
+import { MyCma } from '../components/MyCma';
 import { useState, type FormEvent } from 'react';
 import { useApi } from '../api/context';
 import { PROCESSING_CONSENT_VERSION, PROCESSING_CONSENT_TEXT } from '../api/types';
@@ -29,6 +30,7 @@ export function SubmitPage() {
       {session.status !== 'loading' && person === null ? (
         <SignInPrompt what="submit your work" />
       ) : null}
+      <MyCma />
       {person ? <SubmitForm /> : null}
     </div>
   );

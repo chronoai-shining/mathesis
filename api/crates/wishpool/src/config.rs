@@ -112,8 +112,23 @@ pub struct CmaConfig {
     pub poll_secs: u64,
 }
 
+#[derive(Clone)]
+pub struct CmaByokConfig {
+    pub public_url: String,
+    pub token_key: String,
+}
+impl std::fmt::Debug for CmaByokConfig {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("CmaByokConfig")
+            .field("public_url", &self.public_url)
+            .field("token_key", &"<redacted>")
+            .finish()
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Config {
+    pub cma_byok: Option<CmaByokConfig>,
     pub verifier_program: String,
     pub verifier_url: Option<String>,
     pub verifier_timeout_secs: u64,
@@ -505,7 +520,45 @@ impl Config {
             _ => None,
         };
 
+        let cma_byok = match get("WISHPOOL_CMA_BYOK_ENABLED").as_deref() {
+            None | Some("false" | "0") => None,
+            Some("true" | "1") => {
+                if !matches!(auth, AuthMode::NyxId { .. })
+                    || !matches!(&advisor, Some(AdvisorConfig::Cma(c)) if c.transport == "http")
+                {
+                    bail!("CMA BYOK requires NyxID auth and HTTP CMA transport");
+                }
+                if !matches!(&advisor, Some(AdvisorConfig::Cma(c)) if c.profile.is_some()) {
+                    bail!(
+                        "CMA BYOK requires WISHPOOL_CMA_AGENT_PROFILE pinning a published profile"
+                    );
+                }
+                let public_url = required("WISHPOOL_CMA_PUBLIC_URL")?;
+                let url = Url::parse(&public_url).context("invalid WISHPOOL_CMA_PUBLIC_URL")?;
+                if url.host_str().is_none()
+                    || !url.username().is_empty()
+                    || url.password().is_some()
+                    || url.query().is_some()
+                    || url.fragment().is_some()
+                    || !(url.scheme() == "https"
+                        || url.scheme() == "http"
+                            && url
+                                .host_str()
+                                .is_some_and(|h| matches!(h, "localhost" | "127.0.0.1" | "[::1]")))
+                {
+                    bail!(
+                        "CMA public URL requires HTTPS (HTTP only on loopback), without credentials/query/fragment"
+                    );
+                }
+                Some(CmaByokConfig {
+                    public_url,
+                    token_key: required("WISHPOOL_TOKEN_KEY")?,
+                })
+            }
+            Some(_) => bail!("WISHPOOL_CMA_BYOK_ENABLED must be true or false"),
+        };
         Ok(Self {
+            cma_byok,
             verifier_program: get("WISHPOOL_VERIFIER_PROGRAM")
                 .unwrap_or_else(|| "wishpool-verifier".into()),
             verifier_url: get("WISHPOOL_VERIFIER_URL"),
@@ -906,5 +959,92 @@ mod audit_config_tests {
                 base.into_iter().chain([(key, value)]).collect();
             assert!(Config::from_lookup(|key| values.get(key).map(|v| v.to_string())).is_err());
         }
+    }
+    #[test]
+    fn cma_byok_is_opt_in_and_independent_of_hosted_donations() {
+        let secret = crate::auth::random_token();
+        let key = base64::Engine::encode(
+            &base64::engine::general_purpose::STANDARD,
+            rand::random::<[u8; 32]>(),
+        );
+        let pairs = [
+            ("WISHPOOL_PUBLIC_URL", "https://wishpool.example"),
+            ("WISHPOOL_MONGODB_URI", "mongodb://localhost:27017"),
+            ("CHRONO_NYXID_CLIENT_ID", "test"),
+            ("CHRONO_NYXID_CLIENT_SECRET", secret.as_str()),
+            ("WISHPOOL_CMA_WORKSPACE", "wks_operator"),
+            ("WISHPOOL_CMA_TOKEN_FILE", "/mounted/token"),
+            ("WISHPOOL_CMA_BYOK_ENABLED", "true"),
+            (
+                "WISHPOOL_CMA_AGENT_PROFILE",
+                r#"{"id":"agp_published","revision":1}"#,
+            ),
+            ("WISHPOOL_CMA_PUBLIC_URL", "https://cma.example"),
+            ("WISHPOOL_TOKEN_KEY", key.as_str()),
+        ];
+        let config = super::Config::from_lookup(|key| {
+            pairs
+                .iter()
+                .find(|(k, _)| *k == key)
+                .map(|(_, v)| v.to_string())
+        })
+        .unwrap();
+        assert!(config.cma_byok.is_some());
+        assert!(config.hosted.is_none());
+        assert!(!format!("{config:?}").contains(&key));
+        for missing in [
+            "CHRONO_NYXID_CLIENT_SECRET",
+            "WISHPOOL_TOKEN_KEY",
+            "WISHPOOL_CMA_PUBLIC_URL",
+        ] {
+            let values: Vec<_> = pairs
+                .iter()
+                .copied()
+                .filter(|(key, _)| *key != missing)
+                .collect();
+            assert!(
+                super::Config::from_lookup(|key| values
+                    .iter()
+                    .find(|(k, _)| *k == key)
+                    .map(|(_, v)| v.to_string()))
+                .is_err()
+            );
+        }
+        let mut values = pairs.to_vec();
+        values.push(("WISHPOOL_CMA_TRANSPORT", "cli"));
+        assert!(
+            super::Config::from_lookup(|key| values
+                .iter()
+                .rev()
+                .find(|(k, _)| *k == key)
+                .map(|(_, v)| v.to_string()))
+            .is_err()
+        );
+        let defaults = [
+            ("WISHPOOL_BIND", "127.0.0.1:8080"),
+            ("WISHPOOL_PUBLIC_URL", "http://127.0.0.1:5173"),
+            ("WISHPOOL_STORAGE", "memory"),
+            ("WISHPOOL_AUTH_MODE", "dev"),
+        ];
+        assert!(
+            super::Config::from_lookup(|key| defaults
+                .iter()
+                .find(|(k, _)| *k == key)
+                .map(|(_, v)| v.to_string()))
+            .unwrap()
+            .cma_byok
+            .is_none()
+        );
+        assert!(
+            super::Config::from_lookup(|key| if key == "WISHPOOL_CMA_BYOK_ENABLED" {
+                Some("true".into())
+            } else {
+                defaults
+                    .iter()
+                    .find(|(k, _)| *k == key)
+                    .map(|(_, v)| v.to_string())
+            })
+            .is_err()
+        );
     }
 }

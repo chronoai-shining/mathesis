@@ -1,3 +1,4 @@
+import { MyCma, CmaHistory } from '../components/MyCma';
 import { useCallback, useEffect, useState } from 'react';
 import { pdfHref, sourceFileHref } from '../api/client';
 import { useApi } from '../api/context';
@@ -215,6 +216,8 @@ export function Workspace({
           />
         ) : null}
 
+        {s.submitter === person?.id ? <MyCma /> : null}
+        {isStaff || isAuthor ? <CmaHistory attempts={referee.value?.cma_attempts ?? []} /> : null}
         {state === 'draft' ? <DraftNotice submission={s} /> : null}
         {state === 'draft' && isAuthor ? (
           <section aria-labelledby="confirm-h">

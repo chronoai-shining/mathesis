@@ -7,6 +7,7 @@
 
 mod auth;
 mod blobs;
+mod cma;
 mod domain;
 mod jobs;
 mod network;
@@ -106,6 +107,9 @@ impl MongoStore {
             .await?;
         self.raw(REFEREE_FILES)
             .create_index(unique(doc! { "id": 1 }))
+            .await?;
+        self.raw("cma_bindings")
+            .create_index(unique(doc! { "person": 1 }))
             .await?;
         network::ensure_indexes(self).await?;
         solving::ensure_indexes(self).await?;

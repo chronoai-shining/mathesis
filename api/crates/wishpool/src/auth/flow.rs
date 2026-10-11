@@ -32,6 +32,7 @@ pub fn routes(state: Arc<AuthState>) -> Router {
         .route("/auth/session", get(session))
         .route("/auth/logout", post(logout))
         .route("/auth/donate", get(donate))
+        .route("/auth/cma/connect", get(connect_cma))
         .with_state(state)
 }
 
@@ -77,6 +78,7 @@ async fn login(State(state): State<Arc<AuthState>>, Query(params): Query<LoginPa
                 return_to,
                 expires_at: Utc::now() + ATTEMPT_LIFETIME,
                 donation: None,
+                cma_review: None,
             };
             if let Err(error) = state
                 .store
@@ -211,6 +213,46 @@ async fn callback(
         let (identity, delegated) = client
             .complete_with_tokens(&code, &attempt.verifier, &attempt.nonce)
             .await?;
+        if let Some(request) = &attempt.cma_review {
+            let connection = state.cma.as_ref().ok_or(CoreError::Unauthenticated)?;
+            if identity.subject != request.person {
+                return Err(CoreError::Unauthenticated);
+            }
+            let current = state
+                .store
+                .session(&digest(
+                    SESSION_DOMAIN,
+                    &cookies::read(&headers, SESSION_COOKIE).ok_or(CoreError::Unauthenticated)?,
+                ))
+                .await?
+                .ok_or(CoreError::Unauthenticated)?;
+            if current.subject != request.person {
+                return Err(CoreError::Unauthenticated);
+            }
+            let binding = state.app.cma_binding(&request.person).await?;
+            if binding.generation != request.generation
+                || binding.status != wishpool_core::model::CmaStatus::SetupNeeded
+            {
+                return Err(CoreError::conflict("CMA consent superseded"));
+            }
+            let refresh = delegated
+                .as_ref()
+                .and_then(|t| t.refresh_token.as_ref())
+                .ok_or_else(|| CoreError::invalid("offline access was not granted"))?;
+            let slot = crate::cma_connection::slot(&request.person, request.generation);
+            connection
+                .tokens
+                .put(&slot, &connection.cipher.seal(refresh)?)
+                .await?;
+            if let Err(error) = state
+                .app
+                .complete_cma_connect(&request.person, request.generation)
+                .await
+            {
+                connection.tokens.delete(&slot).await?;
+                return Err(error);
+            }
+        }
         if let Some(request) = &attempt.donation {
             record_donation(&state, request, &identity, delegated).await?;
         }
@@ -354,6 +396,7 @@ async fn donate(
         nonce: nonce.clone(),
         return_to: safe_return_path(params.return_to.as_deref().or(Some("/contribute"))),
         expires_at: Utc::now() + ATTEMPT_LIFETIME,
+        cma_review: None,
         donation: Some(super::DonationRequest {
             donor,
             monthly_cap: cap,
@@ -417,4 +460,83 @@ async fn record_donation(
         .create_or_renew_donation(&request.donor, request.monthly_cap, &request.model)
         .await?;
     Ok(())
+}
+
+async fn connect_cma(
+    State(state): State<Arc<AuthState>>,
+    headers: HeaderMap,
+    Query(params): Query<LoginParams>,
+) -> Response {
+    let Provider::NyxId(client) = &state.provider else {
+        return problem(CoreError::Unauthenticated);
+    };
+    if state.cma.is_none() {
+        return problem(CoreError::Unavailable("CMA connection is disabled".into()));
+    }
+    if headers
+        .get("sec-fetch-site")
+        .and_then(|v| v.to_str().ok())
+        .is_some_and(|s| !matches!(s, "same-origin" | "none"))
+    {
+        return problem(CoreError::forbidden(
+            "CMA consent must start from the venue",
+        ));
+    }
+    let result = async {
+        let session = state
+            .store
+            .session(&digest(
+                SESSION_DOMAIN,
+                &cookies::read(&headers, SESSION_COOKIE).ok_or(CoreError::Unauthenticated)?,
+            ))
+            .await?
+            .ok_or(CoreError::Unauthenticated)?;
+        let caller = state
+            .app
+            .caller(&VerifiedIdentity {
+                subject: session.subject,
+                name: None,
+                email: None,
+                picture: None,
+            })
+            .await?;
+        let generation = state.app.begin_cma_connect(&caller).await?.generation;
+        let (oauth_state, binding, nonce, verifier) = (
+            random_token(),
+            random_token(),
+            random_token(),
+            random_token(),
+        );
+        let attempt = LoginAttempt {
+            binding: digest(BINDING_DOMAIN, &binding),
+            verifier: verifier.clone(),
+            nonce: nonce.clone(),
+            return_to: safe_return_path(params.return_to.as_deref()),
+            expires_at: Utc::now() + ATTEMPT_LIFETIME,
+            donation: None,
+            cma_review: Some(super::CmaConsent {
+                person: caller.person,
+                generation,
+            }),
+        };
+        state
+            .store
+            .put_attempt(&digest(STATE_DOMAIN, &oauth_state), &attempt)
+            .await?;
+        let url = client.cma_authorize_url(&oauth_state, &pkce_challenge(&verifier), &nonce)?;
+        let mut response = Redirect::to(&url).into_response();
+        response.headers_mut().append(
+            header::SET_COOKIE,
+            cookies::set(
+                LOGIN_COOKIE,
+                &binding,
+                "/auth",
+                ATTEMPT_LIFETIME,
+                state.secure_cookies,
+            ),
+        );
+        Ok::<_, CoreError>(response)
+    }
+    .await;
+    result.unwrap_or_else(problem)
 }

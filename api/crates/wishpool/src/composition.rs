@@ -55,6 +55,8 @@ impl Composition {
                 let store = MongoStore::connect(uri, database).await?;
                 let shared = Arc::new(store.clone());
                 let ports = Ports {
+                    cma_bindings: shared.clone(),
+                    cma_setup: Arc::new(wishpool_core::ports::UnavailableCmaSetup),
                     solving: shared.clone(),
                     verifier: Arc::new(wishpool_core::ports::UnavailableVerifier),
                     clock: Arc::new(SystemClock),
@@ -101,12 +103,6 @@ impl Composition {
                 timeout,
             });
         }
-        let app = App::with_attempt_limit(
-            ports,
-            Policy::default(),
-            config.bootstrap_admins.clone(),
-            config.attempts_per_day,
-        );
 
         let provider = match &config.auth {
             AuthMode::NyxId {
@@ -129,6 +125,32 @@ impl Composition {
                 Provider::Dev
             }
         };
+        let cma_connection = match (&config.cma_byok, &provider, &config.advisor) {
+            (Some(byok), Provider::NyxId(nyxid), Some(AdvisorConfig::Cma(settings))) => {
+                let tokens: Arc<dyn DonorTokens> = match &mongo {
+                    Some(store) => Arc::new(crate::cma_connection::MongoCmaTokens(store.clone())),
+                    None => Arc::new(MemoryDonorTokens::default()),
+                };
+                Some(Arc::new(crate::cma_connection::CmaConnection {
+                    tokens,
+                    cipher: TokenCipher::from_base64(&byok.token_key)?,
+                    nyxid: nyxid.clone(),
+                    base_url: settings.base_url.clone(),
+                    public_url: byok.public_url.clone(),
+                }))
+            }
+            _ => None,
+        };
+        if let Some(connection) = &cma_connection {
+            ports.cma_setup = Arc::new(crate::cma_connection::CmaSetupAdapter(connection.clone()));
+        }
+        let app = App::with_attempt_limit(
+            ports,
+            Policy::default(),
+            config.bootstrap_admins.clone(),
+            config.attempts_per_day,
+        );
+
         let donations = match &config.hosted {
             Some(hosted) => {
                 let tokens: Arc<dyn DonorTokens> = match &mongo {
@@ -158,6 +180,7 @@ impl Composition {
             _ => None,
         };
         let auth_state = Arc::new(AuthState {
+            cma: cma_connection.clone(),
             app: app.clone(),
             store: auth_store,
             provider,
@@ -301,6 +324,13 @@ impl Composition {
                 _ => None,
             };
         let worker = Worker {
+            cma_factory: cma.as_ref().map(|operator| {
+                Arc::new(crate::cma_tokens::CmaFactory {
+                    operator: operator.clone(),
+                    connection: cma_connection,
+                    app: app.clone(),
+                })
+            }),
             app: app.clone(),
             jobs,
             compile: Compile {

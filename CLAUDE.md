@@ -303,6 +303,53 @@ from `develop`. No force pushes to either.
   sealed delegated-token refresh path or a mounted token file; agent keys are
   rejected. Every new configuration key must be declared in infra (§8).
 
+- Author CMA connections use ordinary NyxID `offline_access` consent, without
+  resource or service restrictions, in separate sealed `cma_review` generation
+  slots. `WISHPOOL_CMA_BYOK_ENABLED` defaults false; enabling it requires NyxID,
+  HTTP CMA transport, `WISHPOOL_TOKEN_KEY` and `WISHPOOL_CMA_PUBLIC_URL`.
+  Authors choose an existing ready workspace owned by their NyxID subject in
+  a Sandbox whose pinned profile uses `own_credentials`. Automatic provisioning
+  is a follow-up. Connecting does not require hosted donations.
+- Before any CMA I/O, Layer 2 durably admits the submitting author's ready
+  binding for eligible submission steps or the operator default. Co-authors
+  are never selected as payers; supporter attribution is separate from account custody. Replays retain the attempt's payer, generation and workspace.
+  A terminal author account/auth/setup/credential/quota refusal, or an agent
+  failure labelled `cause_unknown`, admits at most one recorded operator
+  successor with fresh request keys. Transport errors, 429/5xx, uncertain writes,
+  mathematical/JSON errors and local verifier failures never switch payer.
+  Cleanup uses each attempt's original account. Private referee views expose
+  only the step, ordinal, payer, sanitized reason, status and times, before letters.
+
+Author CMA execution requires `WISHPOOL_CMA_AGENT_PROFILE` with an exact
+`{"id":"agp_…","revision":1}` pin to a published agent profile readable by
+both the operator and author accounts. The exact pin is retained in each
+creation intent for retries. Workspace facts are fetched and decoded in Layer 3;
+Layer 2 checks ownership, readiness and `own_credentials` before saving the
+binding under its source revision. Refresh throttling, outages, ambiguous
+refusals and concurrent token rotation remain transient, with the same payer.
+Disconnect/reconnect revokes the old generation; outstanding agent cleanup is
+best effort and may fail after revocation. Cleanup never substitutes operator
+credentials for author resources.
+
+CMA payer mapping (Layer 2 decides before provider I/O):
+
+| Step | Payer and attribution |
+|---|---|
+| Referee audit, advice, letter, accepted-paper Lean probe | Ready submitter binding; otherwise operator |
+| Standalone conjecture target, admitted paper-problem target, author-approved proved paper-statement target | Ready submitter binding; otherwise operator |
+| Target faithfulness audit, including regeneration | Ready submitter binding; otherwise operator |
+| Independent paper open-problem audit | Ready submitter binding; otherwise operator |
+| Error-report text audit | Operator, never the author or reporter |
+| Venue-agent attempt on a confirmed target | Operator account with phase-D donation attribution, never the author |
+| Existing legacy CMA run | Original operator account; never retroactively charged to an author |
+
+Operator-funded target generation, faithfulness audits, Lean probes and venue
+attempts retain phase-D supporter attribution, including an operator successor.
+Author-funded steps create no donation attribution. Attribution alone charges no
+tokens: only a verified NyxID usage receipt can meter usage. Replays retain the
+saved payer, workspace, generation and request identity. Oracle remains operator
+funded; local elaboration and proof verification carry no CMA payer.
+
 ## 12. Solving and the leaderboard
 
 - Only a verifier-passed Lean proof or disproof of the author-confirmed target

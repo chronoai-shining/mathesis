@@ -245,6 +245,8 @@ async fn paper_flow_against_mongo() {
     };
     let shared = Arc::new(db.store.clone());
     let ports = Ports {
+        cma_bindings: shared.clone(),
+        cma_setup: Arc::new(wishpool_core::ports::UnavailableCmaSetup),
         solving: shared.clone(),
         verifier: Arc::new(wishpool_core::ports::UnavailableVerifier),
         clock: Arc::new(SystemClock),
@@ -502,6 +504,7 @@ async fn sessions_attempts_and_job_retries() {
     assert!(s.session("live").await.unwrap().is_none());
 
     let attempt = LoginAttempt {
+        cma_review: None,
         binding: "b".into(),
         verifier: "v".into(),
         nonce: "n".into(),
@@ -559,7 +562,7 @@ async fn referee_files_are_unique_and_revision_fenced() {
     };
     let s = &db.store;
     let mut file = RefereeFile::new("paper".into());
-    file.agent_steps.insert("wishpool:p:r1:audit:a0".into(),AgentStep{version:1,claims_revision:2,progress:serde_json::json!({"agent_id":"agt_saved","response_id":"resp_saved","next_chunk":2,"deadline":1800000000,"answer":null})});
+    file.agent_steps.insert("wishpool:p:r1:audit:a0".into(),AgentStep{cma_attempts: vec![],version:1,claims_revision:2,progress:serde_json::json!({"agent_id":"agt_saved","response_id":"resp_saved","next_chunk":2,"deadline":1800000000,"answer":null})});
     assert!(RefereeStore::get(s, &file.id).await.unwrap().is_none());
     RefereeStore::insert(s, &file).await.unwrap();
     assert!(matches!(
@@ -754,6 +757,39 @@ async fn solving_aggregates_and_agent_names_are_unique_and_revision_fenced() {
     assert_eq!(stored.revision, 1);
     assert!([1, 2].contains(&stored.downstream));
     assert_eq!(SolvingStore::all(store).await.unwrap().len(), 1);
+    db.drop().await;
+}
+
+#[tokio::test]
+async fn cma_binding_mongo_has_unique_person_and_revision_cas() {
+    use wishpool_core::{model::CmaBinding, ports::CmaBindingStore};
+    let Some(db) = TestDb::open().await else {
+        return;
+    };
+    let mut binding = CmaBinding::disconnected("author".into(), chrono::Utc::now());
+    binding.revision = 1;
+    CmaBindingStore::replace(&db.store, &binding, 0)
+        .await
+        .unwrap();
+    assert!(
+        CmaBindingStore::replace(&db.store, &binding, 0)
+            .await
+            .is_err()
+    );
+    let old = binding.clone();
+    binding.revision = 2;
+    binding.generation = 1;
+    CmaBindingStore::replace(&db.store, &binding, 1)
+        .await
+        .unwrap();
+    assert!(CmaBindingStore::replace(&db.store, &old, 1).await.is_err());
+    assert_eq!(
+        CmaBindingStore::get(&db.store, &"author".into())
+            .await
+            .unwrap()
+            .unwrap(),
+        binding
+    );
     db.drop().await;
 }
 

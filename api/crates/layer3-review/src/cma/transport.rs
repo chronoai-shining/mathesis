@@ -49,7 +49,12 @@ impl TransportReply {
 }
 fn check(status: u16, text: &str) -> ReviewResult<()> {
     let v = serde_json::from_str::<Value>(text).unwrap_or(Value::Null);
-    if (200..300).contains(&status) && v.get("error").is_none() {
+    // A response entity may carry a terminal execution error on a successful GET.
+    let response_entity = matches!(
+        v["status"].as_str(),
+        Some("queued" | "in_progress" | "completed" | "failed" | "cancelled" | "incomplete")
+    );
+    if (200..300).contains(&status) && (v.get("error").is_none() || response_entity) {
         return Ok(());
     }
     let code = v["error"]["code"]

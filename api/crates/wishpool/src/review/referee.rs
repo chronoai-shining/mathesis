@@ -20,8 +20,10 @@ use super::{
 };
 
 fn transient(error: &ReviewError) -> bool {
-    matches!(error, ReviewError::Transport(_))
-        || matches!(error, ReviewError::Provider { status, .. } if *status == 429 || *status >= 500)
+    matches!(
+        error,
+        ReviewError::Transport(_) | ReviewError::PersistenceFence
+    ) || matches!(error, ReviewError::Provider { status, .. } if *status == 429 || *status >= 500)
 }
 
 fn retryable(reason: &str) -> bool {
@@ -431,7 +433,7 @@ impl Worker {
                             self.audit_budget,
                             advisor.audit_with_store(
                                 &input,
-                                &self.agent_store(job, submission, &format!("r{number}:audit:a0")),
+                                &self.agent_store(job, submission, &format!("r{number}:audit")),
                             ),
                         )
                         .await
@@ -532,7 +534,7 @@ impl Worker {
                         advice.state = match advisor
                             .advise_with_store(
                                 &input,
-                                &self.agent_store(job, submission, &format!("r{number}:advice:a0")),
+                                &self.agent_store(job, submission, &format!("r{number}:advice")),
                             )
                             .await
                         {
@@ -605,7 +607,7 @@ impl Worker {
                                     &self.agent_store(
                                         job,
                                         submission,
-                                        &format!("r{number}:letter:a0"),
+                                        &format!("r{number}:letter"),
                                     ),
                                 )
                                 .await
@@ -757,7 +759,7 @@ impl Worker {
                                     &self.agent_store(
                                         job,
                                         submission,
-                                        &format!("r{number}:formal:a0"),
+                                        &format!("r{number}:formal"),
                                     ),
                                 ),
                             )

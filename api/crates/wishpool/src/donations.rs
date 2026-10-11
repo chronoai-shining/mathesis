@@ -74,6 +74,7 @@ pub trait DonorTokens: Send + Sync {
     async fn put(&self, donor: &PersonId, sealed: &str) -> CoreResult<()>;
     async fn get(&self, donor: &PersonId) -> CoreResult<Option<String>>;
     async fn delete(&self, donor: &PersonId) -> CoreResult<()>;
+    async fn rotate(&self, donor: &PersonId, expected: &str, sealed: &str) -> CoreResult<()>;
 }
 
 #[derive(Default)]
@@ -81,6 +82,14 @@ pub struct MemoryDonorTokens(Mutex<HashMap<PersonId, String>>);
 
 #[async_trait]
 impl DonorTokens for MemoryDonorTokens {
+    async fn rotate(&self, donor: &PersonId, expected: &str, sealed: &str) -> CoreResult<()> {
+        let mut tokens = self.0.lock().await;
+        if tokens.get(donor).map(String::as_str) != Some(expected) {
+            return Err(CoreError::Unauthenticated);
+        }
+        tokens.insert(donor.clone(), sealed.into());
+        Ok(())
+    }
     async fn put(&self, donor: &PersonId, sealed: &str) -> CoreResult<()> {
         self.0.lock().await.insert(donor.clone(), sealed.to_owned());
         Ok(())
@@ -98,6 +107,20 @@ const DONOR_TOKENS: &str = "donor_tokens";
 
 #[async_trait]
 impl DonorTokens for MongoStore {
+    async fn rotate(&self, donor: &PersonId, expected: &str, sealed: &str) -> CoreResult<()> {
+        let result = self
+            .raw(DONOR_TOKENS)
+            .update_one(
+                doc! {"_id":donor.as_str(), "sealed":expected},
+                doc! {"$set":{"sealed":sealed}},
+            )
+            .await
+            .map_err(write_error)?;
+        if result.matched_count != 1 {
+            return Err(CoreError::Unauthenticated);
+        }
+        Ok(())
+    }
     async fn put(&self, donor: &PersonId, sealed: &str) -> CoreResult<()> {
         self.raw(DONOR_TOKENS)
             .replace_one(
@@ -168,22 +191,43 @@ impl HostedWorker {
         }
     }
     pub(crate) async fn access_token(&self, donor: &PersonId) -> CoreResult<String> {
-        let sealed = self
-            .donations
-            .tokens
-            .get(donor)
-            .await?
-            .ok_or(CoreError::Unauthenticated)?;
-        let refresh = self.donations.cipher.open(&sealed)?;
-        let tokens = self.nyxid.refresh(&refresh).await?;
-        if let Some(rotated) = &tokens.refresh_token {
-            self.donations
-                .tokens
-                .put(donor, &self.donations.cipher.seal(rotated)?)
-                .await?;
-        }
-        Ok(tokens.access_token)
+        refresh_access_token(
+            &self.nyxid,
+            self.donations.tokens.as_ref(),
+            &self.donations.cipher,
+            donor,
+        )
+        .await
     }
+}
+
+pub(crate) async fn refresh_access_token(
+    nyxid: &NyxIdClient,
+    store: &dyn DonorTokens,
+    cipher: &TokenCipher,
+    slot: &PersonId,
+) -> CoreResult<String> {
+    let sealed = store.get(slot).await?.ok_or(CoreError::Unauthenticated)?;
+    let tokens = nyxid.refresh(&cipher.open(&sealed)?).await?;
+    if let Some(rotated) = tokens.refresh_token
+        && let Err(error) = store.rotate(slot, &sealed, &cipher.seal(&rotated)?).await
+    {
+        // A same-slot concurrent rotation is transient; deletion is revocation.
+        if store.get(slot).await?.is_none() {
+            return Err(CoreError::Unauthenticated);
+        }
+        return Err(match error {
+            CoreError::Unauthenticated | CoreError::Conflict(_) => {
+                CoreError::Unavailable("credential rotation raced; retry".into())
+            }
+            other => other,
+        });
+    }
+    // Also fence responses that did not rotate the refresh token.
+    if store.get(slot).await?.is_none() {
+        return Err(CoreError::Unauthenticated);
+    }
+    Ok(tokens.access_token)
 }
 
 #[cfg(test)]
@@ -192,8 +236,8 @@ mod tests {
 
     #[test]
     fn sealed_tokens_round_trip_and_resist_other_keys() {
-        let key = base64::engine::general_purpose::STANDARD.encode([7_u8; 32]);
-        let other = base64::engine::general_purpose::STANDARD.encode([8_u8; 32]);
+        let key = base64::engine::general_purpose::STANDARD.encode(rand::random::<[u8; 32]>());
+        let other = base64::engine::general_purpose::STANDARD.encode(rand::random::<[u8; 32]>());
         let cipher = TokenCipher::from_base64(&key).unwrap();
         let sealed = cipher.seal("refresh-token").unwrap();
         assert_ne!(
@@ -208,7 +252,8 @@ mod tests {
                 .open(&sealed)
                 .is_err()
         );
-        assert!(TokenCipher::from_base64("c2hvcnQ=").is_err());
+        let short = base64::engine::general_purpose::STANDARD.encode(rand::random::<[u8; 5]>());
+        assert!(TokenCipher::from_base64(&short).is_err());
     }
 
     #[test]

@@ -352,12 +352,20 @@ impl World {
         pdf: bool,
         kind: wishpool_core::model::SubmissionKind,
     ) -> Self {
+        Self::new_kind_with_cma(outcomes, pdf, kind, false).await
+    }
+    async fn new_kind_with_cma(
+        outcomes: Vec<ReviewResult<OracleStatus>>,
+        pdf: bool,
+        kind: wishpool_core::model::SubmissionKind,
+        cma_enabled: bool,
+    ) -> Self {
         let stores = Arc::new(MemoryStores::default());
-        let app = App::new(
-            stores.ports(Arc::new(SystemClock), Arc::new(LatexReader)),
-            Policy::default(),
-            BTreeSet::new(),
-        );
+        let mut ports = stores.ports(Arc::new(SystemClock), Arc::new(LatexReader));
+        if cma_enabled {
+            ports.cma_setup = Arc::new(TestCmaSetup);
+        }
+        let app = App::new(ports, Policy::default(), BTreeSet::new());
         let author = app
             .ensure_service_account(&"author".into(), "Author", Role::Endorser)
             .await
@@ -433,6 +441,7 @@ impl World {
             .await
             .unwrap();
         let worker = Worker {
+            cma_factory: None,
             app,
             jobs: jobs.clone(),
             compile: Compile {
@@ -1593,10 +1602,14 @@ impl wishpool_review::cma::Transport for ManagedTransport {
             let text = body["input"].as_str().unwrap();
             assert!(text.contains("Every gap is finite"));
             assert!(!text.contains("Network access is disabled"));
-            let answer = if text.contains("Audit the GPT Pro referee report") {
-                json!({"verdict":"accept","summary":"The compactness argument supplies new content.","claims":[{"claim":"C1","correctness":"correct","comment":"A compactness lemma supplies the proof.","shape":"content","witnesses":["A compactness lemma"],"referee_agreed":true},{"claim":"C2","correctness":"not_checked","comment":"An open question."}]})
+            let answer = if text.contains("Audit the GPT Pro referee report")
+                || text.contains("Audit this conjecture referee report")
+            {
+                json!({"verdict":"accept","summary":"The compactness argument supplies new content.","claims":[{"claim":"C1","correctness":"correct","comment":"A compactness lemma supplies the proof.","shape":"content","witnesses":["A compactness lemma"],"referee_agreed":true},{"claim":"C2","correctness":"not_checked","comment":"An open question.","conjecture":{"well_posed":true,"well_posed_reason":"All quantities are defined","status":"open","status_reason":"No prior settlement found","escape":"content","escape_reason":"A new uniform bound is needed"}}]})
+            } else if text.contains("Compare the original statement") {
+                json!({"verdict":"faithful","reason":"The exact statement is preserved.","mismatch":""})
             } else if text.contains("You are advising") {
-                json!({"summary":"Clarify the notation.","improvements":[],"formalization":[]})
+                json!({"summary":"Clarify the notation.","improvements":[],"formalization":[{"claim":"C1","plan":"A compactness proof","feasibility":"ready","effort":"small","mathlib":[],"lean_sketch":""}]})
             } else {
                 json!({"subject":"Decision","body":"Dear A. Author,\n\nThe compactness argument is useful.","note":""})
             };
@@ -1635,13 +1648,19 @@ async fn pipeline_uses_durable_cma_for_audit_advice_letter_and_hides_provider_st
         calls: Mutex::new(vec![]),
         answers: Mutex::new(Default::default()),
     });
+    let client = Arc::new(wishpool_review::cma::Client {
+        transport: transport.clone(),
+        workspace: "wks_test".into(),
+        profile: None,
+        poll: Duration::from_millis(1),
+    });
+    w.worker.cma_factory = Some(Arc::new(crate::cma_tokens::CmaFactory {
+        operator: client.clone(),
+        connection: None,
+        app: w.worker.app.clone(),
+    }));
     w.worker.advisor = Some(Arc::new(wishpool_review::cma::CmaAdvisor {
-        client: Arc::new(wishpool_review::cma::Client {
-            transport: transport.clone(),
-            workspace: "wks_test".into(),
-            profile: None,
-            poll: Duration::from_millis(1),
-        }),
+        client,
         timeout: Duration::from_secs(60),
         audit_timeout: Duration::from_secs(60),
     }));
@@ -1654,6 +1673,11 @@ async fn pipeline_uses_durable_cma_for_audit_advice_letter_and_hides_provider_st
     );
     assert_eq!(file.letters.len(), 1);
     for step in file.agent_steps.values() {
+        assert_eq!(step.cma_attempts.len(), 1);
+        assert_eq!(
+            step.cma_attempts[0].payer,
+            wishpool_core::model::CmaPayer::Operator
+        );
         assert_eq!(step.progress["stopped"], true);
         assert_eq!(step.progress["deleted"], true);
         assert!(
@@ -1720,6 +1744,1068 @@ async fn withdrawn_paper_cleans_up_its_saved_cma_turn_after_a_worker_restart() {
             .any(|(method, path)| method == "DELETE" && path.ends_with("agt_previous_worker"))
     );
     assert_eq!(transport.created.load(Ordering::SeqCst), 0);
+}
+
+struct TestCmaSetup;
+#[async_trait]
+impl wishpool_core::ports::CmaSetup for TestCmaSetup {
+    fn enabled(&self) -> bool {
+        true
+    }
+    async fn validate(
+        &self,
+        _: &wishpool_core::model::CmaBinding,
+        _: &str,
+    ) -> wishpool_core::CoreResult<wishpool_core::model::CmaWorkspaceCheck> {
+        Err(wishpool_core::CoreError::Unavailable("not used".into()))
+    }
+}
+struct TestCmaToken(String);
+#[async_trait]
+impl wishpool_review::cma::TokenSource for TestCmaToken {
+    async fn token(&self) -> ReviewResult<String> {
+        Ok(self.0.clone())
+    }
+}
+type AccountRequest = (String, String, String, Option<String>, serde_json::Value);
+type CreationReceipt = (u16, String, Option<String>);
+struct AccountCma {
+    author_token: String,
+    operator_token: String,
+    refuse: AtomicBool,
+    setup_refusal: Mutex<Option<(u16, String)>>,
+    request_event: tokio::sync::Notify,
+    repeat_create_event: tokio::sync::Notify,
+    create_gate: Mutex<Option<(Arc<tokio::sync::Notify>, Arc<tokio::sync::Notify>)>>,
+    uncertain_create: AtomicBool,
+    creation_outage: AtomicBool,
+    create_receipts: Mutex<std::collections::BTreeMap<String, CreationReceipt>>,
+    jwt_key: Vec<u8>,
+    refresh_token: Mutex<String>,
+    refresh_status: std::sync::atomic::AtomicU16,
+    rotate: AtomicBool,
+    refresh_gate: Mutex<Option<(Arc<tokio::sync::Barrier>, Arc<tokio::sync::Barrier>)>>,
+    cleanup_failure: AtomicBool,
+    requests: Mutex<Vec<AccountRequest>>,
+    author: ManagedTransport,
+    operator: ManagedTransport,
+}
+async fn account_cma_request(
+    axum::extract::State(state): axum::extract::State<Arc<AccountCma>>,
+    axum::extract::OriginalUri(uri): axum::extract::OriginalUri,
+    method: axum::http::Method,
+    headers: axum::http::HeaderMap,
+    body: axum::body::Bytes,
+) -> axum::response::Response {
+    use axum::response::IntoResponse;
+    use wishpool_review::cma::Transport;
+    let token = headers
+        .get("authorization")
+        .unwrap()
+        .to_str()
+        .unwrap()
+        .strip_prefix("Bearer ")
+        .unwrap()
+        .to_owned();
+    let path = uri.path().trim_start_matches('/');
+    let json = serde_json::from_slice(&body).unwrap_or(serde_json::Value::Null);
+    let key = headers
+        .get("idempotency-key")
+        .map(|h| h.to_str().unwrap().to_owned());
+    state.requests.lock().await.push((
+        token.clone(),
+        method.to_string(),
+        path.into(),
+        key.clone(),
+        json.clone(),
+    ));
+    let mut validation = jsonwebtoken::Validation::new(jsonwebtoken::Algorithm::HS256);
+    validation.required_spec_claims.clear();
+    let claims = jsonwebtoken::decode::<serde_json::Value>(
+        &token,
+        &jsonwebtoken::DecodingKey::from_secret(&state.jwt_key),
+        &validation,
+    )
+    .ok();
+    if claims.as_ref().is_none_or(|c| {
+        c.claims["token_type"] != "access"
+            || ["resource", "allowed_service_ids", "cnf", "act", "delegated"]
+                .iter()
+                .any(|k| c.claims.get(*k).is_some_and(|v| !v.is_null()))
+    }) {
+        return (
+            axum::http::StatusCode::UNAUTHORIZED,
+            axum::Json(serde_json::json!({"code":"invalid_token", "detail": token})),
+        )
+            .into_response();
+    }
+    if path.ends_with("/agents") && method == "POST" {
+        assert_eq!(
+            json["agent_profile"],
+            serde_json::json!({"id":"agp_published","revision":1})
+        );
+    }
+    if method == "DELETE" && state.cleanup_failure.swap(false, Ordering::SeqCst) {
+        return (
+            axum::http::StatusCode::BAD_GATEWAY,
+            axum::Json(serde_json::json!({"code":"provider_down", "detail": token})),
+        )
+            .into_response();
+    }
+    if token == state.author_token
+        && method == "POST"
+        && path.ends_with("/agents")
+        && let Some((status, code)) = state.setup_refusal.lock().await.clone()
+    {
+        return (
+            axum::http::StatusCode::from_u16(status).unwrap(),
+            axum::Json(serde_json::json!({"code": code})),
+        )
+            .into_response();
+    }
+    if token == state.author_token
+        && path.ends_with("/agents")
+        && method == "POST"
+        && state.refuse.swap(false, Ordering::SeqCst)
+    {
+        return (
+            axum::http::StatusCode::FORBIDDEN,
+            axum::Json(serde_json::json!({"code":"quota_exceeded","detail":token})),
+        )
+            .into_response();
+    }
+    let transport = if token == state.author_token {
+        &state.author
+    } else {
+        assert_eq!(token, state.operator_token);
+        &state.operator
+    };
+    if method == "POST"
+        && path.ends_with("/agents")
+        && let Some((status, body, _)) = state
+            .create_receipts
+            .lock()
+            .await
+            .get(key.as_ref().unwrap())
+            .cloned()
+    {
+        if state.creation_outage.load(Ordering::SeqCst) {
+            state.repeat_create_event.notify_one();
+            return (
+                axum::http::StatusCode::BAD_GATEWAY,
+                axum::Json(serde_json::json!({"detail":token})),
+            )
+                .into_response();
+        }
+        return (axum::http::StatusCode::from_u16(status).unwrap(), body).into_response();
+    }
+    if method == "POST" && path.ends_with("/agents") {
+        let gate = state.create_gate.lock().await.take();
+        if let Some((entered, release)) = gate {
+            entered.notify_one();
+            release.notified().await;
+        }
+    }
+    let reply = transport
+        .request(
+            method.as_str(),
+            path,
+            (!json.is_null()).then_some(json),
+            key.as_deref(),
+        )
+        .await
+        .unwrap();
+    if method == "POST" && path.ends_with("/agents") {
+        state.create_receipts.lock().await.insert(
+            key.unwrap(),
+            (reply.status, reply.body.clone(), reply.response_id.clone()),
+        );
+        if state.uncertain_create.swap(false, Ordering::SeqCst) {
+            return (
+                axum::http::StatusCode::BAD_GATEWAY,
+                axum::Json(serde_json::json!({"detail": token})),
+            )
+                .into_response();
+        }
+    }
+    let mut response = (
+        axum::http::StatusCode::from_u16(reply.status).unwrap(),
+        reply.body,
+    )
+        .into_response();
+    if let Some(id) = reply.response_id {
+        response
+            .headers_mut()
+            .insert("x-cma-response-id", id.parse().unwrap());
+    }
+    response
+}
+async fn author_cma_worker() -> (World, Arc<AccountCma>, Arc<wishpool_review::cma::Client>) {
+    use base64::Engine as _;
+    use wishpool_core::{
+        model::{CmaBinding, CmaStatus},
+        ports::CmaBindingStore,
+    };
+    let mut w = World::new_kind_with_cma(
+        vec![],
+        true,
+        wishpool_core::model::SubmissionKind::Paper,
+        true,
+    )
+    .await;
+    let managed = || ManagedTransport {
+        created: AtomicUsize::new(0),
+        calls: Mutex::new(vec![]),
+        answers: Mutex::new(Default::default()),
+    };
+    let jwt_key = rand::random::<[u8; 32]>().to_vec();
+    let ordinary = |subject: &str| {
+        jsonwebtoken::encode(
+            &jsonwebtoken::Header::new(jsonwebtoken::Algorithm::HS256),
+            &serde_json::json!({"sub":subject,"token_type":"access","exp":chrono::Utc::now().timestamp()+3600}),
+            &jsonwebtoken::EncodingKey::from_secret(&jwt_key),
+        )
+        .unwrap()
+    };
+    let author_token = ordinary("author");
+    let operator_token = ordinary("operator");
+    let mock = Arc::new(AccountCma {
+        refresh_token: Mutex::new(author_token.clone()),
+        author_token,
+        operator_token,
+        jwt_key,
+        refresh_status: std::sync::atomic::AtomicU16::new(200),
+        rotate: AtomicBool::new(false),
+        refresh_gate: Mutex::new(None),
+        cleanup_failure: AtomicBool::new(false),
+        uncertain_create: AtomicBool::new(false),
+        creation_outage: AtomicBool::new(false),
+        create_receipts: Mutex::new(Default::default()),
+        refuse: AtomicBool::new(false),
+        setup_refusal: Mutex::new(None),
+        request_event: tokio::sync::Notify::new(),
+        repeat_create_event: tokio::sync::Notify::new(),
+        create_gate: Mutex::new(None),
+        requests: Mutex::new(vec![]),
+        author: managed(),
+        operator: managed(),
+    });
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let base = format!("http://{}", listener.local_addr().unwrap());
+    let discovery = serde_json::json!({"issuer":base,"authorization_endpoint":format!("{base}/authorize"),"token_endpoint":format!("{base}/token"),"jwks_uri":format!("{base}/keys")});
+    let refresh_mock = mock.clone();
+    let server = axum::Router::new()
+        .route(
+            "/.well-known/openid-configuration",
+            axum::routing::get(move || async move { axum::Json(discovery) }),
+        )
+        .route(
+            "/keys",
+            axum::routing::get(|| async { axum::Json(serde_json::json!({"keys":[]})) }),
+        )
+        .route(
+            "/token",
+            axum::routing::post(move || {
+                let state = refresh_mock.clone();
+                async move {
+                    let gate = state.refresh_gate.lock().await.clone();
+                    if let Some((entered, release)) = gate { entered.wait().await; release.wait().await; }
+                    let status = state.refresh_status.load(Ordering::SeqCst);
+                    state.request_event.notify_one();
+                    let body = if status == 200 {
+                        let mut body = serde_json::json!({"access_token":state.refresh_token.lock().await.clone()});
+                        if state.rotate.load(Ordering::SeqCst) { body["refresh_token"] = crate::auth::random_token().into(); }
+                        body
+                    } else { serde_json::json!({"error":if status==400 {"invalid_grant"} else {"temporarily_unavailable"}, "detail":state.author_token}) };
+                    (axum::http::StatusCode::from_u16(status).unwrap(), axum::Json(body))
+                }
+            }),
+        )
+        .fallback(account_cma_request)
+        .with_state(mock.clone());
+    tokio::spawn(async move {
+        axum::serve(listener, server).await.unwrap();
+    });
+    let nyxid = Arc::new(
+        crate::auth::nyxid::NyxIdClient::discover(
+            &url::Url::parse(&base).unwrap(),
+            "test".into(),
+            crate::auth::random_token(),
+            format!("{base}/callback"),
+        )
+        .await
+        .unwrap(),
+    );
+    let connection = Arc::new(crate::cma_connection::CmaConnection {
+        tokens: Arc::new(crate::donations::MemoryDonorTokens::default()),
+        cipher: crate::donations::TokenCipher::from_base64(
+            &base64::engine::general_purpose::STANDARD.encode(rand::random::<[u8; 32]>()),
+        )
+        .unwrap(),
+        nyxid,
+        base_url: base.clone(),
+        public_url: base.clone(),
+    });
+    let mut binding = CmaBinding::disconnected(w.author.person.clone(), chrono::Utc::now());
+    binding.status = CmaStatus::Ready;
+    binding.revision = 1;
+    binding.generation = 1;
+    binding.workspace_id = Some("wks_author".into());
+    binding.reason = "author_connected".into();
+    CmaBindingStore::replace(w.stores.as_ref(), &binding, 0)
+        .await
+        .unwrap();
+    connection
+        .tokens
+        .put(
+            &crate::cma_connection::slot(&w.author.person, 1),
+            &connection
+                .cipher
+                .seal(&crate::auth::random_token())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let operator = Arc::new(wishpool_review::cma::Client {
+        transport: Arc::new(wishpool_review::cma::HttpTransport {
+            base_url: base,
+            tokens: Arc::new(TestCmaToken(mock.operator_token.clone())),
+        }),
+        workspace: "wks_operator".into(),
+        profile: Some(serde_json::json!({"id":"agp_published","revision":1})),
+        poll: Duration::from_millis(1),
+    });
+    w.worker.cma_factory = Some(Arc::new(crate::cma_tokens::CmaFactory {
+        operator: operator.clone(),
+        connection: Some(connection),
+        app: w.worker.app.clone(),
+    }));
+    w.worker.advisor = Some(Arc::new(wishpool_review::cma::CmaAdvisor {
+        client: operator.clone(),
+        timeout: Duration::from_secs(30),
+        audit_timeout: Duration::from_secs(30),
+    }));
+    (w, mock, operator)
+}
+#[tokio::test]
+async fn every_cma_identity_uses_saved_author_account_workspace_and_hides_transport_tokens() {
+    let (w, mock, client) = author_cma_worker().await;
+    let job = w.job().await;
+    let prompt = "Every gap is finite. You are advising";
+    for label in [
+        "r1:audit",
+        "r1:advice",
+        "r1:letter",
+        "r1:formal",
+        "target:C2:a0",
+        "target:C2:a0:pass0",
+        "target:C2:a0:pass0:faithfulness",
+        "target:C2:a0:pass1",
+        "target:C2:a0:pass1:faithfulness",
+        "problem:C2:r1:audit",
+    ] {
+        let store = w.worker.agent_store(&job, &w.paper, label);
+        client
+            .answer(&store, prompt.into(), Duration::from_secs(30))
+            .await
+            .unwrap();
+        // A restart retains both payer and original request identity, without creating again.
+        client
+            .answer(
+                &w.worker.agent_store(&job, &w.paper, label),
+                prompt.into(),
+                Duration::from_secs(30),
+            )
+            .await
+            .unwrap();
+    }
+    let file = w.file().await;
+    assert_eq!(file.agent_steps.len(), 10);
+    for step in file.agent_steps.values() {
+        let attempt = &step.cma_attempts[0];
+        assert_eq!(attempt.payer, wishpool_core::model::CmaPayer::Author);
+        assert_eq!(attempt.workspace, "wks_author");
+        assert_eq!(attempt.outcome, wishpool_core::model::CmaOutcome::Succeeded);
+        assert_ne!(
+            attempt.identity.kind,
+            wishpool_core::model::CmaStepKind::LegacyUnknown
+        );
+    }
+    assert_eq!(mock.author.created.load(Ordering::SeqCst), 10);
+    assert_eq!(mock.operator.created.load(Ordering::SeqCst), 0);
+    let requests = mock.requests.lock().await;
+    for (token, _, path, _, body) in requests.iter() {
+        assert_eq!(token, &mock.author_token);
+        if path.ends_with("/agents") {
+            assert_eq!(path, "api/v1/workspaces/wks_author/agents");
+        }
+        assert!(!body.to_string().contains(&mock.author_token));
+        assert!(!body.to_string().contains(&mock.operator_token));
+    }
+    let stored = serde_json::to_string(&file).unwrap();
+    let projected =
+        serde_json::to_string(&w.worker.app.referee(&w.author, &w.paper.id).await.unwrap())
+            .unwrap();
+    for token in [&mock.author_token, &mock.operator_token] {
+        assert!(!stored.contains(token));
+        assert!(!projected.contains(token));
+    }
+}
+#[tokio::test]
+async fn author_quota_refusal_records_operator_successor_with_new_keys_and_no_relabel() {
+    let (w, mock, client) = author_cma_worker().await;
+    mock.refuse.store(true, Ordering::SeqCst);
+    let job = w.job().await;
+    client
+        .answer(
+            &w.worker.agent_store(&job, &w.paper, "r1:audit"),
+            "Every gap is finite. You are advising".into(),
+            Duration::from_secs(30),
+        )
+        .await
+        .unwrap();
+    let file = w.file().await;
+    let step = file.agent_steps.values().next().unwrap();
+    assert_eq!(step.cma_attempts.len(), 2);
+    assert_eq!(
+        step.cma_attempts[0].payer,
+        wishpool_core::model::CmaPayer::Author
+    );
+    assert_eq!(
+        step.cma_attempts[0].failure,
+        Some(wishpool_core::model::CmaFailure::Quota)
+    );
+    assert_eq!(
+        step.cma_attempts[1].payer,
+        wishpool_core::model::CmaPayer::Operator
+    );
+    assert_eq!(step.cma_attempts[1].fallback_from, Some(0));
+    assert_eq!(step.cma_attempts[1].reason, "quota");
+    let requests = mock.requests.lock().await;
+    let creates: Vec<_> = requests
+        .iter()
+        .filter(|(_, method, path, _, _)| method == "POST" && path.ends_with("/agents"))
+        .collect();
+    assert_eq!(creates[0].0, mock.author_token);
+    assert_eq!(creates.last().unwrap().0, mock.operator_token);
+    assert_ne!(creates[0].3, creates.last().unwrap().3);
+    assert_eq!(
+        creates.last().unwrap().2,
+        "api/v1/workspaces/wks_operator/agents"
+    );
+}
+#[tokio::test]
+async fn historical_author_cleanup_uses_original_account_after_operator_successor() {
+    use wishpool_review::cma::{FailureKind, RunState, RunStore};
+    let (w, mock, client) = author_cma_worker().await;
+    let job = w.job().await;
+    let store = w.worker.agent_store(&job, &w.paper, "r1:audit");
+    store.execution().await.unwrap();
+    store
+        .save(
+            serde_json::to_value(RunState {
+                agent_id: Some("agt_original".into()),
+                failure: Some("CMA account refusal".into()),
+                typed_failure: Some(FailureKind::Quota),
+                deadline: u64::MAX,
+                ..Default::default()
+            })
+            .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert!(store.fallback(FailureKind::Quota).await.unwrap());
+    client
+        .answer(
+            &store,
+            "Every gap is finite. You are advising".into(),
+            Duration::from_secs(30),
+        )
+        .await
+        .unwrap();
+    w.worker.cleanup_agents(&job).await.unwrap();
+    let requests = mock.requests.lock().await;
+    for (token, _, path, _, _) in requests
+        .iter()
+        .filter(|(_, _, path, _, _)| path.contains("agt_original"))
+    {
+        assert_eq!(token, &mock.author_token, "{path}");
+    }
+    assert!(
+        requests
+            .iter()
+            .any(|(token, method, path, _, _)| token == &mock.author_token
+                && method == "DELETE"
+                && path.ends_with("agt_original"))
+    );
+    let file = w.file().await;
+    assert_eq!(
+        file.agent_steps.values().next().unwrap().cma_attempts[0].progress["deleted"],
+        true
+    );
+}
+
+#[tokio::test]
+async fn refresh_outages_keep_payer_key_body_and_binding() {
+    for status in [429, 500, 503, 403, 401, 204] {
+        let (w, mock, client) = author_cma_worker().await;
+        mock.refresh_status.store(status, Ordering::SeqCst);
+        let job = w.job().await;
+        let before = w.worker.app.cma_binding(&w.author.person).await.unwrap();
+        let store = w.worker.agent_store(&job, &w.paper, "r1:audit");
+        tokio::select! {
+            result = client.answer(&store, "Every gap is finite. You are advising".into(), Duration::from_secs(30)) => panic!("unexpected completion: {result:?}"),
+            () = async { mock.request_event.notified().await; mock.request_event.notified().await; } => {}
+        }
+        let initial = w.file().await;
+        let intent = initial.agent_steps.values().next().unwrap().progress["create_intent"].clone();
+        assert_eq!(
+            initial
+                .agent_steps
+                .values()
+                .next()
+                .unwrap()
+                .cma_attempts
+                .len(),
+            1
+        );
+        assert_eq!(
+            w.worker.app.cma_binding(&w.author.person).await.unwrap(),
+            before
+        );
+        mock.refresh_status.store(200, Ordering::SeqCst);
+        client
+            .answer(
+                &w.worker.agent_store(&job, &w.paper, "r1:audit"),
+                "Every gap is finite. You are advising".into(),
+                Duration::from_secs(30),
+            )
+            .await
+            .unwrap();
+        let file = w.file().await;
+        let step = file.agent_steps.values().next().unwrap();
+        assert_eq!(step.cma_attempts.len(), 1);
+        assert_eq!(
+            step.cma_attempts[0].payer,
+            wishpool_core::model::CmaPayer::Author
+        );
+        assert_eq!(step.progress["create_intent"], intent);
+        assert_eq!(mock.operator.created.load(Ordering::SeqCst), 0);
+    }
+}
+
+#[tokio::test]
+async fn disconnect_during_refresh_without_rotation_fences_returned_token() {
+    let (w, mock, _) = author_cma_worker().await;
+    let entered = Arc::new(tokio::sync::Barrier::new(2));
+    let release = Arc::new(tokio::sync::Barrier::new(2));
+    *mock.refresh_gate.lock().await = Some((entered.clone(), release.clone()));
+    let job = w.job().await;
+    let attempt = w
+        .worker
+        .app
+        .admit_cma_attempt(
+            &w.worker.auditor_account,
+            &job,
+            w.worker.jobs.as_ref(),
+            "race",
+            "r1:audit",
+            "wks_operator",
+        )
+        .await
+        .unwrap();
+    let client = w
+        .worker
+        .cma_factory
+        .as_ref()
+        .unwrap()
+        .client(&attempt)
+        .unwrap();
+    let request = client
+        .transport
+        .request("GET", "api/v1/workspaces/wks_author", None, None);
+    let disconnect = async {
+        entered.wait().await;
+        w.worker.app.disconnect_cma(&w.author).await.unwrap();
+        release.wait().await;
+    };
+    let (result, ()) = tokio::join!(request, disconnect);
+    assert!(matches!(
+        result,
+        Err(ReviewError::CmaRefusal(
+            wishpool_review::cma::FailureKind::Auth
+        ))
+    ));
+    assert!(mock.requests.lock().await.is_empty());
+}
+
+#[tokio::test]
+async fn simultaneous_validation_and_author_refresh_rotation_is_transient() {
+    let (w, mock, _) = author_cma_worker().await;
+    mock.rotate.store(true, Ordering::SeqCst);
+    let entered = Arc::new(tokio::sync::Barrier::new(3));
+    let release = Arc::new(tokio::sync::Barrier::new(3));
+    *mock.refresh_gate.lock().await = Some((entered.clone(), release.clone()));
+    let connection = w
+        .worker
+        .cma_factory
+        .as_ref()
+        .unwrap()
+        .connection
+        .as_ref()
+        .unwrap();
+    let job = w.job().await;
+    let attempt = w
+        .worker
+        .app
+        .admit_cma_attempt(
+            &w.worker.auditor_account,
+            &job,
+            w.worker.jobs.as_ref(),
+            "race",
+            "r1:audit",
+            "wks_operator",
+        )
+        .await
+        .unwrap();
+    let client = w
+        .worker
+        .cma_factory
+        .as_ref()
+        .unwrap()
+        .client(&attempt)
+        .unwrap();
+    let validation = connection.access_token(&w.author.person, 1);
+    let execution = client
+        .transport
+        .request("GET", "api/v1/workspaces/wks_author", None, None);
+    let schedule = async {
+        entered.wait().await;
+        release.wait().await;
+    };
+    let (left, right, ()) = tokio::join!(validation, execution, schedule);
+    assert_ne!(left.is_ok(), right.is_ok());
+    if let Err(error) = left {
+        assert!(matches!(error, wishpool_core::CoreError::Unavailable(_)));
+    }
+    if let Err(error) = right {
+        assert!(matches!(error, ReviewError::Transport(_)));
+    }
+    assert_eq!(
+        w.worker
+            .app
+            .cma_binding(&w.author.person)
+            .await
+            .unwrap()
+            .status,
+        wishpool_core::model::CmaStatus::Ready
+    );
+    assert_eq!(w.file().await.agent_steps["race"].cma_attempts.len(), 1);
+}
+
+#[tokio::test]
+async fn restricted_jwts_and_opaque_tokens_are_refused_with_explicit_successor() {
+    for restriction in [
+        "resource",
+        "allowed_service_ids",
+        "cnf",
+        "act",
+        "delegated",
+        "opaque",
+        "missing_token_type",
+        "wrong_token_type",
+    ] {
+        let (w, mock, client) = author_cma_worker().await;
+        let mut claims = jsonwebtoken::decode::<serde_json::Value>(
+            &mock.author_token,
+            &jsonwebtoken::DecodingKey::from_secret(&mock.jwt_key),
+            &jsonwebtoken::Validation::new(jsonwebtoken::Algorithm::HS256),
+        )
+        .unwrap()
+        .claims;
+        match restriction {
+            "missing_token_type" => {
+                claims.as_object_mut().unwrap().remove("token_type");
+            }
+            "wrong_token_type" => {
+                claims["token_type"] = "refresh".into();
+            }
+            _ => {
+                claims[restriction] = serde_json::json!(true);
+            }
+        }
+        *mock.refresh_token.lock().await = if restriction == "opaque" {
+            crate::auth::random_token()
+        } else {
+            jsonwebtoken::encode(
+                &jsonwebtoken::Header::new(jsonwebtoken::Algorithm::HS256),
+                &claims,
+                &jsonwebtoken::EncodingKey::from_secret(&mock.jwt_key),
+            )
+            .unwrap()
+        };
+        let job = w.job().await;
+        client
+            .answer(
+                &w.worker.agent_store(&job, &w.paper, "r1:audit"),
+                "Every gap is finite. You are advising".into(),
+                Duration::from_secs(30),
+            )
+            .await
+            .unwrap();
+        let file = w.file().await;
+        let attempts = &file.agent_steps.values().next().unwrap().cma_attempts;
+        assert_eq!(attempts.len(), 2);
+        assert_eq!(attempts[0].payer, wishpool_core::model::CmaPayer::Author);
+        assert_eq!(
+            attempts[0].failure,
+            Some(wishpool_core::model::CmaFailure::Auth)
+        );
+        assert_eq!(attempts[1].payer, wishpool_core::model::CmaPayer::Operator);
+        assert_eq!(mock.author.created.load(Ordering::SeqCst), 0);
+        assert_eq!(mock.operator.created.load(Ordering::SeqCst), 1);
+    }
+}
+
+struct HttpCmaFormalizer {
+    client: Arc<wishpool_review::cma::Client>,
+    checker: FakeFormalizer,
+}
+#[async_trait]
+impl Formalizer for HttpCmaFormalizer {
+    fn engine(&self) -> &str {
+        "nyxid-cma+test-checker"
+    }
+    fn model(&self) -> &str {
+        "cma-profile"
+    }
+    async fn formalize(&self, _: &FormalInput, _: &std::path::Path) -> ReviewResult<FormalOut> {
+        unreachable!("worker must use durable store")
+    }
+    async fn formalize_with_store(
+        &self,
+        input: &FormalInput,
+        work: &std::path::Path,
+        store: &dyn wishpool_review::cma::RunStore,
+    ) -> ReviewResult<FormalOut> {
+        // Replace only the credential-free local checker; drive actual worker dispatch and CMA transport.
+        self.client
+            .answer(
+                store,
+                wishpool_review::referee_prompts::formalize(input, "test pinned toolchain"),
+                Duration::from_secs(30),
+            )
+            .await?;
+        self.checker.formalize(input, work).await
+    }
+}
+
+#[tokio::test]
+async fn real_worker_dispatches_all_submission_cma_steps_for_author_and_operator_and_restarts_uncertain_creation()
+ {
+    use wishpool_core::model::CmaStepKind;
+    let problem = serde_json::json!({"recommendation":"accept","summary":"Open question", "claims":[{"claim":"C2","conjecture":{"well_posed":true,"well_posed_reason":"Defined symbols","status":"open","status_reason":"Not settled","escape":"content","escape_reason":"Needs a new bound"}}]}).to_string();
+    for author_pays in [true, false] {
+        let (mut w, mock, client) = author_cma_worker().await;
+        if !author_pays {
+            w.worker.app.disconnect_cma(&w.author).await.unwrap();
+        }
+        w.oracle.outcomes.lock().await.extend([
+            completed("accept"),
+            Ok(OracleStatus::Completed {
+                text: problem.clone(),
+                model: None,
+            }),
+        ]);
+        w.worker.formalizer = Some(Arc::new(HttpCmaFormalizer {
+            client: client.clone(),
+            checker: FakeFormalizer::default(),
+        }));
+        // The provider admitted the author mutation, but its first receipt is lost.
+        let mut job = w.job().await;
+        for _ in 0..2 {
+            assert!(w.worker.referee_job(&job).await.unwrap());
+            job = w.claim_referee().await;
+        }
+        mock.uncertain_create.store(true, Ordering::SeqCst);
+        mock.creation_outage.store(true, Ordering::SeqCst);
+        tokio::select! {
+            result = w.worker.referee_job(&job) => panic!("unexpected completion: {result:?}"),
+            () = mock.repeat_create_event.notified() => {}
+        }
+        assert_eq!(
+            w.file()
+                .await
+                .agent_steps
+                .values()
+                .next()
+                .unwrap()
+                .cma_attempts
+                .len(),
+            1
+        );
+        mock.creation_outage.store(false, Ordering::SeqCst);
+        for _ in 0..18 {
+            if !w.worker.referee_job(&job).await.unwrap() {
+                break;
+            }
+            job = w.claim_referee().await;
+        }
+        let file = w.file().await;
+        assert_eq!(file.letters.len(), 1, "{:?}", file.current());
+        assert!(
+            file.agent_steps
+                .values()
+                .any(|s| s.cma_attempts[0].identity.kind == CmaStepKind::LeanProbe)
+        );
+        // Worker restart: a new AgentStore is constructed on every dispatch above.
+        // Complete parked referee job so the independent problem job is next.
+        if let Some(job) = w.jobs.current(&w.paper.id, JobKind::Referee).await {
+            w.jobs.complete(&job).await.unwrap();
+        }
+        // The focused referee claimant parks unrelated jobs; re-admit the candidate job now.
+        wishpool_core::ports::ReviewQueue::enqueue(
+            w.stores.as_ref(),
+            &w.paper.id,
+            JobKind::OpenProblems,
+        )
+        .await
+        .unwrap();
+        let mut seen_target = false;
+        for _ in 0..12 {
+            let Some(job) = w.jobs.claim().await.unwrap() else {
+                break;
+            };
+            match job.kind {
+                JobKind::OpenProblems => {
+                    if !w.worker.open_problems_job(&job).await.unwrap() {
+                        w.jobs.complete(&job).await.unwrap();
+                    }
+                }
+                JobKind::LeanStatement => {
+                    assert!(!w.worker.lean_statement_job(&job).await.unwrap());
+                    w.jobs.complete(&job).await.unwrap();
+                    seen_target = true;
+                }
+                _ => {
+                    w.jobs.complete(&job).await.unwrap();
+                }
+            }
+        }
+        assert!(seen_target);
+        let file = w.file().await;
+        for kind in [
+            CmaStepKind::Audit,
+            CmaStepKind::Advice,
+            CmaStepKind::Letter,
+            CmaStepKind::LeanProbe,
+            CmaStepKind::ConjectureTarget,
+            CmaStepKind::ProblemAudit,
+            CmaStepKind::TargetFaithfulness,
+        ] {
+            let (key, step) = file
+                .agent_steps
+                .iter()
+                .find(|(_, s)| s.cma_attempts[0].identity.kind == kind)
+                .unwrap_or_else(|| panic!("missing {kind:?}"));
+            assert_eq!(step.cma_attempts.len(), 1);
+            assert_eq!(
+                step.cma_attempts[0].payer,
+                if author_pays {
+                    wishpool_core::model::CmaPayer::Author
+                } else {
+                    wishpool_core::model::CmaPayer::Operator
+                }
+            );
+            assert_eq!(
+                step.cma_attempts[0].outcome,
+                wishpool_core::model::CmaOutcome::Succeeded
+            );
+            let requests = mock.requests.lock().await;
+            let create = requests
+                .iter()
+                .find(|r| r.3.as_deref() == Some(&format!("{key}:create")))
+                .unwrap();
+            assert_eq!(
+                create.0,
+                if author_pays {
+                    mock.author_token.clone()
+                } else {
+                    mock.operator_token.clone()
+                }
+            );
+            assert_eq!(
+                create.2,
+                format!(
+                    "api/v1/workspaces/{}/agents",
+                    step.cma_attempts[0].workspace
+                )
+            );
+            assert_eq!(create.4, step.progress["create_intent"][1]);
+        }
+        let requests = mock.requests.lock().await;
+        let creates: Vec<_> = requests
+            .iter()
+            .filter(|r| r.1 == "POST" && r.2.ends_with("/agents"))
+            .collect();
+        let first_key = creates[0].3.clone();
+        let repeated: Vec<_> = creates.iter().filter(|r| r.3 == first_key).collect();
+        assert!(repeated.len() >= 2);
+        assert!(
+            repeated
+                .iter()
+                .all(|r| r.4 == creates[0].4 && r.0 == creates[0].0)
+        );
+        assert_eq!(
+            if author_pays {
+                mock.author.created.load(Ordering::SeqCst)
+            } else {
+                mock.operator.created.load(Ordering::SeqCst)
+            },
+            7
+        );
+        assert_eq!(
+            if author_pays {
+                mock.operator.created.load(Ordering::SeqCst)
+            } else {
+                mock.author.created.load(Ordering::SeqCst)
+            },
+            0
+        );
+        drop(requests);
+        w.worker
+            .app
+            .respond_to_formalization(&w.author, &w.paper.id, &"C1".into(), true, String::new())
+            .await
+            .unwrap();
+        let target_job = loop {
+            let job = w.jobs.claim().await.unwrap().unwrap();
+            if job.kind == JobKind::LeanStatement {
+                break job;
+            }
+            w.jobs.complete(&job).await.unwrap();
+        };
+        assert!(!w.worker.lean_statement_job(&target_job).await.unwrap());
+        let file = w.file().await;
+        for kind in [
+            CmaStepKind::ConjectureTarget,
+            CmaStepKind::TargetFaithfulness,
+        ] {
+            let step = file
+                .agent_steps
+                .values()
+                .find(|s| {
+                    s.cma_attempts[0].identity.kind == kind
+                        && s.cma_attempts[0]
+                            .identity
+                            .claim
+                            .as_ref()
+                            .is_some_and(|c| c.as_str() == "C1")
+                })
+                .expect("proved paper target and audit must use CMA");
+            assert_eq!(
+                step.cma_attempts[0].payer,
+                if author_pays {
+                    wishpool_core::model::CmaPayer::Author
+                } else {
+                    wishpool_core::model::CmaPayer::Operator
+                }
+            );
+        }
+    }
+}
+
+#[derive(Clone, Default)]
+struct CapturedTrace(Arc<std::sync::Mutex<Vec<u8>>>);
+impl std::io::Write for CapturedTrace {
+    fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
+        self.0.lock().unwrap().extend_from_slice(bytes);
+        Ok(bytes.len())
+    }
+    fn flush(&mut self) -> std::io::Result<()> {
+        Ok(())
+    }
+}
+impl<'a> tracing_subscriber::fmt::MakeWriter<'a> for CapturedTrace {
+    type Writer = Self;
+    fn make_writer(&'a self) -> Self::Writer {
+        self.clone()
+    }
+}
+#[tokio::test]
+async fn provider_token_sentinels_never_enter_tracing_prompts_state_or_api() {
+    use tracing::instrument::WithSubscriber;
+    let capture = CapturedTrace::default();
+    let subscriber = tracing_subscriber::fmt()
+        .without_time()
+        .with_ansi(false)
+        .with_writer(capture.clone())
+        .finish();
+    let (w, mock, client) = author_cma_worker().await;
+    async {
+        let job = w.job().await;
+        mock.refresh_status.store(503, Ordering::SeqCst);
+        let store = w.worker.agent_store(&job, &w.paper, "r1:audit");
+        tokio::select! {
+            result = client.answer(&store, "Every gap is finite. You are advising".into(), Duration::from_secs(30)) => panic!("unexpected completion: {result:?}"),
+            () = async { mock.request_event.notified().await; mock.request_event.notified().await; } => {}
+        }
+        tracing::warn!("refresh retry");
+        mock.refresh_status.store(200, Ordering::SeqCst);
+        mock.refuse.store(true, Ordering::SeqCst);
+        mock.cleanup_failure.store(true, Ordering::SeqCst);
+        client
+            .answer(
+                &w.worker.agent_store(&job, &w.paper, "r1:audit"),
+                "Every gap is finite. You are advising".into(),
+                Duration::from_secs(30),
+            )
+            .await
+            .unwrap();
+        w.worker.cleanup_agents(&job).await.unwrap();
+    }
+    .with_subscriber(subscriber)
+    .await;
+    let logs = String::from_utf8(capture.0.lock().unwrap().clone()).unwrap();
+    assert!(logs.contains("refresh retry"));
+    assert!(logs.contains("cleanup"));
+    let state = serde_json::to_string(&w.file().await).unwrap();
+    let api = serde_json::to_string(&w.worker.app.referee(&w.author, &w.paper.id).await.unwrap())
+        .unwrap();
+    let requests = mock.requests.lock().await;
+    for token in [&mock.author_token, &mock.operator_token] {
+        for text in [&logs, &state, &api] {
+            assert!(!text.contains(token));
+        }
+        for request in requests.iter() {
+            assert!(!request.4.to_string().contains(token));
+        }
+    }
+}
+
+#[tokio::test]
+async fn definitive_invalid_grant_refresh_records_auth_fallback() {
+    let (w, mock, client) = author_cma_worker().await;
+    mock.refresh_status.store(400, Ordering::SeqCst);
+    let job = w.job().await;
+    client
+        .answer(
+            &w.worker.agent_store(&job, &w.paper, "r1:audit"),
+            "Every gap is finite. You are advising".into(),
+            Duration::from_secs(30),
+        )
+        .await
+        .unwrap();
+    let file = w.file().await;
+    let attempts = &file.agent_steps.values().next().unwrap().cma_attempts;
+    assert_eq!(attempts.len(), 2);
+    assert_eq!(
+        attempts[0].failure,
+        Some(wishpool_core::model::CmaFailure::Auth)
+    );
+    assert_eq!(attempts[1].payer, wishpool_core::model::CmaPayer::Operator);
+    assert_eq!(mock.author.created.load(Ordering::SeqCst), 0);
+    assert_eq!(mock.operator.created.load(Ordering::SeqCst), 1);
 }
 
 struct InspectionFake {
@@ -1925,4 +3011,274 @@ async fn text_reports_use_fake_audit_and_confirmed_review_starts_one_new_round()
             .unwrap()
             .contains("one inspection")
     );
+}
+
+#[tokio::test]
+async fn setup_refusals_append_exactly_one_operator_successor() {
+    use wishpool_review::cma::{FailureKind, RunStore};
+    for (status, code) in [
+        (404, "workspace_not_found"),
+        (409, "connections_required"),
+        (409, "trust_confirmation_required"),
+    ] {
+        let (w, mock, client) = author_cma_worker().await;
+        *mock.setup_refusal.lock().await = Some((status, code.into()));
+        let job = w.job().await;
+        let store = w.worker.agent_store(&job, &w.paper, "r1:audit");
+        for _ in 0..2 {
+            client
+                .answer(
+                    &store,
+                    "Every gap is finite. You are advising".into(),
+                    Duration::from_secs(30),
+                )
+                .await
+                .unwrap();
+        }
+        assert!(!store.fallback(FailureKind::Setup).await.unwrap());
+        let file = w.file().await;
+        let attempts = &file.agent_steps.values().next().unwrap().cma_attempts;
+        assert_eq!(attempts.len(), 2, "{code}");
+        assert_eq!(
+            attempts[0].failure,
+            Some(wishpool_core::model::CmaFailure::Setup)
+        );
+        assert_eq!(attempts[1].payer, wishpool_core::model::CmaPayer::Operator);
+        assert_eq!(attempts[1].fallback_from, Some(0));
+        assert_eq!(mock.author.created.load(Ordering::SeqCst), 0);
+        assert_eq!(mock.operator.created.load(Ordering::SeqCst), 1);
+    }
+}
+#[tokio::test]
+async fn mid_run_aggregate_change_propagates_typed_fence_without_retry_or_fallback() {
+    use wishpool_core::ports::RefereeStore;
+    let (w, mock, client) = author_cma_worker().await;
+    let entered = Arc::new(tokio::sync::Notify::new());
+    let release = Arc::new(tokio::sync::Notify::new());
+    *mock.create_gate.lock().await = Some((entered.clone(), release.clone()));
+    let job = w.job().await;
+    let store = w.worker.agent_store(&job, &w.paper, "r1:audit");
+    let (result, ()) = tokio::join!(
+        async {
+            tokio::time::timeout(
+                Duration::from_secs(5),
+                client.answer(
+                    &store,
+                    "Every gap is finite. You are advising".into(),
+                    Duration::from_secs(30),
+                ),
+            )
+            .await
+            .expect("fence must return promptly")
+        },
+        async {
+            entered.notified().await;
+            let mut file = w.file().await;
+            let revision = file.revision;
+            file.recheck_requests.push("concurrent-update".into());
+            RefereeStore::replace(w.stores.as_ref(), &file, revision)
+                .await
+                .unwrap();
+            release.notify_one();
+        }
+    );
+    assert!(matches!(result, Err(ReviewError::PersistenceFence)));
+    let file = w.file().await;
+    let step = file.agent_steps.values().next().unwrap();
+    assert_eq!(step.cma_attempts.len(), 1);
+    assert!(step.progress["failure"].is_null());
+    assert_eq!(mock.author.created.load(Ordering::SeqCst), 1);
+    assert_eq!(mock.operator.created.load(Ordering::SeqCst), 0);
+    assert_eq!(mock.requests.lock().await.len(), 1);
+}
+#[tokio::test]
+async fn venue_attempts_and_error_audits_never_use_ready_author_binding() {
+    use wishpool_core::model::{CmaPayer, CmaStepKind};
+    let (w, mock, client) = author_cma_worker().await;
+    let job = w.job().await;
+    for (label, kind) in [
+        ("agent-attempt:C2:digest", CmaStepKind::VenueAttempt),
+        ("error-report:report1", CmaStepKind::ErrorReportAudit),
+    ] {
+        let store = w.worker.agent_store(&job, &w.paper, label);
+        client
+            .answer(
+                &store,
+                "Every gap is finite. You are advising".into(),
+                Duration::from_secs(30),
+            )
+            .await
+            .unwrap();
+        let file = w.file().await;
+        let attempt = &file
+            .agent_steps
+            .values()
+            .find(|s| s.cma_attempts[0].identity.kind == kind)
+            .unwrap()
+            .cma_attempts[0];
+        assert_eq!(attempt.payer, CmaPayer::Operator);
+        assert_eq!(attempt.reason, "operator_step");
+        assert_eq!(attempt.workspace, "wks_operator");
+        assert!(attempt.owner.is_none());
+    }
+    assert_eq!(mock.author.created.load(Ordering::SeqCst), 0);
+    assert_eq!(mock.operator.created.load(Ordering::SeqCst), 2);
+}
+
+async fn replay_pre_byok_terminal_state(
+    referees: Option<Arc<dyn wishpool_core::ports::RefereeStore>>,
+) {
+    use sha2::{Digest, Sha256};
+    use wishpool_core::{
+        model::{AgentStep, RefereeFile},
+        ports::RefereeStore,
+    };
+    use wishpool_review::cma::{RunState, RunStore};
+    let mut w = World::new(vec![], true).await;
+    let referees: Arc<dyn RefereeStore> = referees.unwrap_or_else(|| w.stores.clone());
+    let mut ports = w.stores.ports(Arc::new(SystemClock), Arc::new(LatexReader));
+    ports.referees = referees.clone();
+    w.worker.app = App::new(ports, Policy::default(), BTreeSet::new());
+    let job = w.job().await;
+    let store = w.worker.agent_store(&job, &w.paper, "r1:audit");
+    let transport = Arc::new(ManagedTransport {
+        created: AtomicUsize::new(0),
+        calls: Mutex::new(vec![]),
+        answers: Mutex::new(Default::default()),
+    });
+    let client = wishpool_review::cma::Client {
+        transport: transport.clone(),
+        workspace: "unused".into(),
+        profile: None,
+        poll: Duration::from_millis(1),
+    };
+    // Literal pre-change JSON: no typed_failure or payer history. Load/save must
+    // preserve the settled answer even though RunState now serializes defaults.
+    let mut progress: serde_json::Value = serde_json::from_str(r#"{"agent_id":"agt_legacy","response_id":null,"next_chunk":1,"deadline":1,"input":"","answer":"{\"legacy\":true}","failure":null,"stopped":true,"deleted":true,"cancel_intent":null,"create_intent":null}"#).unwrap();
+    progress["input"] = format!("{:x}", Sha256::digest(b"legacy prompt")).into();
+    let mut file = RefereeFile::new(w.paper.id.clone());
+    file.agent_steps.insert(
+        store.key().into(),
+        AgentStep {
+            version: 1,
+            claims_revision: w.paper.claims_revision,
+            cma_attempts: vec![],
+            progress,
+        },
+    );
+    referees.insert(&file).await.unwrap();
+    assert!(
+        referees
+            .get(&w.paper.id)
+            .await
+            .unwrap()
+            .unwrap()
+            .agent_steps[store.key()]
+        .progress
+        .get("typed_failure")
+        .is_none()
+    );
+    for _ in 0..2 {
+        assert_eq!(
+            client
+                .answer(&store, "legacy prompt".into(), Duration::from_secs(30))
+                .await
+                .unwrap(),
+            r#"{"legacy":true}"#
+        );
+    }
+    let mut state: RunState = serde_json::from_value(store.load().await.unwrap().unwrap()).unwrap();
+    state.answer = Some("replacement".into());
+    assert!(matches!(
+        store.save(serde_json::to_value(state).unwrap()).await,
+        Err(ReviewError::PersistenceFence)
+    ));
+    assert!(transport.calls.lock().await.is_empty());
+}
+#[tokio::test]
+async fn legacy_terminal_runstate_replays_through_memory_store() {
+    replay_pre_byok_terminal_state(None).await;
+}
+#[tokio::test]
+async fn legacy_terminal_runstate_replays_through_mongo_store() {
+    let Ok(uri) = std::env::var("WISHPOOL_TEST_MONGODB_URI") else {
+        return;
+    };
+    let name = format!(
+        "wishpool_test_legacy_{}",
+        crate::auth::random_token()
+            .chars()
+            .filter(char::is_ascii_alphanumeric)
+            .take(16)
+            .collect::<String>()
+    );
+    let store = crate::store::MongoStore::connect(&uri, &name)
+        .await
+        .unwrap();
+    replay_pre_byok_terminal_state(Some(Arc::new(store))).await;
+    mongodb::Client::with_uri_str(&uri)
+        .await
+        .unwrap()
+        .database(&name)
+        .drop()
+        .await
+        .unwrap();
+}
+
+#[tokio::test]
+async fn donation_attribution_follows_operator_payer_and_is_idempotent() {
+    use wishpool_review::cma::{FailureKind, RunStore};
+    let (w, _, _) = author_cma_worker().await;
+    let donor = w
+        .worker
+        .app
+        .ensure_service_account(&"supporter".into(), "Supporter", Role::Endorser)
+        .await
+        .unwrap();
+    w.worker
+        .app
+        .create_or_renew_donation(&donor.person, 10000, "model")
+        .await
+        .unwrap();
+    let job = w.job().await;
+    for label in ["r1:formal", "target:C1:a0", "target:C1:a0:faithfulness"] {
+        w.worker
+            .agent_store(&job, &w.paper, label)
+            .execution()
+            .await
+            .unwrap();
+    }
+    assert!(
+        w.worker
+            .app
+            .donation(&donor)
+            .await
+            .unwrap()
+            .unwrap()
+            .runs
+            .is_empty()
+    );
+    let target = w.worker.agent_store(&job, &w.paper, "target:C1:a0");
+    target.execution().await.unwrap();
+    assert!(target.fallback(FailureKind::Quota).await.unwrap());
+    for _ in 0..2 {
+        target.execution().await.unwrap();
+    }
+    let venue = w
+        .worker
+        .agent_store(&job, &w.paper, "agent-attempt:C1:digest");
+    for _ in 0..2 {
+        venue.execution().await.unwrap();
+    }
+    w.worker
+        .agent_store(&job, &w.paper, "error-report:report1")
+        .execution()
+        .await
+        .unwrap();
+    let grant = w.worker.app.donation(&donor).await.unwrap().unwrap();
+    assert_eq!(grant.runs.len(), 2);
+    assert!(grant.runs.contains_key(target.key()));
+    assert!(grant.runs.contains_key(venue.key()));
+    assert_eq!(grant.used, 0);
+    assert!(grant.runs.values().all(|r| r.usage.is_none()));
 }

@@ -18,6 +18,7 @@ const RECONCILE_INTERVAL: Duration = Duration::from_secs(60);
 const LEASE_HEARTBEAT: Duration = Duration::from_secs(5 * 60);
 
 pub struct Worker {
+    pub cma_factory: Option<Arc<crate::cma_tokens::CmaFactory>>,
     pub app: Arc<App>,
     pub jobs: Arc<dyn JobLease>,
     pub compile: Compile,
@@ -56,6 +57,7 @@ impl From<CoreError> for Failure {
 
 fn model_failure(error: wishpool_review::ReviewError) -> Failure {
     match error {
+        wishpool_review::ReviewError::PersistenceFence => Failure::Transient(error.to_string()),
         wishpool_review::ReviewError::Transport(e) => Failure::Transient(e),
         wishpool_review::ReviewError::Provider { status, body }
             if status == 429 || status >= 500 =>

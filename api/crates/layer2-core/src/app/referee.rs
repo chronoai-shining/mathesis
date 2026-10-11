@@ -88,37 +88,107 @@ impl App {
         self.submission(caller, id).await?;
         Ok(self.referee_file(id).await?.0.agent_steps.get(key).cloned())
     }
-    pub async fn save_agent_step(
+    pub async fn agent_step_snapshot(
         &self,
         caller: &Caller,
         id: &SubmissionId,
         key: &str,
-        step: crate::model::AgentStep,
-    ) -> CoreResult<()> {
+    ) -> CoreResult<(u64, Option<crate::model::AgentStep>)> {
         caller.require(Role::Reviewer)?;
-        let submission = self.submission(caller, id).await?;
-        let (mut file, stored) = self.referee_file(id).await?;
-        if file.agent_steps.get(key).is_some_and(|existing| {
-            existing.version != step.version || existing.claims_revision != step.claims_revision
-        }) {
-            return Err(CoreError::conflict("agent step identity cannot change"));
-        }
-        // Existing obsolete steps may record cleanup, but cannot create new work.
-        if !file.agent_steps.contains_key(key)
-            && (step.version != Self::version_number(&submission)?
-                || step.claims_revision != submission.claims_revision
-                || submission.status == SubmissionStatus::Withdrawn)
-        {
-            return Err(CoreError::conflict("agent inputs superseded"));
+        self.submission(caller, id).await?;
+        let (file, _) = self.referee_file(id).await?;
+        Ok((file.revision, file.agent_steps.get(key).cloned()))
+    }
+
+    pub async fn persist_agent_step(
+        &self,
+        caller: &Caller,
+        job: &crate::ports::LeasedJob,
+        leases: &dyn crate::ports::JobLease,
+        key: &str,
+        update: crate::model::AgentStepUpdate,
+    ) -> CoreResult<u64> {
+        use crate::model::{AgentStep, CmaOutcome};
+        caller.require(Role::Reviewer)?;
+        let submission = self.submission(caller, &job.submission).await?;
+        let (mut file, stored) = self.referee_file(&job.submission).await?;
+        if file.revision != update.source_revision {
+            return Err(CoreError::StaleRevision {
+                kind: "referee file",
+                id: job.submission.to_string(),
+            });
         }
         if key.is_empty()
             || key.len() > 240
-            || serde_json::to_vec(&step.progress).map_or(true, |v| v.len() > 4_100_000)
+            || serde_json::to_vec(&update.progress).map_or(true, |v| v.len() > 4_100_000)
         {
             return Err(CoreError::invalid("agent step exceeds its limit"));
         }
-        file.agent_steps.insert(key.into(), step);
-        self.store_referee_file(&mut file, stored).await
+        if !update.cleanup
+            && (update.version != Self::version_number(&submission)?
+                || update.claims_revision != submission.claims_revision
+                || matches!(
+                    submission.status,
+                    SubmissionStatus::Draft | SubmissionStatus::Withdrawn
+                ))
+        {
+            return Err(CoreError::conflict("agent inputs superseded"));
+        }
+        if update.cleanup && !file.agent_steps.contains_key(key) {
+            return Err(CoreError::conflict("cleanup requires existing CMA work"));
+        }
+        let step = file.agent_steps.entry(key.into()).or_insert(AgentStep {
+            cma_attempts: vec![],
+            version: update.version,
+            claims_revision: update.claims_revision,
+            progress: serde_json::Value::Null,
+        });
+        if step.version != update.version || step.claims_revision != update.claims_revision {
+            return Err(CoreError::conflict("agent step identity cannot change"));
+        }
+        let current = step.cma_attempts.last().map(|a| a.ordinal);
+        if !update.cleanup && current != update.ordinal {
+            return Err(CoreError::conflict("CMA selected attempt superseded"));
+        }
+        let attempt = match update.ordinal {
+            Some(ordinal) => Some(
+                step.cma_attempts
+                    .iter_mut()
+                    .find(|a| a.ordinal == ordinal)
+                    .ok_or_else(|| CoreError::conflict("CMA attempt not admitted"))?,
+            ),
+            None if step.cma_attempts.is_empty() => None,
+            None => return Err(CoreError::conflict("CMA attempt not selected")),
+        };
+        let next = update.progress;
+        if let Some(attempt) = attempt {
+            let progress = if update.ordinal != current {
+                &mut attempt.progress
+            } else {
+                &mut step.progress
+            };
+            persist_progress(progress, next, update.cleanup)?;
+            if !update.cleanup
+                && attempt.outcome == CmaOutcome::Running
+                && (progress["answer"].is_string() || progress["failure"].is_string())
+            {
+                attempt.outcome = if progress["answer"].is_string() {
+                    CmaOutcome::Succeeded
+                } else {
+                    CmaOutcome::Failed
+                };
+                attempt.finished_at = Some(self.ports.clock.now());
+                attempt.failure = serde_json::from_value(progress["typed_failure"].clone()).ok();
+            }
+        } else {
+            persist_progress(&mut step.progress, next, update.cleanup)?;
+        }
+        // Check the live lease immediately before the revision-fenced write.
+        if !leases.renew(job).await? {
+            return Err(CoreError::conflict("CMA job lease lost"));
+        }
+        self.store_referee_file(&mut file, stored).await?;
+        Ok(file.revision)
     }
 
     /// Staff see every round; the submitting author and co-authors see the
@@ -620,14 +690,18 @@ impl App {
     }
 
     /// The stored file (and whether it exists), or a new one.
-    async fn referee_file(&self, id: &SubmissionId) -> CoreResult<(RefereeFile, bool)> {
+    pub(crate) async fn referee_file(&self, id: &SubmissionId) -> CoreResult<(RefereeFile, bool)> {
         Ok(match self.ports.referees.get(id).await? {
             Some(file) => (file, true),
             None => (RefereeFile::new(id.clone()), false),
         })
     }
 
-    async fn store_referee_file(&self, file: &mut RefereeFile, stored: bool) -> CoreResult<()> {
+    pub(crate) async fn store_referee_file(
+        &self,
+        file: &mut RefereeFile,
+        stored: bool,
+    ) -> CoreResult<()> {
         if stored {
             let expected = file.revision;
             self.ports.referees.replace(file, expected).await?;
@@ -669,6 +743,89 @@ fn validate_letter(subject: &str, body: &str, note: &str) -> CoreResult<()> {
     if body.chars().count() > MAX_LETTER_CHARS || note.chars().count() > MAX_LETTER_CHARS {
         return Err(CoreError::invalid("the letter is too long"));
     }
+    Ok(())
+}
+
+fn persist_progress(
+    old: &mut serde_json::Value,
+    next: serde_json::Value,
+    cleanup: bool,
+) -> CoreResult<()> {
+    const CLEANUP_FIELDS: [&str; 5] = [
+        "stopped",
+        "deleted",
+        "cancel_intent",
+        "stop_intent",
+        "agent_id",
+    ];
+    let terminal = old["answer"].is_string() || old["failure"].is_string();
+    if terminal && !cleanup {
+        let mut comparable = next.clone();
+        let mut original = old.clone();
+        // RunState is owned by Layer 3; normalize its wire defaults here without
+        // a reverse layer dependency. New optional fields must not break replay.
+        for value in [&mut comparable, &mut original] {
+            for field in [
+                "create_intent",
+                "agent_id",
+                "response_id",
+                "answer",
+                "failure",
+                "typed_failure",
+                "cancel_intent",
+            ] {
+                value
+                    .as_object_mut()
+                    .unwrap()
+                    .entry(field)
+                    .or_insert(serde_json::Value::Null);
+            }
+            for field in ["next_chunk", "deadline"] {
+                value
+                    .as_object_mut()
+                    .unwrap()
+                    .entry(field)
+                    .or_insert(serde_json::json!(0));
+            }
+            value
+                .as_object_mut()
+                .unwrap()
+                .entry("input")
+                .or_insert(serde_json::json!(""));
+            for field in ["stopped", "deleted"] {
+                value
+                    .as_object_mut()
+                    .unwrap()
+                    .entry(field)
+                    .or_insert(serde_json::json!(false));
+            }
+        }
+        for field in CLEANUP_FIELDS {
+            comparable[field] = old[field].clone();
+            original[field] = old[field].clone();
+        }
+        if original != comparable {
+            return Err(CoreError::conflict("terminal CMA result is immutable"));
+        }
+    }
+    if cleanup || terminal {
+        // Cleanup may add receipts and retain its exact control intent, never replace results.
+        for field in ["agent_id", "cancel_intent", "stop_intent"] {
+            if !next[field].is_null() {
+                if !old[field].is_null() && old[field] != next[field] {
+                    return Err(CoreError::conflict("CMA cleanup intent is immutable"));
+                }
+                old[field] = next[field].clone();
+            }
+        }
+        for field in ["stopped", "deleted"] {
+            if next[field] == true {
+                old[field] = serde_json::Value::Bool(true);
+            }
+        }
+        return Ok(());
+    }
+    *old = next;
     Ok(())
 }
 

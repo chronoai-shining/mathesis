@@ -384,6 +384,8 @@ pub struct FeedbackLetter {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AgentStep {
+    #[serde(default)]
+    pub cma_attempts: Vec<super::CmaAttempt>,
     pub version: u32,
     pub claims_revision: u64,
     /// Provider-specific progress; never part of an author/public projection.
@@ -429,6 +431,7 @@ impl RefereeFile {
 /// draft, provider metadata, or Lean files.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct RefereeView {
+    pub cma_attempts: Vec<super::CmaAttemptView>,
     pub id: SubmissionId,
     pub rounds: Vec<RefereeRoundView>,
     pub letters: Vec<FeedbackLetter>,
@@ -518,7 +521,34 @@ impl<T: Clone> Step<T> {
 
 impl RefereeFile {
     pub fn view(self, staff: bool) -> RefereeView {
+        let mut attempts: Vec<super::CmaAttemptView> = self
+            .agent_steps
+            .values()
+            .flat_map(|s| {
+                if s.cma_attempts.is_empty() {
+                    vec![super::CmaAttemptView::legacy(&s.progress)]
+                } else {
+                    s.cma_attempts
+                        .iter()
+                        .map(super::CmaAttemptView::from)
+                        .collect()
+                }
+            })
+            .collect();
+        let admission: std::collections::BTreeMap<_, _> = attempts
+            .iter()
+            .filter(|a| a.attempt == 0)
+            .map(|a| (a.step.clone(), a.admitted_at))
+            .collect();
+        attempts.sort_by(|a, b| {
+            (admission.get(&a.step), &a.step, a.attempt).cmp(&(
+                admission.get(&b.step),
+                &b.step,
+                b.attempt,
+            ))
+        });
         RefereeView {
+            cma_attempts: attempts,
             id: self.id,
             letters: self.letters,
             revision: self.revision,
@@ -577,6 +607,16 @@ pub struct NewLetter {
     pub body: String,
     #[serde(default)]
     pub note: String,
+}
+
+/// Revision-bound progress or cleanup receipt from a selected durable attempt.
+pub struct AgentStepUpdate {
+    pub source_revision: u64,
+    pub ordinal: Option<u32>,
+    pub version: u32,
+    pub claims_revision: u64,
+    pub progress: serde_json::Value,
+    pub cleanup: bool,
 }
 
 #[cfg(test)]

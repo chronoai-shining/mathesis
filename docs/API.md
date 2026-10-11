@@ -702,6 +702,49 @@ CLI: `conjectures`, `target <record> <claim>` (writes Target.lean),
 The MCP server exposes the same four tool names; its target tool returns source
 and digest for the agent to save. Existing contribution tasks remain available.
 
+### Author CMA accounts
+
+`GET /auth/cma/connect?return_to=/submit` starts browser-bound PKCE/nonce consent
+for the currently signed-in subject. It requests ordinary
+`openid profile email offline_access`, with no resource or requested service IDs.
+The callback requires the same subject and unexpired cookie session; the refresh
+token is sealed in a separate purpose/generation slot. Reconnect or disconnect
+invalidates older consent. Tokens are never returned by the API.
+
+| Route | Request | Response |
+| --- | --- | --- |
+| `GET /api/v1/me/cma` | authenticated caller | `{enabled, binding, setup_url}` |
+| `PUT /api/v1/me/cma` | `{workspace_id, expected_revision}` | same status view after validation |
+| `DELETE /api/v1/me/cma` | authenticated caller | disconnected status; generation increments and CMA slot is removed |
+
+Binding status is `disconnected`, `setup_needed`, `ready` or `unusable`, with a
+sanitized reason, checked time, revision, generation and selected resource IDs.
+The setup link is `WISHPOOL_CMA_PUBLIC_URL/auth/login?return_to=/`. Create the
+Sandbox/workspace in CMA first: v1 validates existing resources only, and requires
+the Sandbox owner to equal the signed-in subject, the Workspace `ready`, the
+Sandbox `active` (CMA’s runnable state), and its
+exact published profile revision to use `model_access=own_credentials`.
+
+The existing private referee GET includes `cma_attempts` for the submitter,
+linked co-authors and staff, before letter delivery. Entries contain `step`,
+`attempt` (zero-based), `payer` (`author` or `operator`), sanitized `reason`,
+`status`, `admitted_at` and `finished_at`. Legacy admission times may be null. Credentials, account custody,
+workspaces and provider progress are excluded from this history. Other readers
+receive `not_found`. A recorded operator successor explicitly identifies the
+account/auth/setup/credential/quota refusal or `cause_unknown` agent failure;
+legacy attempts are operator-funded with reason `legacy_unknown`.
+
+Author CMA execution requires `WISHPOOL_CMA_AGENT_PROFILE` with an exact
+`{"id":"agp_…","revision":1}` pin to a published agent profile readable by
+both the operator and author accounts. The exact pin is retained in each
+creation intent for retries. Workspace facts are fetched and decoded in Layer 3;
+Layer 2 checks ownership, readiness and `own_credentials` before saving the
+binding under its source revision. Refresh throttling, outages, ambiguous
+refusals and concurrent token rotation remain transient, with the same payer.
+Disconnect/reconnect revokes the old generation; outstanding agent cleanup is
+best effort and may fail after revocation. Cleanup never substitutes operator
+credentials for author resources.
+
 ## Unified statement targets, reports and supporters
 
 All endpoints below retain the same authentication, origin, ownership, version,
@@ -771,3 +814,10 @@ exposes no NyxID accounting receipt. Venue-token runs retain donor attribution,
 with zero metered tokens until a real NyxID receipt arrives. The composition-only
 accounting boundary deduplicates receipt charges; there is no public usage-write
 endpoint. Legacy self-reported usage and CMA estimates never enter Supporters.
+
+Private CMA history also identifies `target_faithfulness`, `error_report_audit`
+and `venue_attempt`. All submission targets (including approved proved paper
+statements) and their faithfulness audits use the ready submitter binding when
+available. Error-report audits and venue attempts use the operator account;
+venue attempts retain separate supporter attribution. These entries use the
+same private history projection and never expose tokens or provider progress.

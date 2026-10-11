@@ -122,7 +122,7 @@ impl Worker {
                     &self.agent_store(
                         job,
                         &paper,
-                        &format!("problem:{}:r{}:audit:a0", file.claim, file.review_round),
+                        &format!("problem:{}:r{}:audit", file.claim, file.review_round),
                     ),
                 ),
             )

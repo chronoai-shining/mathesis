@@ -51,7 +51,12 @@ data:
   # NyxID user access tokens only; provision the mounted token file out of band.
   WISHPOOL_AGENT_BACKEND: ""
   WISHPOOL_CMA_WORKSPACE: ""
+  # Pin a published profile readable by operator and author accounts; required for BYOK.
   WISHPOOL_CMA_AGENT_PROFILE: ""
+  # Author CMA consent is independent of hosted donations. Requires NyxID, HTTP
+  # transport and WISHPOOL_TOKEN_KEY. Authors provision their own_credentials workspace.
+  WISHPOOL_CMA_BYOK_ENABLED: "false"
+  WISHPOOL_CMA_PUBLIC_URL: "https://cma.chrono-ai.fun"
   WISHPOOL_CMA_TRANSPORT: "http"
   WISHPOOL_CMA_BASE_URL: "https://nyx-api.chrono-ai.fun/api/v1/proxy/s/cma"
   WISHPOOL_CMA_TOKEN_FILE: ""

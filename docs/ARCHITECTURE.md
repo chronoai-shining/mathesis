@@ -395,6 +395,51 @@ month. Visibility and version fences apply to all public solve projections.
 Author-confirmed cross-work S1 dependencies retain source version and claim
 revision, and a distinct-public-work downstream count; weighting is deferred.
 
+### Author CMA execution
+
+Layer 2 owns private, revision-fenced CMA bindings and payer admission in the
+existing referee aggregate. A binding has a generation and an exact validated
+Sandbox profile pin, without credentials. Its port has memory and Mongo
+implementations (unique person index, compare-and-swap). Author binding consent
+and validation use the binary's ordinary NyxID OAuth flow and Layer 3 CMA HTTP
+transport. Refresh tokens use the existing TokenCipher and shared hosted-worker
+refresh helper, in a separate `cma_tokens` collection keyed by purpose, person
+and generation. Rotation compares the sealed value so a deleted slot cannot be
+resurrected. Donation grants and their custody are independent.
+
+The leased durable RunStore admits a payer before any CMA request. Every CMA
+entry point (audit, advice, letter, accepted Lean probe, all statement targets,
+target faithfulness, paper-problem audit, error-report audit and venue attempt) routes through a client factory using that saved attempt.
+Author transports have only that person's generation slot; they have no mounted
+operator-token fallback. The operator uses its existing configured transport.
+Stable initial keys retain legacy replay compatibility, and one recorded
+operator successor gets a new ordinal/key. Original progress and cleanup
+receipts remain attached to each payer's attempt. Cleanup selects the original
+account even after a successor has started.
+
+Typed refusals survive durable CMA progress. Account/auth/setup/credential/quota
+failures and generic terminal agent failure (`cause_unknown`) may close an
+author attempt and append one operator attempt in a single referee CAS write.
+Transport/429/5xx/uncertain mutations keep the original payer, key and body.
+Mathematical reading, JSON validation and credential-free local Lean checks do
+not trigger payer fallback. Oracle, Policy, solution verification and leaderboard
+semantics remain unchanged. Private author/staff projections show safe funding
+history. `WISHPOOL_CMA_BYOK_ENABLED` defaults false and requires NyxID, HTTP CMA,
+`WISHPOOL_TOKEN_KEY` and `WISHPOOL_CMA_PUBLIC_URL`; infra declares each key.
+Automatic Sandbox/workspace provisioning is a follow-up to existing-resource
+validation in v1.
+
+Author CMA execution requires `WISHPOOL_CMA_AGENT_PROFILE` with an exact
+`{"id":"agp_…","revision":1}` pin to a published agent profile readable by
+both the operator and author accounts. The exact pin is retained in each
+creation intent for retries. Workspace facts are fetched and decoded in Layer 3;
+Layer 2 checks ownership, readiness and `own_credentials` before saving the
+binding under its source revision. Refresh throttling, outages, ambiguous
+refusals and concurrent token rotation remain transient, with the same payer.
+Disconnect/reconnect revokes the old generation; outstanding agent cleanup is
+best effort and may fail after revocation. Cleanup never substitutes operator
+credentials for author resources.
+
 ## 11. Consent, faithfulness and error reports
 
 New uploads and revisions require the current processing-consent version. The
@@ -432,3 +477,30 @@ internal effect markers and unpublished Lean evidence never enter public report
 payloads. In-app error notifications derive from confirmed reports for the authors.
 Venue agent attempts are owned by `wishpool:venue`, with stable `wishpool-agent`
 identity and one managed attempt per confirmed open-target digest.
+
+CMA payer mapping (Layer 2 decides before provider I/O):
+
+| Step | Payer and attribution |
+|---|---|
+| Referee audit, advice, letter, accepted-paper Lean probe | Ready submitter binding; otherwise operator |
+| Standalone conjecture target, admitted paper-problem target, author-approved proved paper-statement target | Ready submitter binding; otherwise operator |
+| Target faithfulness audit, including regeneration | Ready submitter binding; otherwise operator |
+| Independent paper open-problem audit | Ready submitter binding; otherwise operator |
+| Error-report text audit | Operator, never the author or reporter |
+| Venue-agent attempt on a confirmed target | Operator account with phase-D donation attribution, never the author |
+| Existing legacy CMA run | Original operator account; never retroactively charged to an author |
+
+Operator-funded target generation, faithfulness audits, Lean probes and venue
+attempts retain phase-D supporter attribution, including an operator successor.
+Author-funded steps create no donation attribution. Attribution alone charges no
+tokens: only a verified NyxID usage receipt can meter usage. Replays retain the
+saved payer, workspace, generation and request identity. Oracle remains operator
+funded; local elaboration and proof verification carry no CMA payer.
+
+Admission and operator fallback renew the job lease after asynchronous aggregate
+and binding reads, immediately before the referee CAS. Persistence-fence loss is
+a typed error that exits CMA polling immediately, leaving the original attempt
+for recovery without provider retries or payer fallback. Terminal progress
+comparison normalizes absent wire defaults, so pre-BYOK results replay without
+loosening answer immutability. Setup refusals include `workspace_not_found`,
+`connections_required` and `trust_confirmation_required`.

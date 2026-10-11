@@ -1,6 +1,7 @@
 //! Application services: the complete set of operations any interface may
 //! project. Authorization is decided here, never in an interface.
 
+mod cma;
 mod donations;
 mod error_reports;
 mod formalization;
