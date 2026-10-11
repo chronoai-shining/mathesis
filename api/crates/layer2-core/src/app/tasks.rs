@@ -85,11 +85,16 @@ impl App {
         submission: &Submission,
         claim: &Claim,
     ) -> CoreResult<bool> {
+        if kind == TaskKind::LegacyFormalize {
+            return Err(CoreError::conflict(
+                "use a statement target and proof attempt",
+            ));
+        }
         let now = self.ports.clock.now();
         let verb = match kind {
             TaskKind::JudgeEscape => "Judge",
             TaskKind::LiteratureCheck => "Search the literature for",
-            TaskKind::Formalize => "Formalize",
+            TaskKind::LegacyFormalize => "Formalize",
             TaskKind::Probe => "Work on",
         };
         let target = TaskTarget {
@@ -112,7 +117,7 @@ impl App {
         self.ports.tasks.insert_if_absent(&task).await
     }
 
-    /// Open one task on a statement (after acceptance: formalize, probe).
+    /// Open one task on a statement (after acceptance: probe).
     pub(crate) async fn open_task(
         &self,
         caller: &Caller,
@@ -262,7 +267,8 @@ impl App {
         let accepted = matches!(submission.status, SubmissionStatus::Accepted { .. });
         let ready = match task.kind {
             TaskKind::JudgeEscape | TaskKind::LiteratureCheck => submission.is_open(),
-            TaskKind::Formalize | TaskKind::Probe => accepted,
+            TaskKind::Probe => accepted,
+            TaskKind::LegacyFormalize => false,
         };
         if !ready {
             return Err(CoreError::conflict(format!(
@@ -270,12 +276,9 @@ impl App {
                 submission.status.name()
             )));
         }
-        if mode == ContributionMode::Hosted && !task.kind.hosted_capable() {
-            return Err(CoreError::invalid("this task needs a full agent"));
-        }
-        if task.kind == TaskKind::Formalize && submission.formalization.repository.is_none() {
-            return Err(CoreError::conflict(
-                "the formalization repository is not set yet",
+        if mode == ContributionMode::Hosted {
+            return Err(CoreError::invalid(
+                "donated quota now funds venue agents; use your own agent for tasks",
             ));
         }
         if !task.is_leasable(now) {
@@ -352,17 +355,6 @@ impl App {
             }
         };
         new.output.validate(task.kind)?;
-        if let ContributionOutput::PullRequest { url } = &new.output {
-            let submission = self.load(&task.target.submission).await?;
-            let repository = submission.formalization.repository.unwrap_or_default();
-            if repository.is_empty()
-                || !url.starts_with(&format!("{}/pull/", repository.trim_end_matches('/')))
-            {
-                return Err(CoreError::invalid(
-                    "the pull request must be to the paper's formalization repository",
-                ));
-            }
-        }
         let contribution = Contribution {
             id: new_uuid(),
             task: task.id.clone(),
@@ -534,12 +526,12 @@ impl App {
                     "judgements settle by agreement or an editor's judgement",
                 ));
             }
-            TaskKind::Formalize if accept => {
+            TaskKind::LegacyFormalize if accept => {
                 return Err(CoreError::invalid(
                     "formalizations count once verified on the paper's plan",
                 ));
             }
-            TaskKind::Formalize => {}
+            TaskKind::LegacyFormalize => {}
         }
         if contribution.status != ContributionStatus::Submitted {
             return Err(CoreError::conflict("the contribution is already settled"));
@@ -567,42 +559,6 @@ impl App {
         };
         self.replace_task(&mut task).await?;
         Ok(contribution)
-    }
-
-    /// Credit the contribution behind a verified formalization.
-    pub(crate) async fn credit_formalization(
-        &self,
-        id: &str,
-        submission: &SubmissionId,
-        claim: &ClaimId,
-        artifact: &FormalArtifact,
-    ) -> CoreResult<()> {
-        let mut contribution = self
-            .ports
-            .contributions
-            .get(id)
-            .await?
-            .ok_or_else(|| CoreError::not_found("contribution", id))?;
-        let mut task = self.task(&contribution.task).await?;
-        if contribution.kind != TaskKind::Formalize
-            || &task.target.submission != submission
-            || &task.target.claim != claim
-        {
-            return Err(CoreError::invalid(
-                "the contribution is not a formalization of this statement",
-            ));
-        }
-        if contribution.status != ContributionStatus::Submitted {
-            return Err(CoreError::conflict("the contribution is already settled"));
-        }
-        contribution.status = ContributionStatus::Verified {
-            detail: format!("checked at {} {}", artifact.repository, artifact.commit),
-        };
-        self.replace_contribution(&mut contribution).await?;
-        task.status = TaskStatus::Done {
-            contribution: contribution.id.clone(),
-        };
-        self.replace_task(&mut task).await
     }
 
     /// Composition-only: return expired leases to the pool.
@@ -647,7 +603,7 @@ impl App {
                 ContributionStatus::Submitted => credit.submitted += 1,
                 ContributionStatus::Verified { .. } => {
                     credit.verified += 1;
-                    if contribution.kind == TaskKind::Formalize {
+                    if contribution.kind == TaskKind::LegacyFormalize {
                         credit.verified_formalizations += 1;
                     }
                 }

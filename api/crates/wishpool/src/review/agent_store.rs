@@ -25,9 +25,10 @@ pub(super) struct AgentStore {
     key: String,
     version: u32,
     claims_revision: u64,
+    funded: bool,
 }
 fn fence() -> ReviewError {
-    ReviewError::Transport("CMA persistence fence lost".into())
+    ReviewError::PersistenceFence
 }
 impl Worker {
     pub(super) async fn cleanup_agents(
@@ -88,6 +89,7 @@ impl Worker {
                     logical_step: String::new(),
                     cleanup_ordinal,
                     cleanup: true,
+                    funded: false,
                     ordinal: tokio::sync::Mutex::new(step.cma_attempts.last().map(|a| a.ordinal)),
                     source_revision: tokio::sync::Mutex::new(None),
                     app: self.app.clone(),
@@ -119,7 +121,10 @@ impl Worker {
             step.strip_suffix(":a0").unwrap_or(step)
         };
         // Preserve initial keys of already-admitted conversations; successors use their saved ordinal.
-        let initial_step = if step.starts_with("target:") {
+        let initial_step = if step.starts_with("target:")
+            || step.starts_with("agent-attempt:")
+            || step.starts_with("error-report:")
+        {
             step.to_owned()
         } else {
             format!("{logical_step}:a0")
@@ -142,6 +147,9 @@ impl Worker {
             key: format!("wishpool:{:x}", Sha256::digest(identity.as_bytes())),
             version,
             claims_revision: paper.claims_revision,
+            funded: step.starts_with("target:")
+                || step.contains("formal")
+                || step.starts_with("agent-attempt:"),
         }
     }
 }
@@ -250,7 +258,8 @@ impl RunStore for AgentStore {
             self.app
                 .admit_cma_attempt(
                     &self.caller,
-                    &self.job.submission,
+                    &self.job,
+                    self.jobs.as_ref(),
                     &self.key,
                     &self.logical_step,
                     &factory.operator.workspace,
@@ -258,6 +267,15 @@ impl RunStore for AgentStore {
                 .await
                 .map_err(|_| fence())?
         };
+        // Only operator-funded target/probe work and venue attempts use phase-D
+        // supporter attribution. Replays repair a crash after payer admission.
+        if !self.cleanup && self.funded && attempt.payer == wishpool_core::model::CmaPayer::Operator
+        {
+            self.app
+                .attribute_agent_run(&self.key)
+                .await
+                .map_err(|_| fence())?;
+        }
         *self.ordinal.lock().await = Some(attempt.ordinal);
         Ok(Some(wishpool_review::cma::Execution {
             client: factory.client(&attempt)?,
@@ -281,7 +299,8 @@ impl RunStore for AgentStore {
         self.app
             .fallback_cma_attempt(
                 &self.caller,
-                &self.job.submission,
+                &self.job,
+                self.jobs.as_ref(),
                 &self.key,
                 ordinal,
                 failure,

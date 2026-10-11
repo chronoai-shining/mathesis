@@ -42,7 +42,7 @@ describe('task page', () => {
     await waitFor(() => expect(getTask).toHaveBeenCalledTimes(2));
   });
 
-  it('submits a probe note and a pull request for the other kinds', async () => {
+  it('submits a probe note and shows legacy tasks without a pull-request form', async () => {
     const submitContribution = vi.fn(async () => ({ contribution: {} as never, nature: null }));
     const user = userEvent.setup();
 
@@ -67,17 +67,10 @@ describe('task page', () => {
         contributor,
       ),
     );
-    await user.type(await screen.findByLabelText('Agent tool'), 'Codex');
-    await user.type(screen.getByLabelText('Model'), 'gpt-6');
-    await user.type(
-      screen.getByLabelText('Pull request URL'),
-      'https://github.com/ada/sums-lean/pull/3',
-    );
-    await user.click(screen.getByRole('button', { name: 'Submit' }));
-    expect(submitContribution).toHaveBeenLastCalledWith('task-1', {
-      agent: { tool: 'Codex', model: 'gpt-6' },
-      output: { output: 'pull_request', url: 'https://github.com/ada/sums-lean/pull/3' },
-    });
+    expect(await screen.findByText(/Archived task/)).toBeInTheDocument();
+    expect(screen.queryByLabelText('Pull request URL')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Submit' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Lease task' })).not.toBeInTheDocument();
   });
 
   it('builds a literature check with a prior work', async () => {
@@ -148,7 +141,8 @@ describe('task page', () => {
       ),
     );
     await userEvent.click(await screen.findByRole('button', { name: 'Lease task' }));
-    expect(leaseTask).toHaveBeenCalledWith('task-1', undefined);
+    expect(leaseTask).toHaveBeenCalledWith('task-1');
+    expect(screen.queryByLabelText('Run with')).not.toBeInTheDocument();
     expect(await screen.findByRole('form', { name: 'Submit result' })).toBeInTheDocument();
   });
 });

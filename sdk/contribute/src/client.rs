@@ -73,7 +73,7 @@ impl Client {
         self.get("/conjectures?limit=100")
     }
     pub fn target(&self, record: &str, claim: &str) -> ApiResult<Value> {
-        self.get(&format!("/conjectures/{record}/{claim}"))
+        self.get(&format!("/papers/{record}/statements/{claim}"))
     }
     pub fn attempt(
         &self,
@@ -83,15 +83,27 @@ impl Client {
         agent: Option<&str>,
     ) -> ApiResult<Value> {
         self.post(
-            &format!("/conjectures/{record}/{claim}/attempts"),
+            &format!("/papers/{record}/statements/{claim}/attempts"),
             &json!({"solution": solution, "as_agent": agent}),
         )
+    }
+    pub fn report(&self, record: &str, body: &Value) -> ApiResult<Value> {
+        self.post(&format!("/papers/{record}/errors"), body)
+    }
+    pub fn report_status(&self, id: &str) -> ApiResult<Value> {
+        self.get(&format!("/errors/{id}"))
     }
     pub fn attempt_status(&self, id: &str) -> ApiResult<Value> {
         self.get(&format!("/attempts/{id}"))
     }
 
     pub fn open_tasks(&self, kind: Option<&str>, limit: u32) -> ApiResult<Value> {
+        if kind == Some("formalize") {
+            return Err(ApiError {
+                status: 422,
+                detail: "use target and attempt for statement formalization".into(),
+            });
+        }
         let mut path = format!("/tasks?status=open&limit={limit}");
         if let Some(kind) = kind {
             path.push_str(&format!("&kind={kind}"));
@@ -146,12 +158,12 @@ mod solving_tests {
                 ),
                 (
                     "GET",
-                    "/api/v1/conjectures/WP-2026-0001/C1",
+                    "/api/v1/papers/WP-2026-0001/statements/C1",
                     json!({"target": {"lean":"import Mathlib\ndef wishpool_target_prop : Prop := True\n", "digest":"exact-digest"}}),
                 ),
                 (
                     "POST",
-                    "/api/v1/conjectures/WP-2026-0001/C1/attempts",
+                    "/api/v1/papers/WP-2026-0001/statements/C1/attempts",
                     json!({"id":"a1", "state":"queued"}),
                 ),
                 (

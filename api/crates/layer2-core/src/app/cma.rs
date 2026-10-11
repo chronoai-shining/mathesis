@@ -1,8 +1,9 @@
 use super::App;
 use crate::{
     CoreError, CoreResult,
-    ids::{PersonId, SubmissionId},
+    ids::PersonId,
     model::*,
+    ports::{JobLease, LeasedJob},
 };
 
 impl App {
@@ -129,16 +130,22 @@ impl App {
         self.my_cma(caller).await
     }
 
-    /// The submitting author's binding alone determines who pays. Replays retain admission.
+    /// Eligible submission steps use only the submitter's binding; venue work stays
+    /// operator-funded. Replays retain admission, checked under the current lease.
     pub async fn admit_cma_attempt(
         &self,
         caller: &Caller,
-        id: &SubmissionId,
+        job: &LeasedJob,
+        jobs: &dyn JobLease,
         key: &str,
         logical_step: &str,
         operator_workspace: &str,
     ) -> CoreResult<CmaAttempt> {
         caller.require(Role::Reviewer)?;
+        let id = &job.submission;
+        if !jobs.renew(job).await? {
+            return Err(CoreError::conflict("job lease lost"));
+        }
         let paper = self.submission(caller, id).await?;
         let (mut file, stored) = self.referee_file(id).await?;
         if let Some(attempt) = file
@@ -161,12 +168,15 @@ impl App {
         }
         let binding = self.cma_binding(&paper.submitter).await?;
         let legacy = file.agent_steps.contains_key(key);
-        let author = !legacy
+        let identity = CmaStepIdentity::from_label(logical_step);
+        let author_eligible = identity.kind.author_eligible();
+        let author = author_eligible
+            && !legacy
             && self.ports.cma_setup.enabled()
             && binding.status == CmaStatus::Ready
             && binding.workspace_id.is_some();
         let attempt = CmaAttempt {
-            identity: CmaStepIdentity::from_label(logical_step),
+            identity,
             step: logical_step.into(),
             ordinal: 0,
             payer: if author {
@@ -185,6 +195,8 @@ impl App {
                 "legacy_unknown".into()
             } else if author {
                 "author_connected".into()
+            } else if !author_eligible {
+                "operator_step".into()
             } else if !self.ports.cma_setup.enabled() {
                 "byok_disabled".into()
             } else {
@@ -204,20 +216,29 @@ impl App {
             progress: serde_json::Value::Null,
         });
         step.cma_attempts.push(attempt.clone());
+        if !jobs.renew(job).await? {
+            return Err(CoreError::conflict("job lease lost"));
+        }
         self.store_referee_file(&mut file, stored).await?;
         Ok(attempt)
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub async fn fallback_cma_attempt(
         &self,
         caller: &Caller,
-        id: &SubmissionId,
+        job: &LeasedJob,
+        jobs: &dyn JobLease,
         key: &str,
         ordinal: u32,
         failure: CmaFailure,
         operator_workspace: &str,
     ) -> CoreResult<bool> {
         caller.require(Role::Reviewer)?;
+        let id = &job.submission;
+        if !jobs.renew(job).await? {
+            return Err(CoreError::conflict("job lease lost"));
+        }
         self.submission(caller, id).await?;
         let (mut file, stored) = self.referee_file(id).await?;
         let step = file
@@ -260,6 +281,9 @@ impl App {
         let binding_owner = current.owner.clone().zip(current.binding_generation);
         step.cma_attempts.push(next);
         step.progress = serde_json::Value::Null;
+        if !jobs.renew(job).await? {
+            return Err(CoreError::conflict("job lease lost"));
+        }
         self.store_referee_file(&mut file, stored).await?;
         if failure != CmaFailure::CauseUnknown
             && let Some((owner, generation)) = binding_owner

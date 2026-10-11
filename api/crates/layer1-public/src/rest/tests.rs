@@ -147,7 +147,7 @@ async fn upload(
     source: &[u8],
 ) -> (StatusCode, serde_json::Value, String) {
     let metadata = serde_json::json!({
-        "ai_disclosure": { "level": "assisted", "statement": "A model proofread section 2." },
+        "processing_consent":"ai-review-2026-10-11", "ai_disclosure": { "level": "assisted", "statement": "A model proofread section 2." },
         "open_to_contributors": true
     })
     .to_string();
@@ -593,4 +593,49 @@ async fn solving_routes_are_public_where_intended_and_agents_require_ownership()
     )
     .await;
     assert_eq!(status, StatusCode::FORBIDDEN);
+}
+
+#[tokio::test]
+async fn uploads_require_explicit_current_consent_and_retired_proof_routes_are_absent() {
+    let router = router();
+    for consent in [None, Some("old-version")] {
+        let mut metadata =
+            serde_json::json!({"ai_disclosure":{"level":"none","statement":"No AI"}});
+        if let Some(consent) = consent {
+            metadata["processing_consent"] = consent.into();
+        }
+        let text = metadata.to_string();
+        let body = multipart(&[
+            ("metadata", None, text.as_bytes()),
+            ("source", Some("paper.tex"), b"source"),
+        ]);
+        let request = Request::builder()
+            .method("POST")
+            .uri("/submissions")
+            .header("x-test-subject", "author")
+            .header(
+                header::CONTENT_TYPE,
+                format!("multipart/form-data; boundary={BOUNDARY}"),
+            )
+            .body(Body::from(body))
+            .unwrap();
+        let (status, json, _) = send(&router, request).await;
+        assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY);
+        assert!(json["detail"].as_str().unwrap().contains("agreement"));
+    }
+    for (method, path) in [
+        ("PUT", "/submissions/s/formalization/repository"),
+        ("POST", "/submissions/s/formalization/items/C1/start"),
+        ("POST", "/submissions/s/formalization/items/C1/verification"),
+    ] {
+        let (status, _, _) = call(
+            &router,
+            method,
+            path,
+            Some("editor"),
+            Some(serde_json::json!({})),
+        )
+        .await;
+        assert_eq!(status, StatusCode::NOT_FOUND);
+    }
 }

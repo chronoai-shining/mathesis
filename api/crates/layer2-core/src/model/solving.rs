@@ -79,6 +79,8 @@ pub struct DependencyEdge {
 }
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SolveFile {
+    #[serde(default)]
+    pub agent_attempted: std::collections::BTreeSet<String>,
     pub id: String,
     pub record: RecordId,
     pub submission: SubmissionId,
@@ -108,7 +110,7 @@ impl SolveFile {
             .min_by_key(|a| (a.receipt.as_ref().unwrap().checked_at, &a.id))
     }
 }
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PublicAttempt {
     pub id: String,
     pub entrant: Entrant,
@@ -136,10 +138,14 @@ pub struct LeaderboardRow {
     pub solved: usize,
     pub disproved: usize,
     pub score: usize,
+    pub others: usize,
+    pub total: usize,
     pub last_solve: DateTime<Utc>,
 }
 #[derive(Debug, Clone, Serialize)]
 pub struct SolveCredit {
+    pub others: bool,
+    pub formalized: bool,
     pub record: RecordId,
     pub claim: ClaimId,
     pub title: String,
@@ -150,6 +156,10 @@ pub struct SolveCredit {
 pub struct EntrantProfile {
     pub entrant: Entrant,
     pub solutions: Vec<SolveCredit>,
+    pub others: usize,
+    pub total: usize,
+    pub formalized: Vec<SolveCredit>,
+    pub errors_found: usize,
 }
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SolveNotification {

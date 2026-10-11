@@ -6,7 +6,7 @@ use wishpool_core::{
     ids::ClaimId,
     model::{Claim, ClaimRole, ContributionOutput, ProofShape, TaskKind},
 };
-use wishpool_review::{EscapeProposal, JudgementDraft, Statement};
+use wishpool_review::{EscapeProposal, Statement};
 
 const MAX_WITNESSES: usize = 10;
 const MAX_WITNESS_CHARS: usize = 1_000;
@@ -96,14 +96,6 @@ pub(crate) fn proposals(
         }
     }
     (kept, skipped)
-}
-
-pub(crate) fn draft_judgement(draft: &JudgementDraft) -> Option<ContributionOutput> {
-    match draft.shape.as_str() {
-        "content" => judgement(true, &draft.witnesses, &draft.rationale),
-        "bind_only" => judgement(false, &[], &draft.rationale),
-        _ => None,
-    }
 }
 
 #[cfg(test)]
@@ -430,7 +422,13 @@ pub(crate) fn audit(
     use wishpool_core::model::{
         AuditedClaim, AuditedConcern, ConcernStatus, Correctness, Recommendation, RefereeAudit,
     };
-    let verdict = match raw.verdict.as_str() {
+    let verdict = match raw
+        .verdict
+        .trim()
+        .to_ascii_lowercase()
+        .replace([' ', '-'], "_")
+        .as_str()
+    {
         "accept" => Recommendation::Accept,
         "minor_revision" => Recommendation::MinorRevision,
         "major_revision" => Recommendation::MajorRevision,
@@ -1419,4 +1417,33 @@ mod conjecture_tests {
         assert!(report.claims.is_empty());
         assert!(!report.limits.is_empty());
     }
+}
+
+/// A target audit is mandatory; unknown verdicts or empty explanations never unlock confirmation.
+pub(super) fn faithfulness(
+    out: wishpool_review::advisor::InspectionOut,
+    regenerated: bool,
+) -> Result<wishpool_core::model::FaithfulnessCheck, String> {
+    use wishpool_core::model::{FaithfulnessCheck, FaithfulnessVerdict::*};
+    let verdict = match out.verdict.as_str() {
+        "faithful" => Faithful,
+        "weaker" => Weaker,
+        "stronger" => Stronger,
+        "different" => Different,
+        "trivial" => Trivial,
+        _ => return Err("unknown faithfulness verdict".into()),
+    };
+    if out.reason.trim().is_empty()
+        || out.reason.chars().count() > 5000
+        || out.mismatch.chars().count() > 5000
+        || (verdict != Faithful && out.mismatch.trim().is_empty())
+    {
+        return Err("unusable faithfulness reason or mismatch".into());
+    }
+    Ok(FaithfulnessCheck {
+        verdict,
+        reason: out.reason,
+        mismatch: out.mismatch,
+        regenerated,
+    })
 }

@@ -122,6 +122,7 @@ describe('CMA funding in pages', () => {
     const file = new File(['source'], 'paper.tex', { type: 'application/x-tex' });
     await user.upload(await screen.findByLabelText('LaTeX source'), file);
     await user.type(screen.getByLabelText('AI disclosure statement'), 'No AI used.');
+    await user.click(screen.getByRole('checkbox', { name: /I agree that the source/ }));
     await user.click(screen.getByRole('button', { name: 'Upload and read statements' }));
     await waitFor(() => expect(createSubmission).toHaveBeenCalledWith(expect.any(Object), file));
   });

@@ -28,9 +28,10 @@ export function LeaderboardTable({ rows }: { rows: LeaderboardRow[] }) {
           <tr>
             <th scope="col">Rank</th>
             <th scope="col">Solver</th>
-            <th scope="col">Proved</th>
-            <th scope="col">Disproved</th>
-            <th scope="col">Score</th>
+            <th scope="col" aria-sort="descending">
+              <strong>Others’ conjectures</strong>
+            </th>
+            <th scope="col">Total</th>
           </tr>
         </thead>
         <tbody>
@@ -40,11 +41,10 @@ export function LeaderboardTable({ rows }: { rows: LeaderboardRow[] }) {
               <th scope="row">
                 <EntrantName entrant={r.entrant} />
               </th>
-              <td>{r.solved}</td>
-              <td>{r.disproved}</td>
               <td>
-                <strong>{r.score}</strong>
+                <strong>{r.others}</strong>
               </td>
+              <td>{r.total}</td>
             </tr>
           ))}
         </tbody>
@@ -67,7 +67,7 @@ export function LeaderboardPage() {
         <div>
           <h1>Leaderboard</h1>
           <p className="lede">
-            One point for the first verified proof or disproof of a conjecture.
+            First verified proofs and disproofs. Ranked by others’ conjectures, then total.
           </p>
         </div>
       </header>
@@ -122,6 +122,33 @@ export function EntrantPage({ id }: { id: string }) {
                 ) : null}
               </div>
             </header>
+            <dl className="profile-credit">
+              <div>
+                <dt>Solved</dt>
+                <dd>
+                  {p.others} others’ conjectures · {p.total} total
+                </dd>
+              </div>
+              <div>
+                <dt>Formalized</dt>
+                <dd>{p.formalized.length}</dd>
+              </div>
+              <div>
+                <dt>Errors found</dt>
+                <dd>{p.errors_found}</dd>
+              </div>
+            </dl>
+            {p.formalized.length ? (
+              <ul className="entry-list">
+                {p.formalized.map((s) => (
+                  <li key={s.attempt}>
+                    <Link to={{ kind: 'statement', record: s.record, claim: s.claim }}>
+                      {s.title} · {s.claim} · Lean ✓
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
             <h2>Verified solutions</h2>
             {p.solutions.length ? (
               <ul className="entry-list">

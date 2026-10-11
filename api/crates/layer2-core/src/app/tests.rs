@@ -100,6 +100,7 @@ impl World {
         doi: Option<&str>,
     ) -> Submission {
         let new = NewPaper {
+            processing_consent: Some("ai-review-2026-10-11".into()),
             kind: crate::model::SubmissionKind::Paper,
             make_public_after_acceptance: true,
             typed_conjecture: None,
@@ -404,18 +405,6 @@ async fn upload_confirm_review_accept_and_formalize() {
         .propose_formalization(&editor, &paper.id, &c1, "The headline bound.".into())
         .await
         .unwrap();
-    let artifact = FormalArtifact {
-        repository: "https://github.com/omega/gaps-lean".into(),
-        commit: "b".repeat(40),
-        declarations: vec!["Gaps.main".into()],
-    };
-    assert!(
-        w.app
-            .verify_formalization(&editor, &paper.id, &c1, artifact.clone(), vec![], None)
-            .await
-            .is_err(),
-        "the author approves first"
-    );
     assert!(
         w.app
             .respond_to_formalization(&editor, &paper.id, &c1, true, String::new())
@@ -427,32 +416,15 @@ async fn upload_confirm_review_accept_and_formalize() {
         .await
         .unwrap();
     assert!(
-        w.app
-            .verify_formalization(
-                &editor,
-                &paper.id,
-                &c1,
-                artifact.clone(),
-                vec!["sorryAx".into()],
-                None
-            )
+        w.stores
+            .queued()
             .await
-            .is_err()
+            .iter()
+            .any(|(_, kind)| *kind == JobKind::LeanStatement)
     );
-    w.app
-        .verify_formalization(
-            &editor,
-            &paper.id,
-            &c1,
-            artifact.clone(),
-            vec!["propext".into()],
-            None,
-        )
-        .await
-        .unwrap();
     let public = w.app.paper(&record).await.unwrap();
-    assert_eq!(public.claims[0].lean, Some(artifact));
-    assert_eq!(public.summary.lean_verified, 1);
+    assert!(public.claims[0].lean.is_none());
+    assert_eq!(public.summary.lean_verified, 0);
 
     // The conjecture's follow-up is public with the analysis.
     w.app
@@ -537,7 +509,13 @@ async fn known_results_are_not_accepted_and_may_be_revised() {
     };
     let revised = w
         .app
-        .upload_version(&author, &paper.id, upload, "New second theorem.".into())
+        .upload_version(
+            &author,
+            &paper.id,
+            upload,
+            "New second theorem.".into(),
+            Some("ai-review-2026-10-11".into()),
+        )
         .await
         .unwrap();
     assert_eq!(
@@ -636,6 +614,7 @@ async fn authority_and_limits() {
     w.submit(&author, "t", false).await;
     w.submit(&author, "t", false).await;
     let new = NewPaper {
+        processing_consent: Some("ai-review-2026-10-11".into()),
         kind: crate::model::SubmissionKind::Paper,
         make_public_after_acceptance: true,
         typed_conjecture: None,
@@ -853,7 +832,13 @@ async fn a_changed_claim_set_voids_judgements_and_tasks() {
     };
     let revised = w
         .app
-        .upload_version(&author, &paper.id, upload, String::new())
+        .upload_version(
+            &author,
+            &paper.id,
+            upload,
+            String::new(),
+            Some("ai-review-2026-10-11".into()),
+        )
         .await
         .unwrap();
     let revised = w.review_version(&author, &revised, 2).await;
@@ -919,94 +904,32 @@ async fn formalization_tasks_credit_the_contributor() {
         .respond_to_formalization(&author, &paper.id, &c1, true, String::new())
         .await
         .unwrap();
-    let filter = TaskFilter {
-        kind: Some(TaskKind::Formalize),
-        ..TaskFilter::default()
-    };
-    let task = w
-        .app
-        .list_tasks(filter, None, None)
-        .await
-        .unwrap()
-        .items
-        .remove(0);
     assert!(
         w.app
-            .lease_task(&carol, &task.id, ContributionMode::OwnAgent)
+            .list_tasks(
+                TaskFilter {
+                    kind: Some(TaskKind::LegacyFormalize),
+                    ..Default::default()
+                },
+                None,
+                None
+            )
             .await
-            .is_err(),
-        "no repository yet"
+            .unwrap()
+            .items
+            .is_empty()
     );
-    w.app
-        .set_formalization_repository(
-            &editor,
-            &paper.id,
-            "https://github.com/omega/gaps-lean".into(),
-        )
-        .await
-        .unwrap();
     assert!(
         w.app
-            .lease_task(&carol, &task.id, ContributionMode::Hosted)
-            .await
-            .is_err(),
-        "formalization needs a full agent"
-    );
-    w.app
-        .lease_task(&carol, &task.id, ContributionMode::OwnAgent)
-        .await
-        .unwrap();
-    let elsewhere = NewContribution {
-        agent: agent("claude-opus-5-5"),
-        output: ContributionOutput::PullRequest {
-            url: "https://github.com/x/y/pull/1".into(),
-        },
-        tokens: None,
-    };
-    assert!(
-        w.app
-            .submit_contribution(&carol, &task.id, elsewhere)
+            .open_task(&carol, &paper.id, &c1, TaskKind::LegacyFormalize)
             .await
             .is_err()
     );
-    let pr = NewContribution {
-        agent: agent("claude-opus-5-5"),
-        output: ContributionOutput::PullRequest {
-            url: "https://github.com/omega/gaps-lean/pull/7".into(),
-        },
-        tokens: None,
-    };
-    let contribution = w
-        .app
-        .submit_contribution(&carol, &task.id, pr)
-        .await
-        .unwrap();
-
-    let artifact = FormalArtifact {
-        repository: "https://github.com/omega/gaps-lean".into(),
-        commit: "c".repeat(40),
-        declarations: vec!["Gaps.main".into()],
-    };
-    w.app
-        .verify_formalization(
-            &editor,
-            &paper.id,
-            &c1,
-            artifact,
-            vec![],
-            Some(contribution.id.clone()),
-        )
-        .await
-        .unwrap();
-    let credits = w.app.credits(Some(&carol.person)).await.unwrap();
-    assert_eq!(
-        (credits[0].verified, credits[0].verified_formalizations),
-        (1, 1)
-    );
-    assert!(matches!(
-        w.app.task(&task.id).await.unwrap().status,
-        TaskStatus::Done { .. }
-    ));
+    let legacy: ContributionOutput = serde_json::from_value(
+        serde_json::json!({"output":"pull_request","url":"https://github.com/a/b/pull/1"}),
+    )
+    .unwrap();
+    assert!(legacy.validate(TaskKind::LegacyFormalize).is_err());
 }
 
 fn done_step<T>(result: T) -> Step<T> {
@@ -1532,21 +1455,17 @@ async fn audit_recovers_record_insert_and_preserves_publication_on_revision() {
         .respond_to_formalization(&author, &paper.id, claim, true, String::new())
         .await
         .unwrap();
-    w.app
-        .verify_formalization(
-            &editor,
-            &paper.id,
-            claim,
-            FormalArtifact {
-                repository: "https://github.com/example/paper".into(),
-                commit: "a".repeat(40),
-                declarations: vec!["Original.main".into()],
-            },
-            vec![],
-            None,
-        )
-        .await
-        .unwrap();
+    let mut legacy = w.app.submission(&author, &paper.id).await.unwrap();
+    legacy.formalization.items[0].state = ItemState::Verified {
+        artifact: FormalArtifact {
+            repository: "https://github.com/example/paper".into(),
+            commit: "a".repeat(40),
+            declarations: vec!["Original.main".into()],
+        },
+        axioms: vec![],
+        contribution: None,
+    };
+    w.app.save(&mut legacy).await.unwrap();
     w.app
         .update_conjecture(
             &editor,
@@ -1596,6 +1515,7 @@ async fn audit_recovers_record_insert_and_preserves_publication_on_revision() {
                 filename: "tl.tex".into(),
             },
             "clarified proof".into(),
+            Some("ai-review-2026-10-11".into()),
         )
         .await
         .unwrap();
@@ -1668,6 +1588,7 @@ async fn legacy_publication_can_be_revised_without_mutating_its_record() {
                 filename: "tl.tex".into(),
             },
             "a revised argument".into(),
+            Some("ai-review-2026-10-11".into()),
         )
         .await
         .unwrap();
@@ -1704,6 +1625,7 @@ async fn legacy_publication_can_be_revised_without_mutating_its_record() {
                 filename: "tlc.tex".into(),
             },
             "another revision".into(),
+            Some("ai-review-2026-10-11".into()),
         )
         .await
         .unwrap();
@@ -2188,6 +2110,12 @@ async fn lean_statement_confirmation_is_cookie_only_digest_bound_and_voided_on_r
             "Lean test".into(),
             "The conjecture says True.".into(),
             None,
+            crate::model::FaithfulnessCheck {
+                verdict: crate::model::FaithfulnessVerdict::Faithful,
+                reason: "Definitions and quantifiers agree.".into(),
+                mismatch: String::new(),
+                regenerated: false,
+            },
         )
         .await
         .unwrap();
@@ -2268,6 +2196,12 @@ async fn lean_statement_confirmation_is_cookie_only_digest_bound_and_voided_on_r
             "Lean test".into(),
             "Every natural number equals itself.".into(),
             Some(digest),
+            crate::model::FaithfulnessCheck {
+                verdict: crate::model::FaithfulnessVerdict::Faithful,
+                reason: "Definitions and quantifiers agree.".into(),
+                mismatch: String::new(),
+                regenerated: false,
+            },
         )
         .await
         .unwrap();
@@ -2298,6 +2232,7 @@ async fn lean_statement_confirmation_is_cookie_only_digest_bound_and_voided_on_r
                 bytes: b"new source".to_vec(),
             },
             "Revised".into(),
+            Some("ai-review-2026-10-11".into()),
         )
         .await
         .unwrap();
@@ -2406,7 +2341,7 @@ async fn upload_checkbox_maps_to_visibility() {
         let w = World::new().await;
         let author = w.person("author", &[]).await;
         let mut new: NewPaper = serde_json::from_value(
-            serde_json::json!({"ai_disclosure":{"level":"none","statement":"No AI used."}}),
+            serde_json::json!({"processing_consent":"ai-review-2026-10-11", "ai_disclosure":{"level":"none","statement":"No AI used."}}),
         )
         .unwrap();
         new.make_public_after_acceptance = checked;
@@ -2564,7 +2499,14 @@ async fn cma_payer_table_uses_only_submitter_and_replays_are_immutable() {
     ready_binding(&w, &coauthor).await;
     let first = w
         .app
-        .admit_cma_attempt(&reviewer, &paper.id, "audit", "r1:audit", "wks_operator")
+        .admit_cma_attempt(
+            &reviewer,
+            &cma_test_job(&paper),
+            &TestAgentLease(true),
+            "audit",
+            "r1:audit",
+            "wks_operator",
+        )
         .await
         .unwrap();
     assert_eq!(first.payer, CmaPayer::Operator);
@@ -2583,7 +2525,8 @@ async fn cma_payer_table_uses_only_submitter_and_replays_are_immutable() {
         w.app
             .admit_cma_attempt(
                 &reviewer,
-                &paper.id,
+                &cma_test_job(&paper),
+                &TestAgentLease(true),
                 "audit",
                 "r1:audit",
                 "changed_operator"
@@ -2594,7 +2537,14 @@ async fn cma_payer_table_uses_only_submitter_and_replays_are_immutable() {
     );
     let own = w
         .app
-        .admit_cma_attempt(&reviewer, &paper.id, "advice", "r1:advice", "wks_operator")
+        .admit_cma_attempt(
+            &reviewer,
+            &cma_test_job(&paper),
+            &TestAgentLease(true),
+            "advice",
+            "r1:advice",
+            "wks_operator",
+        )
         .await
         .unwrap();
     assert_eq!(own.payer, CmaPayer::Author);
@@ -2603,14 +2553,28 @@ async fn cma_payer_table_uses_only_submitter_and_replays_are_immutable() {
     w.app.disconnect_cma(&author).await.unwrap();
     assert_eq!(
         w.app
-            .admit_cma_attempt(&reviewer, &paper.id, "advice", "r1:advice", "wks_operator")
+            .admit_cma_attempt(
+                &reviewer,
+                &cma_test_job(&paper),
+                &TestAgentLease(true),
+                "advice",
+                "r1:advice",
+                "wks_operator"
+            )
             .await
             .unwrap(),
         own
     );
     let disconnected = w
         .app
-        .admit_cma_attempt(&reviewer, &paper.id, "letter", "r1:letter", "wks_operator")
+        .admit_cma_attempt(
+            &reviewer,
+            &cma_test_job(&paper),
+            &TestAgentLease(true),
+            "letter",
+            "r1:letter",
+            "wks_operator",
+        )
         .await
         .unwrap();
     assert_eq!(disconnected.payer, CmaPayer::Operator);
@@ -2629,7 +2593,14 @@ async fn cma_payer_table_uses_only_submitter_and_replays_are_immutable() {
     ));
     assert!(
         w.app
-            .admit_cma_attempt(&author, &paper.id, "other", "audit", "wks_operator")
+            .admit_cma_attempt(
+                &author,
+                &cma_test_job(&paper),
+                &TestAgentLease(true),
+                "other",
+                "audit",
+                "wks_operator"
+            )
             .await
             .is_err()
     );
@@ -2643,15 +2614,24 @@ async fn cma_fallback_is_a_single_cas_successor_and_projection_is_private() {
     let paper = w.submit(&author, "t", false).await;
     let paper = w.review_paper(&author, &paper).await;
     ready_binding(&w, &author).await;
+    let job = cma_test_job(&paper);
     w.app
-        .admit_cma_attempt(&reviewer, &paper.id, "audit", "r1:audit", "wks_operator")
+        .admit_cma_attempt(
+            &reviewer,
+            &job,
+            &TestAgentLease(true),
+            "audit",
+            "r1:audit",
+            "wks_operator",
+        )
         .await
         .unwrap();
     assert!(
         !w.app
             .fallback_cma_attempt(
                 &reviewer,
-                &paper.id,
+                &job,
+                &TestAgentLease(true),
                 "audit",
                 0,
                 CmaFailure::Output,
@@ -2669,7 +2649,8 @@ async fn cma_fallback_is_a_single_cas_successor_and_projection_is_private() {
     let (left, right) = tokio::join!(
         w.app.fallback_cma_attempt(
             &reviewer,
-            &paper.id,
+            &job,
+            &TestAgentLease(true),
             "audit",
             0,
             CmaFailure::Quota,
@@ -2677,7 +2658,8 @@ async fn cma_fallback_is_a_single_cas_successor_and_projection_is_private() {
         ),
         w.app.fallback_cma_attempt(
             &reviewer,
-            &paper.id,
+            &job,
+            &TestAgentLease(true),
             "audit",
             0,
             CmaFailure::Quota,
@@ -2693,7 +2675,8 @@ async fn cma_fallback_is_a_single_cas_successor_and_projection_is_private() {
         w.app
             .fallback_cma_attempt(
                 &reviewer,
-                &paper.id,
+                &job,
+                &TestAgentLease(true),
                 "audit",
                 0,
                 CmaFailure::Quota,
@@ -2706,7 +2689,8 @@ async fn cma_fallback_is_a_single_cas_successor_and_projection_is_private() {
         !w.app
             .fallback_cma_attempt(
                 &reviewer,
-                &paper.id,
+                &job,
+                &TestAgentLease(true),
                 "audit",
                 1,
                 CmaFailure::Auth,
@@ -2758,7 +2742,14 @@ async fn legacy_cma_progress_stays_operator_and_disconnect_fences_consent() {
         .unwrap();
     let a = w
         .app
-        .admit_cma_attempt(&reviewer, &paper.id, "legacy", "r1:audit", "wks_operator")
+        .admit_cma_attempt(
+            &reviewer,
+            &cma_test_job(&paper),
+            &TestAgentLease(true),
+            "legacy",
+            "r1:audit",
+            "wks_operator",
+        )
         .await
         .unwrap();
     assert_eq!(a.payer, CmaPayer::Operator);
@@ -2864,7 +2855,14 @@ async fn cma_progress_fences_stale_snapshots_leases_and_terminal_answers() {
     let paper = w.review_paper(&author, &paper).await;
     ready_binding(&w, &author).await;
     w.app
-        .admit_cma_attempt(&reviewer, &paper.id, "audit", "r1:audit", "wks_operator")
+        .admit_cma_attempt(
+            &reviewer,
+            &cma_test_job(&paper),
+            &TestAgentLease(true),
+            "audit",
+            "r1:audit",
+            "wks_operator",
+        )
         .await
         .unwrap();
     let job = crate::ports::LeasedJob {
@@ -3001,7 +2999,14 @@ async fn cma_payer_all_binding_statuses_and_disabled_feature() {
                 .unwrap();
             let attempt = w
                 .app
-                .admit_cma_attempt(&reviewer, &paper.id, "audit", "r1:audit", "wks_operator")
+                .admit_cma_attempt(
+                    &reviewer,
+                    &cma_test_job(&paper),
+                    &TestAgentLease(true),
+                    "audit",
+                    "r1:audit",
+                    "wks_operator",
+                )
                 .await
                 .unwrap();
             let author_pays = enabled && status == CmaStatus::Ready;
@@ -3046,4 +3051,126 @@ fn legacy_agent_step_deserializes_without_funding_history() {
     assert_eq!(view.payer, CmaPayer::Operator);
     assert_eq!(view.reason, "legacy_unknown");
     assert_eq!(view.status, CmaOutcome::Succeeded);
+}
+
+fn cma_test_job(paper: &Submission) -> crate::ports::LeasedJob {
+    crate::ports::LeasedJob {
+        submission: paper.id.clone(),
+        kind: crate::ports::JobKind::Referee,
+        attempts: 0,
+        lease: "test".into(),
+    }
+}
+
+struct AdmissionLease(std::sync::atomic::AtomicBool);
+#[async_trait::async_trait]
+impl crate::ports::JobLease for AdmissionLease {
+    async fn claim(&self) -> CoreResult<Option<crate::ports::LeasedJob>> {
+        unreachable!()
+    }
+    async fn renew(&self, _: &crate::ports::LeasedJob) -> CoreResult<bool> {
+        Ok(self.0.load(std::sync::atomic::Ordering::SeqCst))
+    }
+    async fn complete(&self, _: &crate::ports::LeasedJob) -> CoreResult<()> {
+        unreachable!()
+    }
+    async fn defer(&self, _: &crate::ports::LeasedJob, _: std::time::Duration) -> CoreResult<()> {
+        unreachable!()
+    }
+    async fn retry(&self, _: &crate::ports::LeasedJob, _: &str) -> CoreResult<()> {
+        unreachable!()
+    }
+}
+struct AdmissionReadBarrier {
+    stores: Arc<MemoryStores>,
+    entered: tokio::sync::Notify,
+    release: tokio::sync::Notify,
+}
+#[async_trait::async_trait]
+impl crate::ports::RefereeStore for AdmissionReadBarrier {
+    async fn get(&self, id: &SubmissionId) -> CoreResult<Option<RefereeFile>> {
+        let snapshot = crate::ports::RefereeStore::get(self.stores.as_ref(), id).await?;
+        self.entered.notify_one();
+        self.release.notified().await;
+        Ok(snapshot)
+    }
+    async fn insert(&self, file: &RefereeFile) -> CoreResult<()> {
+        crate::ports::RefereeStore::insert(self.stores.as_ref(), file).await
+    }
+    async fn replace(&self, file: &RefereeFile, revision: u64) -> CoreResult<()> {
+        crate::ports::RefereeStore::replace(self.stores.as_ref(), file, revision).await
+    }
+}
+#[tokio::test]
+async fn cma_admission_and_fallback_recheck_lease_after_async_reads() {
+    use crate::ports::RefereeStore;
+    for fallback in [false, true] {
+        let mut w = cma_world().await;
+        let author = w.person("author", &[]).await;
+        let reviewer = w.person("reviewer", &[Role::Reviewer]).await;
+        let paper = w.submit(&author, "t", false).await;
+        let paper = w.review_paper(&author, &paper).await;
+        ready_binding(&w, &author).await;
+        let job = cma_test_job(&paper);
+        let lease = AdmissionLease(std::sync::atomic::AtomicBool::new(true));
+        if fallback {
+            w.app
+                .admit_cma_attempt(&reviewer, &job, &lease, "audit", "r1:audit", "wks_operator")
+                .await
+                .unwrap();
+        }
+        let before = RefereeStore::get(w.stores.as_ref(), &paper.id)
+            .await
+            .unwrap();
+        let binding = w.app.cma_binding(&author.person).await.unwrap();
+        let barrier = Arc::new(AdmissionReadBarrier {
+            stores: w.stores.clone(),
+            entered: tokio::sync::Notify::new(),
+            release: tokio::sync::Notify::new(),
+        });
+        Arc::get_mut(&mut w.app).unwrap().ports.referees = barrier.clone();
+        let (result, ()) = tokio::join!(
+            async {
+                if fallback {
+                    w.app
+                        .fallback_cma_attempt(
+                            &reviewer,
+                            &job,
+                            &lease,
+                            "audit",
+                            0,
+                            CmaFailure::Setup,
+                            "wks_operator",
+                        )
+                        .await
+                        .map(|_| ())
+                } else {
+                    w.app
+                        .admit_cma_attempt(
+                            &reviewer,
+                            &job,
+                            &lease,
+                            "audit",
+                            "r1:audit",
+                            "wks_operator",
+                        )
+                        .await
+                        .map(|_| ())
+                }
+            },
+            async {
+                barrier.entered.notified().await;
+                lease.0.store(false, std::sync::atomic::Ordering::SeqCst);
+                barrier.release.notify_one();
+            }
+        );
+        assert!(matches!(result, Err(CoreError::Conflict(_))));
+        assert_eq!(
+            RefereeStore::get(w.stores.as_ref(), &paper.id)
+                .await
+                .unwrap(),
+            before
+        );
+        assert_eq!(w.app.cma_binding(&author.person).await.unwrap(), binding);
+    }
 }

@@ -205,6 +205,10 @@ impl App {
         let now = self.ports.clock.now();
         let version = self.new_version(1, &upload, &read, String::new()).await?;
         let submission = Submission {
+            processing_consent: Some(ProcessingConsent {
+                version: AI_PROCESSING_CONSENT_VERSION.into(),
+                at: now,
+            }),
             problem_check_requested: false,
             conjecture_dependencies: vec![],
             kind: new.kind,
@@ -394,9 +398,19 @@ impl App {
         id: &SubmissionId,
         upload: Upload,
         note: String,
+        processing_consent: Option<String>,
     ) -> CoreResult<Submission> {
         let mut submission = self.load(id).await?;
         Self::require_submitter(caller, &submission)?;
+        if processing_consent.as_deref() != Some(AI_PROCESSING_CONSENT_VERSION) {
+            return Err(CoreError::invalid(
+                "agreement to third-party AI review is required",
+            ));
+        }
+        submission.processing_consent = Some(ProcessingConsent {
+            version: AI_PROCESSING_CONSENT_VERSION.into(),
+            at: self.ports.clock.now(),
+        });
         if !matches!(
             submission.status,
             SubmissionStatus::Draft

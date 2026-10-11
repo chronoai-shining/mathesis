@@ -1,3 +1,5 @@
+import { ReportError, ErrorReports } from '../components/ErrorReports';
+import { EntrantName } from './Leaderboard';
 import { useCallback, useState } from 'react';
 import { pdfHref } from '../api/client';
 import { useApi } from '../api/context';
@@ -117,6 +119,8 @@ export function PaperView({ paper }: { paper: PublicPaper }) {
           </p>
           <h1>{s.title}</h1>
           <AuthorLine authors={s.authors} />
+          <p className="small muted">Reviewed by GPT Pro and audited by Codex</p>
+          {claims.length ? <ReportError record={s.record} subject={{ kind: 'review' }} /> : null}
           <p className="entry-meta">
             {s.accepted_at ? (
               <span>
@@ -186,6 +190,22 @@ export function PaperView({ paper }: { paper: PublicPaper }) {
           <section aria-labelledby="statements-h" className="statements">
             <h2 id="statements-h">Statements</h2>
             <PublicStatements claims={claims} />
+            <ul className="entry-list">
+              {claims.map((claim) => (
+                <li key={claim.id}>
+                  <Link to={{ kind: 'statement', record: s.record, claim: claim.id }}>
+                    {claim.label} · Lean target and attempts
+                  </Link>
+                  {claim.verified ? (
+                    <p>
+                      <strong>Lean ✓</strong> · <EntrantName entrant={claim.verified.entrant} />{' '}
+                      proved the author-confirmed Lean target.
+                    </p>
+                  ) : null}
+                  <ReportError record={s.record} subject={{ kind: 'statement', claim: claim.id }} />
+                </li>
+              ))}
+            </ul>
           </section>
         ) : (
           <p className="muted">The author keeps the mathematical details private.</p>
@@ -196,9 +216,14 @@ export function PaperView({ paper }: { paper: PublicPaper }) {
             <pre className="lean-source">
               <code>{target.lean}</code>
             </pre>
+            <ReportError
+              record={s.record}
+              subject={{ kind: 'target', claim: target.claim, digest: target.digest }}
+            />
           </section>
         ))}
 
+        {claims.length ? <ErrorReports record={s.record} /> : null}
         <Citation paper={s} />
       </article>
     </MacrosProvider>

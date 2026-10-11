@@ -46,6 +46,8 @@ pub struct PublicClaim {
     pub depends_on: Vec<ClaimId>,
     /// The checked Lean proof, once verified.
     pub lean: Option<FormalArtifact>,
+    #[serde(default)]
+    pub verified: Option<PublicAttempt>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -224,7 +226,26 @@ impl App {
         let mut items = Vec::with_capacity(page.items.len());
         for record in &page.items {
             if let Ok(submission) = self.accepted(record).await {
-                items.push(summary(record, &submission));
+                let mut item = summary(record, &submission);
+                if submission.analysis_visibility == Visibility::Public {
+                    let mut count = 0;
+                    for claim in &submission.claims {
+                        let legacy = lean(&submission.formalization, &claim.id).is_some();
+                        let verified = if submission.approved_statement(&claim.id) {
+                            self.public_attempts(&record.id, &claim.id)
+                                .await?
+                                .iter()
+                                .any(|a| a.receipt.verdict == Verdict::Proved)
+                        } else {
+                            false
+                        };
+                        if legacy || verified {
+                            count += 1;
+                        }
+                    }
+                    item.lean_verified = count;
+                }
+                items.push(item);
             }
         }
         Ok(Listing {
@@ -397,7 +418,10 @@ impl App {
             submission
                 .lean_statements
                 .iter()
-                .filter(|a| matches!(a.response, LeanStatementResponse::Confirmed { .. }))
+                .filter(|a| {
+                    a.faithfulness.is_some()
+                        && matches!(a.response, LeanStatementResponse::Confirmed { .. })
+                })
                 .map(|a| PublicLeanStatement {
                     claim: a.claim.clone(),
                     lean: a.lean.clone(),
@@ -408,8 +432,29 @@ impl App {
         } else {
             vec![]
         };
+        let mut verified = std::collections::BTreeMap::new();
+        if public {
+            for claim in &submission.claims {
+                if !claim.kind.is_open()
+                    && let Ok(attempts) = self.public_attempts(id, &claim.id).await
+                    && let Some(proof) = attempts
+                        .into_iter()
+                        .find(|a| a.receipt.verdict == Verdict::Proved)
+                {
+                    verified.insert(claim.id.clone(), proof);
+                }
+            }
+        }
+        let mut paper_summary = summary(&record, &submission);
+        paper_summary.lean_verified = submission
+            .claims
+            .iter()
+            .filter(|c| {
+                verified.contains_key(&c.id) || lean(&submission.formalization, &c.id).is_some()
+            })
+            .count();
         Ok(PublicPaper {
-            summary: summary(&record, &submission),
+            summary: paper_summary,
             versions: if public {
                 submission
                     .versions
@@ -436,6 +481,7 @@ impl App {
                         section: c.section.clone(),
                         depends_on: c.depends_on.clone(),
                         lean: lean(&submission.formalization, &c.id),
+                        verified: verified.get(&c.id).cloned(),
                     })
                     .collect()
             } else {
@@ -505,6 +551,48 @@ impl App {
                 .unwrap_or_default(),
             target,
             verified_attempts,
+        })
+    }
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct PublicStatement {
+    pub record: RecordId,
+    pub title: String,
+    pub claim: PublicClaim,
+    pub target: Option<PublicLeanStatement>,
+    pub verified_attempts: Vec<PublicAttempt>,
+    pub macros: std::collections::BTreeMap<String, String>,
+}
+impl App {
+    pub async fn public_statement(
+        &self,
+        record: &RecordId,
+        claim: &ClaimId,
+    ) -> CoreResult<PublicStatement> {
+        let paper = self.paper(record).await?;
+        let statement = paper
+            .claims
+            .into_iter()
+            .find(|c| c.id == *claim)
+            .ok_or_else(|| CoreError::not_found("statement", claim.as_str()))?;
+        let target = match self.target(record, claim).await {
+            Ok(t) => Some(t),
+            Err(CoreError::Conflict(_)) | Err(CoreError::NotFound { .. }) => None,
+            Err(e) => return Err(e),
+        };
+        let attempts = if target.is_some() {
+            self.public_attempts(record, claim).await?
+        } else {
+            vec![]
+        };
+        Ok(PublicStatement {
+            record: record.clone(),
+            title: paper.summary.title,
+            claim: statement,
+            target,
+            verified_attempts: attempts,
+            macros: paper.macros,
         })
     }
 }

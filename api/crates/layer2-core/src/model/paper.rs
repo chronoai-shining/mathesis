@@ -248,8 +248,18 @@ pub struct PublishedProgress {
     pub publication: Option<Box<Submission>>,
 }
 
+pub const AI_PROCESSING_CONSENT_VERSION: &str = "ai-review-2026-10-11";
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ProcessingConsent {
+    pub version: String,
+    pub at: DateTime<Utc>,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Submission {
+    #[serde(default)]
+    pub processing_consent: Option<ProcessingConsent>,
     /// Explicitly requested at new acceptance or by staff; legacy documents do
     /// not opt into a backfill merely because reconciliation visits them.
     #[serde(default)]
@@ -305,6 +315,8 @@ pub struct Submission {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct NewPaper {
     #[serde(default)]
+    pub processing_consent: Option<String>,
+    #[serde(default)]
     pub kind: SubmissionKind,
     #[serde(default = "public_by_default")]
     pub make_public_after_acceptance: bool,
@@ -324,6 +336,11 @@ pub struct NewPaper {
 
 impl NewPaper {
     pub fn validate(&self) -> CoreResult<()> {
+        if self.processing_consent.as_deref() != Some(AI_PROCESSING_CONSENT_VERSION) {
+            return Err(CoreError::invalid(
+                "agreement to third-party AI review is required",
+            ));
+        }
         if self.typed_conjecture.is_some() && self.kind != SubmissionKind::Conjecture {
             return Err(CoreError::invalid("typed input is only for conjectures"));
         }
@@ -387,6 +404,21 @@ impl Submission {
                 .any(|a| a.person.as_ref() == Some(person))
     }
 
+    pub fn approved_statement(&self, claim: &ClaimId) -> bool {
+        self.kind != SubmissionKind::Conjecture
+            && self
+                .claim(claim)
+                .is_some_and(|c| !c.kind.is_open() && c.has_proof)
+            && self.formalization.item(claim).is_some_and(|i| {
+                matches!(
+                    i.state,
+                    super::ItemState::Approved
+                        | super::ItemState::InProgress
+                        | super::ItemState::Verified { .. }
+                )
+            })
+    }
+
     pub fn is_open(&self) -> bool {
         self.status == SubmissionStatus::InReview
     }
@@ -426,6 +458,7 @@ mod tests {
 
     fn new_paper(doi: Option<&str>) -> NewPaper {
         NewPaper {
+            processing_consent: Some("ai-review-2026-10-11".into()),
             kind: crate::model::SubmissionKind::Paper,
             make_public_after_acceptance: true,
             typed_conjecture: None,

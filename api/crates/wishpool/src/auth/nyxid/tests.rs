@@ -225,7 +225,7 @@ async fn harness_with_cma(enabled: bool) -> Harness {
         .unwrap(),
         scope: "openid offline_access proxy".into(),
         service_ids: vec![],
-        gateway_url: gateway.clone(),
+
         default_model: "claude-test".into(),
     });
     let auth = Arc::new(AuthState {
@@ -511,12 +511,11 @@ async fn bearer_tokens_are_verified_locally() {
 }
 
 #[tokio::test]
-async fn donated_quota_runs_a_hosted_judgement() {
+async fn donated_quota_retains_rotation_without_legacy_hosted_judgements() {
     use wishpool_core::{
         app::Upload,
         model::{
-            AiDisclosure, AiUse, ClaimConfirmation, ContributionStatus, GrantStatus, NewPaper,
-            Role, TaskKind, VerifiedIdentity,
+            AiDisclosure, AiUse, ClaimConfirmation, NewPaper, Role, TaskKind, VerifiedIdentity,
         },
         ports::TaskFilter,
     };
@@ -612,6 +611,7 @@ async fn donated_quota_runs_a_hosted_judgement() {
         .submit_paper(
             &author,
             NewPaper {
+                processing_consent: Some("ai-review-2026-10-11".into()),
                 kind: wishpool_core::model::SubmissionKind::Paper,
                 make_public_after_acceptance: true,
                 typed_conjecture: None,
@@ -659,41 +659,23 @@ async fn donated_quota_runs_a_hosted_judgement() {
         donations: h.donations.clone(),
         interval: std::time::Duration::from_secs(1),
     };
-    assert_eq!(worker.round_for_test().await.unwrap(), 1);
-    let contributions = h
-        .app
-        .list_contributions(Default::default(), None, None)
-        .await
-        .unwrap()
-        .items;
-    assert_eq!(contributions.len(), 1);
-    let tokens = contributions[0].tokens.unwrap();
-    assert_eq!(
-        (tokens.input, tokens.output, tokens.metered),
-        (900, 100, true)
+    assert!(
+        !worker
+            .access_token(&"user-1".into())
+            .await
+            .unwrap()
+            .is_empty()
     );
-    assert_eq!(
-        contributions[0].status,
-        ContributionStatus::Submitted,
-        "one family alone does not corroborate"
+    let donor = h.app.caller(&identity("user-1")).await.unwrap();
+    assert_eq!(h.app.donation(&donor).await.unwrap().unwrap().used, 0);
+    assert!(
+        h.app
+            .list_contributions(Default::default(), None, None)
+            .await
+            .unwrap()
+            .items
+            .is_empty()
     );
-    let grant = h
-        .app
-        .donation(
-            &h.app
-                .caller(&VerifiedIdentity {
-                    subject: "user-1".into(),
-                    name: None,
-                    email: None,
-                    picture: None,
-                })
-                .await
-                .unwrap(),
-        )
-        .await
-        .unwrap()
-        .unwrap();
-    assert_eq!((grant.used, grant.status), (1_000, GrantStatus::Active));
     // The rotated refresh token replaced the old one.
     assert_eq!(
         h.donations
@@ -711,7 +693,7 @@ async fn donated_quota_runs_a_hosted_judgement() {
     );
     // The donor already judged the theorem; literature is handled by the
     // networked referee/CMA pipeline, so hosted chat leaves that task open.
-    assert_eq!(worker.round_for_test().await.unwrap(), 0);
+    assert_eq!(h.app.donation(&donor).await.unwrap().unwrap().used, 0);
     let literature = h
         .app
         .list_tasks(
@@ -778,7 +760,7 @@ async fn lean_target_response_requires_cookie_provenance_even_with_a_valid_beare
             &author,
             serde_json::from_value(json!({
                 "kind":"conjecture", "authors":[{"name":"Ada Lovelace"}],
-                "ai_disclosure":{"level":"none","statement":"No AI used."},
+                "processing_consent":"ai-review-2026-10-11", "ai_disclosure":{"level":"none","statement":"No AI used."},
                 "typed_conjecture":{"title":"Target","statement":"An open mathematical assertion."}
             }))
             .unwrap(),
@@ -798,6 +780,12 @@ async fn lean_target_response_requires_cookie_provenance_even_with_a_valid_beare
     };
     let digest = "d".repeat(64);
     paper.lean_statements.push(LeanStatementAttempt {
+        faithfulness: Some(wishpool_core::model::FaithfulnessCheck {
+            verdict: wishpool_core::model::FaithfulnessVerdict::Faithful,
+            reason: "Checked".into(),
+            mismatch: String::new(),
+            regenerated: false,
+        }),
         claim: "C1".into(),
         version: 1,
         claims_revision: 1,

@@ -6,6 +6,7 @@ import { useSession } from '../auth/session';
 import { LatexText, MacrosProvider } from '../components/Markdown';
 import { Async, DateText, InlineError, SignInPrompt } from '../components/ui';
 import { EntrantName } from './Leaderboard';
+import { ReportError, ErrorReports } from '../components/ErrorReports';
 export function ConjecturePage({ record, claim }: { record: string; claim: string }) {
   const api = useApi();
   const load = useCallback(
@@ -33,6 +34,8 @@ export function ConjectureView({ detail: c }: { detail: ConjectureDetail }) {
           {s.record} · {s.claim} · {s.source}
         </p>
         <h1>{s.title}</h1>
+        <p className="small muted">Reviewed by GPT Pro and audited by Codex</p>
+        <ReportError record={s.record} subject={{ kind: 'statement', claim: s.claim }} />
         <div className="status-card">
           <h2>
             {s.status === 'open' ? 'Open' : s.status === 'solved' ? 'Solved' : 'Disproved'}
@@ -46,7 +49,7 @@ export function ConjectureView({ detail: c }: { detail: ConjectureDetail }) {
           <p>
             {s.status === 'open'
               ? 'A first verified solution earns one point.'
-              : 'Checked in Lean against the author-confirmed target.'}
+              : 'The solver proved or disproved the author-confirmed Lean target.'}
           </p>
         </div>
         <section>
@@ -58,6 +61,10 @@ export function ConjectureView({ detail: c }: { detail: ConjectureDetail }) {
           {c.target ? (
             <>
               <p>The author confirmed these exact definitions and statement.</p>
+              <ReportError
+                record={s.record}
+                subject={{ kind: 'target', claim: s.claim, digest: c.target.digest }}
+              />
               <details>
                 <summary>View Target.lean</summary>
                 <pre>
@@ -136,17 +143,29 @@ export function ConjectureView({ detail: c }: { detail: ConjectureDetail }) {
             <p className="muted">No verified attempts yet.</p>
           )}
         </section>
+        <ErrorReports record={s.record} />
       </article>
     </MacrosProvider>
   );
 }
-function AttemptForm({ record, claim }: { record: string; claim: string }) {
+export function AttemptForm({
+  record,
+  claim,
+  statement = false,
+}: {
+  record: string;
+  claim: string;
+  statement?: boolean;
+}) {
   const api = useApi();
   const { person } = useSession();
   const loadAgents = useCallback((signal: AbortSignal) => api.agents({ signal }), [api]);
   const loadMine = useCallback(
-    (signal: AbortSignal) => api.myAttempts(record, claim, { signal }),
-    [api, record, claim],
+    (signal: AbortSignal) =>
+      statement
+        ? api.myStatementAttempts(record, claim, { signal })
+        : api.myAttempts(record, claim, { signal }),
+    [api, record, claim, statement],
   );
   const agents = useAsync(person ? loadAgents : null);
   const mine = useAsync(person ? loadMine : null);
@@ -167,7 +186,13 @@ function AttemptForm({ record, claim }: { record: string; claim: string }) {
     setBusy(true);
     try {
       setAttempt(
-        await api.submitAttempt(record, claim, await file.text(), agent || undefined, note),
+        await (statement ? api.submitStatementAttempt : api.submitAttempt)(
+          record,
+          claim,
+          await file.text(),
+          agent || undefined,
+          note,
+        ),
       );
       mine.reload();
     } catch (e) {

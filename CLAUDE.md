@@ -52,9 +52,18 @@ pipeline; only their labels differ.
   paper's submitting author confirms their exact Lean target. Private paper
   problems never enter the list. New versions require a fresh check. An admin
   may trigger checks for already-accepted papers; there is no automatic backfill.
-- **Contributors**: when the author opts in, volunteers do the legwork
-  (judgements, literature checks, probes, formalizations) with their own
-  model tokens or donated NyxID quota, credited only when verified.
+- **Contributions**: Solve · Formalize · Report errors · Donate quota. Anyone
+  signed in may submit a Lean attempt against a confirmed public target. Proved
+  paper statements require author approval before target generation. Confirmed
+  error reports earn separate profile credit. Donated NyxID quota is attributed
+  to venue CMA probes, target generation and attempts by `wishpool-agent`, owned
+  by the venue; Supporters lists only NyxID-reported usage, without ranking.
+- **Consent**: every source upload, including revisions and typed conjectures,
+  requires explicit, unchecked agreement to third-party AI processing (OpenAI
+  ChatGPT via Oracle, Codex on CMA). Store version `ai-review-2026-10-11` and
+  server time; missing or outdated consent is refused. Legacy records load
+  without a fabricated consent receipt.
+
 
 Review stages:
 
@@ -143,11 +152,15 @@ sdk/contribute/    the contributors' CLI and MCP server.
   S2/S3 reports again. Editors are optional. Independent contributor judgements
   still corroborate by the existing different-family/account rule; editors may
   confirm them or resolve disputes.
-- A judgement contribution counts when it is corroborated or confirmed;
-  literature checks and probes when an editor accepts them; a formalization
-  when an editor records the checked Lean proof (repository, full commit,
-  declarations, standard axioms only: `propext`, `Classical.choice`,
-  `Quot.sound`).
+- Judgements count when corroborated/confirmed, and literature checks/probes
+  when accepted. Conjecture solving and paper formalization count only through
+  the attempt → independent verifier path. No new `formalize` task, pull-request
+  contribution, repository assignment, or editor-recorded proof is allowed.
+  Historical documents remain readable with serde defaults and legacy variants.
+- Conjecture credit: Others' conjectures (primary) and Total. A solver is an
+  author when the person, or an agent's owner, is the submitter or a linked
+  co-author of the source submission. Own conjectures count in Total. Paper
+  proofs count under Formalized, confirmed reports under Errors found.
 - Token usage sent through the API is stored as self-reported; only usage the
   NyxID gateway reported for hosted work is metered. The two are never summed.
 - Delegated refresh tokens are stored sealed (AES-256-GCM) and never logged.
@@ -298,14 +311,44 @@ from `develop`. No force pushes to either.
   a Sandbox whose pinned profile uses `own_credentials`. Automatic provisioning
   is a follow-up. Connecting does not require hosted donations.
 - Before any CMA I/O, Layer 2 durably admits the submitting author's ready
-  binding or the operator default. Co-authors and donors are never charged for
-  that submission. Replays retain the attempt's payer, generation and workspace.
+  binding for eligible submission steps or the operator default. Co-authors
+  are never selected as payers; supporter attribution is separate from account custody. Replays retain the attempt's payer, generation and workspace.
   A terminal author account/auth/setup/credential/quota refusal, or an agent
   failure labelled `cause_unknown`, admits at most one recorded operator
   successor with fresh request keys. Transport errors, 429/5xx, uncertain writes,
   mathematical/JSON errors and local verifier failures never switch payer.
   Cleanup uses each attempt's original account. Private referee views expose
   only the step, ordinal, payer, sanitized reason, status and times, before letters.
+
+Author CMA execution requires `WISHPOOL_CMA_AGENT_PROFILE` with an exact
+`{"id":"agp_…","revision":1}` pin to a published agent profile readable by
+both the operator and author accounts. The exact pin is retained in each
+creation intent for retries. Workspace facts are fetched and decoded in Layer 3;
+Layer 2 checks ownership, readiness and `own_credentials` before saving the
+binding under its source revision. Refresh throttling, outages, ambiguous
+refusals and concurrent token rotation remain transient, with the same payer.
+Disconnect/reconnect revokes the old generation; outstanding agent cleanup is
+best effort and may fail after revocation. Cleanup never substitutes operator
+credentials for author resources.
+
+CMA payer mapping (Layer 2 decides before provider I/O):
+
+| Step | Payer and attribution |
+|---|---|
+| Referee audit, advice, letter, accepted-paper Lean probe | Ready submitter binding; otherwise operator |
+| Standalone conjecture target, admitted paper-problem target, author-approved proved paper-statement target | Ready submitter binding; otherwise operator |
+| Target faithfulness audit, including regeneration | Ready submitter binding; otherwise operator |
+| Independent paper open-problem audit | Ready submitter binding; otherwise operator |
+| Error-report text audit | Operator, never the author or reporter |
+| Venue-agent attempt on a confirmed target | Operator account with phase-D donation attribution, never the author |
+| Existing legacy CMA run | Original operator account; never retroactively charged to an author |
+
+Operator-funded target generation, faithfulness audits, Lean probes and venue
+attempts retain phase-D supporter attribution, including an operator successor.
+Author-funded steps create no donation attribution. Attribution alone charges no
+tokens: only a verified NyxID usage receipt can meter usage. Replays retain the
+saved payer, workspace, generation and request identity. Oracle remains operator
+funded; local elaboration and proof verification carry no CMA payer.
 
 ## 12. Solving and the leaderboard
 
@@ -334,22 +377,44 @@ from `develop`. No force pushes to either.
   tie. Later checked attempts are public as “also verified” and earn no points.
   The author receives an in-app notification. Public solutions and profiles
   contain no private notes, referee reports, audit readings, or letters.
-- One leaderboard contains people and pure agents. Every agent is owned by a
-  signed-in person; AI assistance does not change a person's entrant kind.
-  Score is proved plus disproved conjectures, with no votes or stars. Filters
-  select all/people/agents and all time/current UTC month. Equal scores sort by
-  earlier last solve, then entrant id. Public profiles link winning solutions
-  and receipts. Store author-confirmed S1 dependency edges from other public
-  accepted works and their distinct-work downstream count for later weighting;
-  those counts do not affect today's score.
-
-Author CMA execution requires `WISHPOOL_CMA_AGENT_PROFILE` with an exact
-`{"id":"agp_…","revision":1}` pin to a published agent profile readable by
-both the operator and author accounts. The exact pin is retained in each
-creation intent for retries. Workspace facts are fetched and decoded in Layer 3;
-Layer 2 checks ownership, readiness and `own_credentials` before saving the
-binding under its source revision. Refresh throttling, outages, ambiguous
-refusals and concurrent token rotation remain transient, with the same payer.
-Disconnect/reconnect revokes the old generation; outstanding agent cleanup is
-best effort and may fail after revocation. Cleanup never substitutes operator
-credentials for author resources.
+- One leaderboard contains people and pure agents. “Others' conjectures” is
+  proved plus disproved conjectures whose source submission involves neither
+  the entrant nor its agent owner as submitting author or linked co-author.
+  “Total” includes own conjectures. Sort others descending, total descending,
+  earlier last solve, then entrant id. Filters select all/people/agents and
+  all time/current UTC month. Profiles show both solved counts, Formalized,
+  Errors found and the corresponding winning proof receipts.
+- Author-approved proved paper statements use the same target generation,
+  faithfulness audit, cookie-session author confirmation, attempt and verifier
+  path as conjectures. Their verified proofs display Lean ✓ with solver credit
+  and count under Formalized, never on the conjecture leaderboard.
+- Before confirmation, a separate CMA Codex audit compares the original statement
+  and exact target. Its verdict is faithful/weaker/stronger/different/trivial,
+  with one paragraph and the specific mismatch. Missing/invalid audits never
+  unlock confirmation. A non-faithful result regenerates once with that reason;
+  the second check is shown even if still non-faithful. Old unaudited targets
+  return to preparation. Public pages say “proved the author-confirmed Lean target”.
+- Signed-in people and their agents may report errors in accepted public
+  statements, targets or reviews, with text ≤20,000 characters and/or a Lean
+  disproof. Reports are limited to five per entrant per rolling 24 hours across
+  all items, with revision-fenced admission. Lean evidence enters the ordinary
+  verifier immediately on the report job; text enters a durable CMA audit with
+  the same evidence sanitization. Verdicts are confirmed/refuted/unclear.
+  Reports stay reporter/author/staff-only until confirmed; confirmed text and
+  verdict are public while the source is public. Refuted/unclear reports stay
+  private. Confirmation credits the reporter and notifies the authors in-app.
+- Every confirmed error report and verifier-passed disproof of a statement
+  of an accepted paper queues a fresh referee round automatically. Trigger ids are
+  durable and idempotent; rounds snapshot them and recheck the evidence. An
+  active round finishes before the next starts. Accepted publication inputs
+  remain immutable; the new private audit and assessment are retained.
+  Confirmed target reports also void the exact digest and regenerate it.
+- Donations fund our agents, never impersonate donors as solvers. Venue agent
+  id/name `wishpool-agent` is reserved, owned by `wishpool:venue`. A confirmed
+  open target queues one durable CMA attempt per digest; wishpool runs Lean.
+  Supporters is alphabetical and unranked. Run attribution is durable, separate
+  from usage. Only a NyxID accounting receipt can charge tokens, atomically and
+  once per run. CMA v2 rejects restricted delegated tokens: use the configured
+  venue token, retain attribution, and show zero until a NyxID usage receipt is
+  available. CMA/model/client token estimates never become metered usage.
+- Public accepted items say “Reviewed by GPT Pro and audited by Codex”.

@@ -15,7 +15,6 @@ import {
   buildConjectureState,
   buildJudgement,
   buildLiteratureReport,
-  buildVerification,
   type LiteratureOutcome,
 } from '../../lib/editorForms';
 import {
@@ -437,9 +436,7 @@ function FormalizationEditor({
   onChange: OnChange;
 }) {
   const api = useApi();
-  const repoM = useMutation(onChange);
   const proposeM = useMutation(onChange);
-  const [repository, setRepository] = useState(submission.formalization.repository ?? '');
   const proposable = submission.claims.filter(
     (c) => !isOpenKind(c.kind) && !submission.formalization.items.some((i) => i.claim === c.id),
   );
@@ -448,28 +445,6 @@ function FormalizationEditor({
   return (
     <div className="tool-form">
       <h3>Formalization</h3>
-      <form
-        className="inline-form"
-        onSubmit={(e) => {
-          e.preventDefault();
-          repoM.run(() => api.setFormalRepository(submission.id, repository.trim()));
-        }}
-      >
-        <Field label="Repository" htmlFor="formal-repo">
-          <input
-            id="formal-repo"
-            type="url"
-            value={repository}
-            placeholder="https://github.com/…"
-            onChange={(e) => setRepository(e.target.value)}
-          />
-        </Field>
-        <button type="submit" className="button button-quiet button-small" disabled={repoM.busy}>
-          Set repository
-        </button>
-        <InlineError error={repoM.error} />
-      </form>
-
       {proposable.length > 0 ? (
         <form
           className="inline-form"
@@ -520,132 +495,11 @@ function FormalizationEditor({
               {item.state.state === 'verified' ? (
                 <FormalArtifactView artifact={item.state.artifact} axioms={item.state.axioms} />
               ) : null}
-              {item.state.state === 'approved' ? (
-                <StartButton submission={submission} claim={item.claim} onChange={onChange} />
-              ) : null}
-              {item.state.state === 'approved' || item.state.state === 'in_progress' ? (
-                <VerifyForm
-                  submission={submission}
-                  claim={item.claim}
-                  defaultRepository={submission.formalization.repository ?? ''}
-                  onChange={onChange}
-                />
-              ) : null}
             </li>
           ))}
         </ul>
       ) : null}
     </div>
-  );
-}
-
-function StartButton({
-  submission,
-  claim,
-  onChange,
-}: {
-  submission: Submission;
-  claim: string;
-  onChange: OnChange;
-}) {
-  const api = useApi();
-  const m = useMutation(onChange);
-  return (
-    <div>
-      <button
-        type="button"
-        className="button button-quiet button-small"
-        disabled={m.busy}
-        onClick={() => m.run(() => api.startFormalization(submission.id, claim))}
-      >
-        Mark in progress
-      </button>
-      <InlineError error={m.error} />
-    </div>
-  );
-}
-
-function VerifyForm({
-  submission,
-  claim,
-  defaultRepository,
-  onChange,
-}: {
-  submission: Submission;
-  claim: string;
-  defaultRepository: string;
-  onChange: OnChange;
-}) {
-  const api = useApi();
-  const m = useMutation(onChange);
-  const [fields, setFields] = useState({
-    repository: defaultRepository,
-    commit: '',
-    declarations: '',
-    axioms: 'propext Classical.choice Quot.sound',
-    contribution: '',
-  });
-  const set = (key: keyof typeof fields) => (e: { target: { value: string } }) =>
-    setFields({ ...fields, [key]: e.target.value });
-  const id = (k: string) => `verify-${claim}-${k}`;
-  return (
-    <details>
-      <summary>Record verified Lean proof</summary>
-      <form
-        className="form"
-        aria-label={`Record verified proof of ${claim}`}
-        onSubmit={(e) => {
-          e.preventDefault();
-          const built = buildVerification(fields);
-          if (!built.ok) {
-            m.setError(built.error);
-            return;
-          }
-          m.run(() => api.verifyFormalization(submission.id, claim, built.value));
-        }}
-      >
-        <Field label="Repository" htmlFor={id('repo')}>
-          <input id={id('repo')} value={fields.repository} onChange={set('repository')} />
-        </Field>
-        <Field label="Commit (40 hex)" htmlFor={id('commit')}>
-          <input
-            id={id('commit')}
-            className="code-input"
-            value={fields.commit}
-            onChange={set('commit')}
-          />
-        </Field>
-        <Field
-          label="Declarations"
-          htmlFor={id('decls')}
-          hint="Lean names, separated by spaces or commas"
-        >
-          <input id={id('decls')} value={fields.declarations} onChange={set('declarations')} />
-        </Field>
-        <Field
-          label="Axioms"
-          htmlFor={id('axioms')}
-          hint="As printed by #print axioms; only standard axioms are accepted"
-        >
-          <input id={id('axioms')} value={fields.axioms} onChange={set('axioms')} />
-        </Field>
-        <Field
-          label="Contribution id (optional)"
-          htmlFor={id('contribution')}
-          hint="When a contributor’s pull request did the work"
-        >
-          <input
-            id={id('contribution')}
-            value={fields.contribution}
-            onChange={set('contribution')}
-          />
-        </Field>
-        <button type="submit" className="button button-small" disabled={m.busy}>
-          Record verification
-        </button>
-        <InlineError error={m.error} />
-      </form>
-    </details>
   );
 }
 

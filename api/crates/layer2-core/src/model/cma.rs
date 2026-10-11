@@ -26,8 +26,25 @@ pub enum CmaStepKind {
     LeanProbe,
     ConjectureTarget,
     ProblemAudit,
+    TargetFaithfulness,
+    ErrorReportAudit,
+    VenueAttempt,
     #[default]
     LegacyUnknown,
+}
+impl CmaStepKind {
+    pub fn author_eligible(self) -> bool {
+        matches!(
+            self,
+            Self::Audit
+                | Self::Advice
+                | Self::Letter
+                | Self::LeanProbe
+                | Self::ConjectureTarget
+                | Self::ProblemAudit
+                | Self::TargetFaithfulness
+        )
+    }
 }
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CmaStepIdentity {
@@ -57,11 +74,35 @@ impl CmaStepIdentity {
                 round: round.strip_prefix('r').and_then(|r| r.parse().ok()),
                 target_generation: None,
             },
-            ["target", claim, generation] => Self {
-                kind: CmaStepKind::ConjectureTarget,
+            ["target", claim, generation] | ["target", claim, generation, "pass0" | "pass1"] => {
+                Self {
+                    kind: CmaStepKind::ConjectureTarget,
+                    claim: Some((*claim).into()),
+                    round: None,
+                    target_generation: generation.strip_prefix('a').and_then(|g| g.parse().ok()),
+                }
+            }
+            ["target", claim, generation, "faithfulness"]
+            | [
+                "target",
+                claim,
+                generation,
+                "pass0" | "pass1",
+                "faithfulness",
+            ] => Self {
+                kind: CmaStepKind::TargetFaithfulness,
                 claim: Some((*claim).into()),
-                round: None,
                 target_generation: generation.strip_prefix('a').and_then(|g| g.parse().ok()),
+                round: None,
+            },
+            ["error-report", _] => Self {
+                kind: CmaStepKind::ErrorReportAudit,
+                ..Self::default()
+            },
+            ["agent-attempt", claim, _] => Self {
+                kind: CmaStepKind::VenueAttempt,
+                claim: Some((*claim).into()),
+                ..Self::default()
             },
             _ => Self::default(),
         }

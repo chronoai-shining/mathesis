@@ -13,18 +13,20 @@ const PROTOCOL_VERSION: &str = "2025-06-18";
 fn tools() -> Value {
     let string = |description: &str| json!({ "type": "string", "description": description });
     json!([
+        { "name": "report", "description": "Report an error in an accepted statement, target or review. Evidence is text up to 20000 characters and/or a Lean disproof. Reports remain private until confirmed.", "inputSchema": { "type": "object", "properties": { "record": string("WP record"), "subject": { "oneOf": [{"type":"object","properties":{"kind":{"const":"review"}},"required":["kind"]},{"type":"object","properties":{"kind":{"const":"statement"},"claim":{"type":"string"}},"required":["kind","claim"]},{"type":"object","properties":{"kind":{"const":"target"},"claim":{"type":"string"},"digest":{"type":"string"}},"required":["kind","claim","digest"]}] }, "text": string("Evidence and argument"), "solution": string("Optional complete Lean disproof"), "as_agent": string("Owned agent name or id") }, "required": ["record", "subject"] } },
+        { "name": "report-status", "description": "Read your error report and its audit result.", "inputSchema": { "type": "object", "properties": { "id": string("Report id") }, "required": ["id"] } },
         { "name": "conjectures", "description": "List audited public conjectures and their target status.", "inputSchema": { "type": "object", "properties": {} } },
-        { "name": "target", "description": "Read the exact author-confirmed Target.lean and digest. Save target.lean as Target.lean in your Lean project.", "inputSchema": { "type": "object", "properties": { "record": string("WP record"), "claim": string("Claim id") }, "required": ["record", "claim"] } },
+        { "name": "target", "description": "Read the exact author-confirmed Target.lean and digest for a conjecture or approved paper statement. Save target.lean as Target.lean in your Lean project.", "inputSchema": { "type": "object", "properties": { "record": string("WP record"), "claim": string("Claim id") }, "required": ["record", "claim"] } },
         { "name": "attempt", "description": "Submit a Lean module importing Target. Use wishpool_solution or wishpool_disproof; only verifier-passed Lean counts.", "inputSchema": { "type": "object", "properties": { "record": string("WP record"), "claim": string("Claim id"), "solution": string("Complete Lean file, at most 1 MB"), "as_agent": string("Optional owned agent name") }, "required": ["record", "claim", "solution"] } },
         { "name": "attempt-status", "description": "Read a queued attempt or verifier receipt.", "inputSchema": { "type": "object", "properties": { "id": string("Attempt id") }, "required": ["id"] } },
         {
             "name": "list_tasks",
-            "description": "List open wishpool tasks on papers whose authors invited contributors. Kinds: judge_escape (judge whether a statement carries new content), literature_check, probe (a conjecture of an accepted paper), formalize (a Lean PR to the paper's formalization repository).",
+            "description": "List open wishpool tasks on papers whose authors invited contributors. Kinds: judge_escape (judge whether a statement carries new content), literature_check, probe (a conjecture of an accepted paper).",
             "inputSchema": { "type": "object", "properties": { "kind": string("Optional task kind"), "limit": { "type": "integer", "minimum": 1, "maximum": 100 } } }
         },
         {
             "name": "lease_task",
-            "description": "Lease a task so no one else works on it. Judgement tasks lease for 2 hours, literature 4, probes 24, formalizations 72.",
+            "description": "Lease a task so no one else works on it. Judgement tasks lease for 2 hours, literature 4, probes 24.",
             "inputSchema": { "type": "object", "properties": { "task_id": string("Task id") }, "required": ["task_id"] }
         },
         {
@@ -69,6 +71,8 @@ fn call(client: &Client, name: &str, args: &Value) -> Result<Value, String> {
             .ok_or_else(|| format!("{key} is required"))
     };
     let result = match name {
+        "report" => client.report(required("record")?, &json!({"subject": args["subject"], "text": args["text"].as_str().unwrap_or(""), "solution":args["solution"], "as_agent":args["as_agent"]})),
+        "report-status" => client.report_status(required("id")?),
         "conjectures" => client.conjectures(),
         "target" => client.target(required("record")?, required("claim")?),
         "attempt" => client.attempt(

@@ -180,14 +180,7 @@ describe('createApiClient', () => {
     await api.setVisibility('s1', 'public');
     await api.setContributors('s1', false);
     await api.respondFormalization('s1', 'C1', { approve: false, reason: 'not yet' });
-    await api.verifyFormalization('s1', 'C1', {
-      artifact: {
-        repository: 'https://github.com/a/b',
-        commit: 'f'.repeat(40),
-        declarations: ['x'],
-      },
-      axioms: [],
-    });
+
     await api.updateConjecture('s1', 'C3', { state: 'taken_up' });
     await api.listPapers({ limit: 5 });
     await api.getPaper('WP-2026-0001');
@@ -201,7 +194,6 @@ describe('createApiClient', () => {
       'PUT /api/v1/submissions/s1/visibility',
       'PUT /api/v1/submissions/s1/contributors',
       'POST /api/v1/submissions/s1/formalization/items/C1/response',
-      'POST /api/v1/submissions/s1/formalization/items/C1/verification',
       'PUT /api/v1/submissions/s1/conjectures/C3',
       'GET /api/v1/papers?limit=5',
       'GET /api/v1/papers/WP-2026-0001',
@@ -209,7 +201,7 @@ describe('createApiClient', () => {
     ]);
     expect(JSON.parse(calls[4]?.[1].body as string)).toEqual({ visibility: 'public' });
     expect(JSON.parse(calls[5]?.[1].body as string)).toEqual({ open: false });
-    expect(JSON.parse(calls[8]?.[1].body as string)).toEqual({ state: { state: 'taken_up' } });
+    expect(JSON.parse(calls[7]?.[1].body as string)).toEqual({ state: { state: 'taken_up' } });
   });
 
   it('links the PDF and the source of a version', () => {

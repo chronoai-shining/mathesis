@@ -18,6 +18,8 @@ pub enum GrantStatus {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DonationGrant {
+    #[serde(default)]
+    pub runs: std::collections::BTreeMap<String, FundedRun>,
     pub donor: PersonId,
     /// Tokens (input + output) the venue may spend per calendar month.
     pub monthly_cap: u64,
@@ -82,6 +84,7 @@ mod tests {
         let october = Utc.with_ymd_and_hms(2026, 10, 8, 0, 0, 0).unwrap();
         let november = Utc.with_ymd_and_hms(2026, 11, 1, 0, 0, 0).unwrap();
         let mut grant = DonationGrant {
+            runs: Default::default(),
             donor: "d".into(),
             monthly_cap: 1_000,
             model: "claude-opus-5-5".into(),
@@ -101,4 +104,15 @@ mod tests {
         assert_eq!(grant.remaining(november), 0);
         assert!(DonationGrant::validate_cap(0).is_err());
     }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct FundedRun {
+    pub attributed_at: DateTime<Utc>,
+    pub usage: Option<super::TokenUsage>,
+}
+#[derive(Debug, Clone, Serialize)]
+pub struct Supporter {
+    pub name: String,
+    pub tokens: u64,
 }

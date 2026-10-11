@@ -334,6 +334,8 @@ impl<T> Step<T> {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RefereeRound {
+    #[serde(default)]
+    pub recheck_requests: Vec<String>,
     /// 1-based, in order of starting.
     pub number: u32,
     /// The paper version and statement set the round reads.
@@ -393,6 +395,8 @@ pub struct AgentStep {
 /// Every round and letter of one paper.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RefereeFile {
+    #[serde(default)]
+    pub recheck_requests: Vec<String>,
     /// Private durable external-agent steps, including auxiliary problem/target work.
     #[serde(default, skip_serializing_if = "std::collections::BTreeMap::is_empty")]
     pub agent_steps: std::collections::BTreeMap<String, AgentStep>,
@@ -411,6 +415,7 @@ impl RefereeFile {
         Self {
             id,
             agent_steps: Default::default(),
+            recheck_requests: vec![],
             rounds: vec![],
             letters: vec![],
             revision: 0,

@@ -28,6 +28,8 @@ use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum ReviewError {
+    #[error("CMA persistence fence lost")]
+    PersistenceFence,
     #[error("CMA refusal: {0:?}")]
     CmaRefusal(cma::FailureKind),
     #[error("transport: {0}")]

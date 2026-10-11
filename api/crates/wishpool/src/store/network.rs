@@ -8,7 +8,7 @@ use wishpool_core::{
     CoreError, CoreResult,
     ids::{PersonId, SubmissionId},
     judgement::ClaimJudgement,
-    model::{Contribution, Task, TaskKind},
+    model::{Contribution, DonationGrant, Task, TaskKind},
     ports::*,
 };
 
@@ -247,6 +247,19 @@ impl JudgementStore for MongoStore {
 
 #[async_trait]
 impl GrantStore for MongoStore {
+    async fn all_grants(&self) -> CoreResult<Vec<DonationGrant>> {
+        self.raw(GRANTS)
+            .find(doc! {})
+            .await
+            .map_err(unavailable)?
+            .try_collect::<Vec<_>>()
+            .await
+            .map_err(unavailable)?
+            .into_iter()
+            .map(from_document)
+            .collect()
+    }
+
     async fn get(
         &self,
         donor: &PersonId,

@@ -149,6 +149,7 @@ const ATTEMPT_REASONS: Record<string, string> = {
   credential: 'Author model credentials refused; Wishpool fallback',
   quota: 'Author quota refused; Wishpool fallback',
   cause_unknown: 'Author agent failed for an unknown cause; Wishpool fallback',
+  operator_step: 'Wishpool funds this venue step.',
 };
 
 const STEP_LABELS = {
@@ -158,6 +159,9 @@ const STEP_LABELS = {
   lean_probe: 'Lean probe',
   conjecture_target: 'Conjecture target',
   problem_audit: 'Paper problem audit',
+  target_faithfulness: 'Target faithfulness audit',
+  error_report_audit: 'Error report audit',
+  venue_attempt: 'Venue agent attempt',
   legacy_unknown: 'Earlier CMA step',
 };
 

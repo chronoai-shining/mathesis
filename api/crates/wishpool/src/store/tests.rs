@@ -60,6 +60,7 @@ fn uuid_like() -> String {
 
 fn submission(id: &str, submitter: &str, status: SubmissionStatus) -> Submission {
     Submission {
+        processing_consent: None,
         problem_check_requested: false,
         conjecture_dependencies: vec![],
         kind: wishpool_core::model::SubmissionKind::Paper,
@@ -290,6 +291,7 @@ async fn paper_flow_against_mongo() {
     let helper = caller("helper", &[]).await;
 
     let new = NewPaper {
+        processing_consent: Some("ai-review-2026-10-11".into()),
         kind: wishpool_core::model::SubmissionKind::Paper,
         make_public_after_acceptance: true,
         typed_conjecture: None,
@@ -720,6 +722,7 @@ async fn solving_aggregates_and_agent_names_are_unique_and_revision_fenced() {
     ));
     assert_eq!(store.agents().await.unwrap()[0].name, "Renamed");
     let file = SolveFile {
+        agent_attempted: Default::default(),
         id: "WP-2026-0001:C1:v1:c1".into(),
         record: "WP-2026-0001".into(),
         submission: "source".into(),
@@ -787,4 +790,65 @@ async fn cma_binding_mongo_has_unique_person_and_revision_cas() {
             .unwrap(),
         binding
     );
+    db.drop().await;
+}
+
+#[tokio::test]
+async fn error_reports_round_trip_with_atomic_per_entrant_revision() {
+    let Some(db) = TestDb::open().await else {
+        return;
+    };
+    let store = &db.store;
+    let mut file = ErrorReportFile {
+        id: "reporter".into(),
+        revision: 0,
+        reports: vec![],
+    };
+    store.insert_report_file(&file).await.unwrap();
+    assert!(store.insert_report_file(&file).await.is_err());
+    let now = chrono::Utc::now();
+    file.reports.push(ErrorReport {
+        id: "report-one".into(),
+        record: "WP-2026-0001".into(),
+        submission: "source".into(),
+        version: 1,
+        claims_revision: 1,
+        reporter: Entrant {
+            id: "reporter".into(),
+            name: "Reporter".into(),
+            kind: EntrantKind::Person,
+            owner: None,
+            retired: false,
+            revision: 0,
+        },
+        owner: "reporter".into(),
+        subject: ErrorSubject::Statement { claim: "C1".into() },
+        text: "At zero the two sides differ.".into(),
+        solution: None,
+        attempt: None,
+        receipt: None,
+        resolution: Some(ErrorResolution {
+            verdict: ErrorVerdict::Confirmed,
+            reason: "A counterexample.".into(),
+            evidence: "Left=0, right=1.".into(),
+            at: now,
+        }),
+        effects_applied: false,
+        created_at: now,
+    });
+    file.revision = 1;
+    let (one, two) = tokio::join!(
+        store.replace_report_file(&file, 0),
+        store.replace_report_file(&file, 0)
+    );
+    assert_eq!(usize::from(one.is_ok()) + usize::from(two.is_ok()), 1);
+    let stored = store.report_files().await.unwrap();
+    assert_eq!(stored.len(), 1);
+    assert_eq!(stored[0].revision, 1);
+    assert_eq!(stored[0].reports[0].text, file.reports[0].text);
+    assert_eq!(
+        stored[0].reports[0].resolution.as_ref().unwrap().verdict,
+        ErrorVerdict::Confirmed
+    );
+    db.drop().await;
 }

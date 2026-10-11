@@ -57,9 +57,12 @@ fn failure_kind(error: &ReviewError) -> Option<FailureKind> {
         ReviewError::Provider { status: 401, .. } => Some(FailureKind::Auth),
         ReviewError::Provider { body, .. } => match body.as_str() {
             "not_authenticated" | "forbidden" | "invalid_token" => Some(FailureKind::Auth),
-            "sandbox_credential_setup_required" | "sandbox_not_ready" | "workspace_not_ready" => {
-                Some(FailureKind::Setup)
-            }
+            "sandbox_credential_setup_required"
+            | "sandbox_not_ready"
+            | "workspace_not_ready"
+            | "workspace_not_found"
+            | "connections_required"
+            | "trust_confirmation_required" => Some(FailureKind::Setup),
             "credential_refused" | "credential_revoked" | "model_credentials_required" => {
                 Some(FailureKind::Credential)
             }
@@ -265,7 +268,7 @@ impl Client {
         };
         if let Err(error) = result {
             // A failed persistence fence leaves the admitted turn for the next worker.
-            if matches!(&error, ReviewError::Transport(s) if s == "CMA persistence fence lost") {
+            if matches!(&error, ReviewError::PersistenceFence) {
                 return Err(error);
             }
             state.typed_failure = failure_kind(&error);
@@ -298,6 +301,7 @@ impl Client {
             match result {
                 Ok(true) => return Ok(()),
                 Ok(false) => {}
+                Err(e @ ReviewError::PersistenceFence) => return Err(e),
                 Err(e) if transient(&e) => {
                     tracing::warn!(%e, "CMA request will resume with the same identity")
                 }

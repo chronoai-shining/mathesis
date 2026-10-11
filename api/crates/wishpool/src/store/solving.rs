@@ -4,9 +4,10 @@ use futures::TryStreamExt;
 use mongodb::{IndexModel, bson::doc, options::IndexOptions};
 use wishpool_core::{
     CoreResult,
-    model::{Entrant, SolveFile},
+    model::{Entrant, ErrorReportFile, SolveFile},
     ports::SolvingStore,
 };
+const REPORTS: &str = "error_reports";
 const FILES: &str = "solve_files";
 const AGENTS: &str = "agent_entrants";
 pub(super) async fn ensure_indexes(store: &MongoStore) -> anyhow::Result<()> {
@@ -16,6 +17,10 @@ pub(super) async fn ensure_indexes(store: &MongoStore) -> anyhow::Result<()> {
             .options(IndexOptions::builder().unique(true).build())
             .build()
     };
+    store
+        .raw(REPORTS)
+        .create_index(unique(doc! {"id": 1}))
+        .await?;
     store
         .raw(FILES)
         .create_index(unique(doc! {"id": 1}))
@@ -28,6 +33,26 @@ pub(super) async fn ensure_indexes(store: &MongoStore) -> anyhow::Result<()> {
 }
 #[async_trait]
 impl SolvingStore for MongoStore {
+    async fn report_files(&self) -> CoreResult<Vec<ErrorReportFile>> {
+        self.raw(REPORTS)
+            .find(doc! {})
+            .await
+            .map_err(unavailable)?
+            .try_collect::<Vec<_>>()
+            .await
+            .map_err(unavailable)?
+            .into_iter()
+            .map(from_document)
+            .collect()
+    }
+    async fn insert_report_file(&self, file: &ErrorReportFile) -> CoreResult<()> {
+        self.insert(REPORTS, file).await
+    }
+    async fn replace_report_file(&self, file: &ErrorReportFile, expected: u64) -> CoreResult<()> {
+        self.replace_revision(REPORTS, "report file", &file.id, file, expected)
+            .await
+    }
+
     async fn get(&self, id: &str) -> CoreResult<Option<SolveFile>> {
         self.get_by_id(FILES, id).await
     }

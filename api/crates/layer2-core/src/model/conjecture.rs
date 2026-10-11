@@ -50,6 +50,8 @@ pub enum LeanStatementResponse {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct LeanStatementAttempt {
+    #[serde(default)]
+    pub faithfulness: Option<FaithfulnessCheck>,
     pub claim: ClaimId,
     pub version: u32,
     pub claims_revision: u64,
@@ -60,4 +62,21 @@ pub struct LeanStatementAttempt {
     pub reading: String,
     pub response: LeanStatementResponse,
     pub created_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum FaithfulnessVerdict {
+    Faithful,
+    Weaker,
+    Stronger,
+    Different,
+    Trivial,
+}
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct FaithfulnessCheck {
+    pub verdict: FaithfulnessVerdict,
+    pub reason: String,
+    pub mismatch: String,
+    pub regenerated: bool,
 }

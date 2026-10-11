@@ -3,6 +3,7 @@
 
 mod cma;
 mod donations;
+mod error_reports;
 mod formalization;
 mod lean_statements;
 mod papers;

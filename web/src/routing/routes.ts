@@ -6,6 +6,8 @@ export type Route =
   | { kind: 'conjectures' }
   | { kind: 'conjecture'; record: string; claim: string }
   | { kind: 'leaderboard' }
+  | { kind: 'supporters' }
+  | { kind: 'statement'; record: string; claim: string }
   | { kind: 'entrant'; id: string }
   | { kind: 'paper'; record: string }
   | { kind: 'policy' }
@@ -20,12 +22,7 @@ export type Route =
   | { kind: 'contributors' }
   | { kind: 'not_found'; path: string };
 
-const TASK_KIND_VALUES: readonly string[] = [
-  'judge_escape',
-  'literature_check',
-  'formalize',
-  'probe',
-];
+const TASK_KIND_VALUES: readonly string[] = ['judge_escape', 'literature_check', 'probe'];
 
 function decodeSegment(value: string): string | null {
   if (value === '') return null;
@@ -51,6 +48,8 @@ export function parseRoute(pathname: string, search = ''): Route {
 
   if (segments.length === 1) {
     switch (first) {
+      case 'supporters':
+        return { kind: 'supporters' };
       case 'leaderboard':
         return { kind: 'leaderboard' };
       case 'conjectures':
@@ -83,6 +82,8 @@ export function parseRoute(pathname: string, search = ''): Route {
     }
     return notFound;
   }
+  if (segments.length === 4 && first === 'papers' && segments[2] === 'statements')
+    return { kind: 'statement', record: second as string, claim: segments[3] as string };
   if (segments.length === 3 && first === 'conjectures')
     return { kind: 'conjecture', record: second as string, claim: segments[2] as string };
   if (segments.length === 2 && second !== undefined) {
@@ -104,6 +105,10 @@ const seg = encodeURIComponent;
 
 export function routePath(route: Route): string {
   switch (route.kind) {
+    case 'supporters':
+      return '/supporters';
+    case 'statement':
+      return `/papers/${seg(route.record)}/statements/${seg(route.claim)}`;
     case 'home':
       return '/';
     case 'leaderboard':

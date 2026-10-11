@@ -14,9 +14,7 @@ use serde::Deserialize;
 use wishpool_core::{
     app::{App, FiledBy},
     ids::{ClaimId, SubmissionId},
-    model::{
-        ConjectureState, FormalArtifact, NewEndorsement, NewLetter, ProofShape, ReportDraft, Stage,
-    },
+    model::{ConjectureState, NewEndorsement, NewLetter, ProofShape, ReportDraft, Stage},
 };
 
 use super::{ApiResult, AppState, Body, Path};
@@ -44,22 +42,10 @@ pub(super) fn routes() -> Router<Arc<App>> {
             "/submissions/{id}/decision",
             axum::routing::get(preview_decision).post(decide),
         )
-        .route(
-            "/submissions/{id}/formalization/repository",
-            put(set_repository),
-        )
         .route("/submissions/{id}/formalization/items", post(propose))
         .route(
             "/submissions/{id}/formalization/items/{claim}/response",
             post(respond),
-        )
-        .route(
-            "/submissions/{id}/formalization/items/{claim}/start",
-            post(start),
-        )
-        .route(
-            "/submissions/{id}/formalization/items/{claim}/verification",
-            post(verify),
         )
         .route(
             "/submissions/{id}/conjectures/{claim}",
@@ -171,24 +157,6 @@ async fn decide(
 
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
-struct RepositoryBody {
-    repository: String,
-}
-
-async fn set_repository(
-    State(app): AppState,
-    AuthenticatedCaller(caller): AuthenticatedCaller,
-    Path(id): Path<String>,
-    Body(body): Body<RepositoryBody>,
-) -> ApiResult<impl IntoResponse> {
-    Ok(Json(
-        app.set_formalization_repository(&caller, &SubmissionId(id), body.repository)
-            .await?,
-    ))
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(deny_unknown_fields)]
 struct ProposeBody {
     claim: String,
     reason: String,
@@ -232,46 +200,6 @@ async fn respond(
             &ClaimId(claim),
             body.approve,
             body.reason,
-        )
-        .await?,
-    ))
-}
-
-async fn start(
-    State(app): AppState,
-    AuthenticatedCaller(caller): AuthenticatedCaller,
-    Path((id, claim)): Path<(String, String)>,
-) -> ApiResult<impl IntoResponse> {
-    Ok(Json(
-        app.start_formalization(&caller, &SubmissionId(id), &ClaimId(claim))
-            .await?,
-    ))
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(deny_unknown_fields)]
-struct VerifyBody {
-    artifact: FormalArtifact,
-    #[serde(default)]
-    axioms: Vec<String>,
-    #[serde(default)]
-    contribution: Option<String>,
-}
-
-async fn verify(
-    State(app): AppState,
-    AuthenticatedCaller(caller): AuthenticatedCaller,
-    Path((id, claim)): Path<(String, String)>,
-    Body(body): Body<VerifyBody>,
-) -> ApiResult<impl IntoResponse> {
-    Ok(Json(
-        app.verify_formalization(
-            &caller,
-            &SubmissionId(id),
-            &ClaimId(claim),
-            body.artifact,
-            body.axioms,
-            body.contribution,
         )
         .await?,
     ))

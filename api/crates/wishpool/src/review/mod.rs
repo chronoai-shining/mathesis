@@ -9,6 +9,7 @@
 //! the same rules as any other reviewer.
 
 mod agent_store;
+mod error_reports;
 pub(crate) mod mapping;
 mod open_problems;
 mod referee;
@@ -29,6 +30,8 @@ pub use wishpool_core::ports::{JobLease, LeasedJob};
 /// The stored form of a job kind: `compile` or `stage:<stage>`.
 pub fn kind_key(kind: JobKind) -> String {
     match kind {
+        JobKind::ErrorReports => "error_reports".into(),
+        JobKind::AgentAttempt => "agent_attempt".into(),
         JobKind::Compile => "compile".to_owned(),
         JobKind::Referee => "referee".to_owned(),
         JobKind::OpenProblems => "open_problems".to_owned(),
@@ -45,6 +48,12 @@ pub fn kind_key(kind: JobKind) -> String {
 }
 
 pub fn parse_kind_key(key: &str) -> Option<JobKind> {
+    if key == "error_reports" {
+        return Some(JobKind::ErrorReports);
+    }
+    if key == "agent_attempt" {
+        return Some(JobKind::AgentAttempt);
+    }
     if key == "open_problems" {
         return Some(JobKind::OpenProblems);
     }

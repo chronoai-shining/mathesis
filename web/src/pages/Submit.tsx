@@ -1,6 +1,7 @@
 import { MyCma } from '../components/MyCma';
 import { useState, type FormEvent } from 'react';
 import { useApi } from '../api/context';
+import { PROCESSING_CONSENT_VERSION, PROCESSING_CONSENT_TEXT } from '../api/types';
 import type { AiUseLevel, SubmissionKind } from '../api/types';
 import { useSession } from '../auth/session';
 import { Field, InlineError, Loading, SignInPrompt } from '../components/ui';
@@ -40,6 +41,7 @@ export function SubmitForm() {
   const { person } = useSession();
   const [kind, setKind] = useState<SubmissionKind>('paper');
   const [mode, setMode] = useState<'upload' | 'type'>('upload');
+  const [consent, setConsent] = useState(false);
   const [makePublic, setMakePublic] = useState(true);
   const [title, setTitle] = useState('');
   const [statement, setStatement] = useState('');
@@ -75,6 +77,11 @@ export function SubmitForm() {
       setError(metadata.error);
       return;
     }
+    if (!consent) {
+      setError('Agree to third-party AI review before uploading.');
+      return;
+    }
+    metadata.value.processing_consent = PROCESSING_CONSENT_VERSION;
     metadata.value.kind = kind;
     metadata.value.make_public_after_acceptance = makePublic;
     if (typed) {
@@ -289,6 +296,15 @@ export function SubmitForm() {
         </span>
       </label>
 
+      <label className="checkbox">
+        <input
+          type="checkbox"
+          checked={consent}
+          onChange={(e) => setConsent(e.target.checked)}
+          required
+        />
+        <span>{PROCESSING_CONSENT_TEXT}</span>
+      </label>
       <div className="button-row">
         <button type="submit" className="button" disabled={busy}>
           {busy ? 'Uploading…' : 'Upload and read statements'}

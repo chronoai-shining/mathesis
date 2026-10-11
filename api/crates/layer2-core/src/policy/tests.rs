@@ -32,6 +32,7 @@ fn report(stage: Stage, outcome: Outcome, payload: StagePayload, human: bool) ->
 fn paper(claims: Vec<Claim>) -> Submission {
     let now = Utc::now();
     let mut s = Submission {
+        processing_consent: None,
         problem_check_requested: false,
         conjecture_dependencies: vec![],
         kind: crate::model::SubmissionKind::Paper,

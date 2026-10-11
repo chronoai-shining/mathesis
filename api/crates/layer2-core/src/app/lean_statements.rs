@@ -9,6 +9,30 @@ use crate::{
 use sha2::{Digest, Sha256};
 
 impl App {
+    pub async fn void_unaudited_target(
+        &self,
+        caller: &Caller,
+        id: &SubmissionId,
+        digest: &str,
+    ) -> CoreResult<()> {
+        caller.require(Role::Reviewer)?;
+        let mut s = self.submission(caller, id).await?;
+        let a = s
+            .lean_statements
+            .iter_mut()
+            .rev()
+            .find(|a| a.digest == digest)
+            .ok_or_else(|| CoreError::conflict("target changed"))?;
+        if a.faithfulness.is_none() {
+            a.response = LeanStatementResponse::Rejected {
+                comment: "Regenerate for an independent faithfulness check.".into(),
+                at: self.ports.clock.now(),
+            };
+            self.save(&mut s).await?;
+        }
+        Ok(())
+    }
+
     /// Mechanical migration still requires confirmation of the new exact bytes.
     pub async fn replace_legacy_target(
         &self,
@@ -50,11 +74,12 @@ impl App {
             return Ok(());
         }
         if s.kind != SubmissionKind::Conjecture {
-            if self
-                .open_problem_files(caller, id)
-                .await?
-                .iter()
-                .any(|f| f.admitted)
+            if s.claims.iter().any(|c| s.approved_statement(&c.id))
+                || self
+                    .open_problem_files(caller, id)
+                    .await?
+                    .iter()
+                    .any(|f| f.admitted)
             {
                 return self.ports.queue.enqueue(id, JobKind::LeanStatement).await;
             }
@@ -92,6 +117,7 @@ impl App {
         toolchain: String,
         reading: String,
         previous_digest: Option<String>,
+        faithfulness: FaithfulnessCheck,
     ) -> CoreResult<Submission> {
         caller.require(Role::Reviewer)?;
         let mut s = self.submission(caller, id).await?;
@@ -101,11 +127,13 @@ impl App {
         {
             return Err(CoreError::conflict("the conjecture inputs changed"));
         }
-        if !s.claim(claim).is_some_and(|c| {
-            c.kind.is_open()
-                && (s.kind == SubmissionKind::Conjecture && c.role == ClaimRole::Main
-                    || !c.has_proof)
-        }) {
+        if !s.approved_statement(claim)
+            && !s.claim(claim).is_some_and(|c| {
+                c.kind.is_open()
+                    && (s.kind == SubmissionKind::Conjecture && c.role == ClaimRole::Main
+                        || !c.has_proof)
+            })
+        {
             return Err(CoreError::invalid(
                 "target must name a confirmed main conjecture",
             ));
@@ -161,7 +189,17 @@ impl App {
         {
             return Err(CoreError::conflict("the regenerated target did not change"));
         }
+        require_text("faithfulness reason", &faithfulness.reason, 5000)?;
+        if faithfulness.mismatch.chars().count() > 5000
+            || (faithfulness.verdict != FaithfulnessVerdict::Faithful
+                && faithfulness.mismatch.trim().is_empty())
+        {
+            return Err(CoreError::invalid(
+                "faithfulness mismatch is required and bounded",
+            ));
+        }
         s.lean_statements.push(LeanStatementAttempt {
+            faithfulness: Some(faithfulness),
             claim: claim.clone(),
             version,
             claims_revision,
@@ -206,6 +244,7 @@ impl App {
         let attempt = &s.lean_statements[index];
         if Some(attempt.version) != version
             || attempt.claims_revision != s.claims_revision
+            || attempt.faithfulness.is_none()
             || !matches!(attempt.response, LeanStatementResponse::AwaitingAuthor)
             || s.lean_statements[index + 1..]
                 .iter()
@@ -231,6 +270,8 @@ impl App {
         self.save(&mut s).await?;
         if !confirm {
             self.ports.queue.enqueue(id, JobKind::LeanStatement).await?;
+        } else {
+            self.ports.queue.enqueue(id, JobKind::AgentAttempt).await?;
         }
         Ok(s)
     }

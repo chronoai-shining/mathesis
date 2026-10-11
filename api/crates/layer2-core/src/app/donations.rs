@@ -67,6 +67,7 @@ impl App {
             }
             None => {
                 let grant = DonationGrant {
+                    runs: Default::default(),
                     donor: donor.clone(),
                     monthly_cap,
                     model: model.to_owned(),
@@ -133,5 +134,112 @@ impl App {
             self.ports.grants.replace(&grant, expected).await?;
         }
         Ok(())
+    }
+}
+
+impl App {
+    /// Bind a venue CMA run to a supporter once. Attribution is not a usage receipt.
+    pub async fn attribute_agent_run(&self, run: &str) -> CoreResult<Option<PersonId>> {
+        loop {
+            let grants = self.ports.grants.all_grants().await?;
+            if let Some(g) = grants.iter().find(|g| g.runs.contains_key(run)) {
+                return Ok(Some(g.donor.clone()));
+            }
+            let Some(mut grant) = grants
+                .into_iter()
+                .filter(|g| g.remaining(self.ports.clock.now()) > 0)
+                .min_by_key(|g| (g.runs.len(), g.donor.clone()))
+            else {
+                return Ok(None);
+            };
+            let expected = grant.revision;
+            grant.runs.insert(
+                run.into(),
+                crate::model::FundedRun {
+                    attributed_at: self.ports.clock.now(),
+                    usage: None,
+                },
+            );
+            grant.revision += 1;
+            match self.ports.grants.replace(&grant, expected).await {
+                Err(CoreError::StaleRevision { .. }) => continue,
+                result => result?,
+            }
+            return Ok(Some(grant.donor));
+        }
+    }
+    /// Composition-only NyxID accounting boundary. Never called with model output or client claims.
+    /// A run's authoritative usage is immutable and charged in the same CAS as its receipt.
+    pub async fn record_funded_usage(
+        &self,
+        donor: &PersonId,
+        run: &str,
+        usage: crate::model::TokenUsage,
+    ) -> CoreResult<()> {
+        if !usage.metered {
+            return Err(CoreError::invalid(
+                "only NyxID-reported usage may be metered",
+            ));
+        }
+        loop {
+            let mut grant = self
+                .ports
+                .grants
+                .get(donor)
+                .await?
+                .ok_or_else(|| CoreError::not_found("donation", donor.as_str()))?;
+            let funded = grant
+                .runs
+                .get_mut(run)
+                .ok_or_else(|| CoreError::not_found("funded run", run))?;
+            if let Some(old) = funded.usage {
+                return if old == usage {
+                    Ok(())
+                } else {
+                    Err(CoreError::conflict("usage receipt is immutable"))
+                };
+            }
+            funded.usage = Some(usage);
+            let expected = grant.revision;
+            grant.charge(usage.total(), self.ports.clock.now());
+            grant.revision += 1;
+            match self.ports.grants.replace(&grant, expected).await {
+                Err(CoreError::StaleRevision { .. }) => continue,
+                result => return result,
+            }
+        }
+    }
+    pub async fn revoked_donations(&self) -> CoreResult<Vec<PersonId>> {
+        Ok(self
+            .ports
+            .grants
+            .all_grants()
+            .await?
+            .into_iter()
+            .filter(|g| g.status == GrantStatus::Revoked)
+            .map(|g| g.donor)
+            .collect())
+    }
+    pub async fn supporters(&self) -> CoreResult<Vec<crate::model::Supporter>> {
+        let mut supporters = vec![];
+        for g in self.ports.grants.all_grants().await? {
+            if g.status == GrantStatus::Revoked && g.runs.is_empty() {
+                continue;
+            }
+            if let Some(person) = self.ports.people.get(&g.donor).await? {
+                supporters.push(crate::model::Supporter {
+                    name: person.display_name,
+                    tokens: g
+                        .runs
+                        .values()
+                        .filter_map(|r| r.usage)
+                        .filter(|u| u.metered)
+                        .map(|u| u.total())
+                        .fold(0u64, u64::saturating_add),
+                });
+            }
+        }
+        supporters.sort_by_key(|s| s.name.to_lowercase());
+        Ok(supporters)
     }
 }

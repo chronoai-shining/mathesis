@@ -82,3 +82,8 @@ data:
   WISHPOOL_VERIFIER_PROGRAM: "wishpool-verifier"
   WISHPOOL_VERIFIER_TIMEOUT_SECS: "1200"
   WISHPOOL_ATTEMPTS_PER_DAY: "20"
+
+# Error reports: five per entrant per rolling 24h; no extra deployment key.
+# Target faithfulness and report audits reuse the existing CMA audit timeout.
+# Donations attribute venue CMA runs; delegated-token execution/usage receipts
+# are not supplied by current CMA v2. Supporters never estimates tokens.

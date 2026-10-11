@@ -1,3 +1,4 @@
+import { PROCESSING_CONSENT_TEXT, PROCESSING_CONSENT_VERSION } from '../../api/types';
 import { useState, type FormEvent } from 'react';
 import { useApi } from '../../api/context';
 import type { Submission } from '../../api/types';
@@ -126,6 +127,7 @@ export function NewVersionForm({
 }) {
   const api = useApi();
   const m = useMutation(onChange);
+  const [consent, setConsent] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [note, setNote] = useState('');
   const [key, setKey] = useState(0);
@@ -144,8 +146,12 @@ export function NewVersionForm({
       m.setError('Say what changed in this version.');
       return;
     }
+    if (!consent) {
+      m.setError('Agree to third-party AI review before uploading.');
+      return;
+    }
     m.run(
-      () => api.uploadVersion(submission.id, file, note.trim()),
+      () => api.uploadVersion(submission.id, file, note.trim(), PROCESSING_CONSENT_VERSION),
       () => {
         setFile(null);
         setNote('');
@@ -181,6 +187,15 @@ export function NewVersionForm({
           onChange={(e) => setNote(e.target.value)}
         />
       </Field>
+      <label className="checkbox">
+        <input
+          type="checkbox"
+          required
+          checked={consent}
+          onChange={(e) => setConsent(e.target.checked)}
+        />
+        <span>{PROCESSING_CONSENT_TEXT}</span>
+      </label>
       <button type="submit" className="button" disabled={m.busy}>
         {m.busy ? 'Uploading…' : 'Upload version'}
       </button>
@@ -243,7 +258,23 @@ export function FormalizationForAuthor({
   submission: Submission;
   onChange: OnChange;
 }) {
-  const items = submission.formalization.items;
+  const items = [
+    ...submission.formalization.items,
+    ...submission.claims
+      .filter(
+        (c) =>
+          c.has_proof &&
+          c.kind !== 'conjecture' &&
+          c.kind !== 'question' &&
+          !submission.formalization.items.some((i) => i.claim === c.id),
+      )
+      .map((c) => ({
+        claim: c.id,
+        reason: 'Prepare a Lean target for this statement.',
+        state: { state: 'proposed' as const },
+        updated_at: submission.updated_at,
+      })),
+  ];
   if (items.length === 0) {
     return <p className="muted">The editors have not proposed any statement for formalization.</p>;
   }
@@ -355,15 +386,15 @@ export function LeanStatementCard({
   const current = submission.versions.at(-1)?.number;
   const claims = submission.claims.filter(
     (c) =>
-      (c.kind === 'conjecture' || c.kind === 'question') &&
-      (c.role === 'main' || submission.lean_statements.some((a) => a.claim === c.id)),
+      ((c.kind === 'conjecture' || c.kind === 'question') && c.role === 'main') ||
+      submission.lean_statements.some((a) => a.claim === c.id),
   );
   return (
     <section className="lean-statement-card" aria-label="Lean statement">
-      <h2>Is this your conjecture?</h2>
+      <h2>Does this match your statement?</h2>
       <p>
         Lean checks that this statement is well formed. Confirm that its meaning matches your
-        conjecture.
+        statement.
       </p>
       {claims.map((claim) => {
         const attempt = [...submission.lean_statements]
@@ -427,6 +458,18 @@ function LeanStatementResponse({
       <pre className="lean-source">
         <code>{attempt.lean}</code>
       </pre>
+      {attempt.faithfulness ? (
+        <div className="notice">
+          <strong>Our check: {attempt.faithfulness.verdict}</strong>
+          <p>{attempt.faithfulness.reason}</p>
+          {attempt.faithfulness.mismatch ? <p>{attempt.faithfulness.mismatch}</p> : null}
+          {attempt.faithfulness.regenerated ? (
+            <p className="small muted">Regenerated once after our check.</p>
+          ) : null}
+        </div>
+      ) : (
+        <p>Awaiting the faithfulness check.</p>
+      )}
       {attempt.response.state === 'confirmed' ? (
         <p role="status">
           {canRespond
@@ -443,10 +486,10 @@ function LeanStatementResponse({
             <button
               type="button"
               className="button"
-              disabled={mutation.busy}
+              disabled={mutation.busy || !attempt.faithfulness}
               onClick={() => respond(true)}
             >
-              Yes, this is my conjecture
+              Yes, this matches my statement
             </button>
             <button
               type="button"

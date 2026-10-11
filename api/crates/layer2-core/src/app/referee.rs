@@ -14,6 +14,60 @@ use crate::{
 };
 
 impl App {
+    pub(crate) async fn request_recheck(&self, id: &SubmissionId, trigger: &str) -> CoreResult<()> {
+        loop {
+            let (mut file, stored) = self.referee_file(id).await?;
+            if file.recheck_requests.iter().any(|r| r == trigger) {
+                if file
+                    .current()
+                    .is_some_and(|r| r.recheck_requests == file.recheck_requests && r.is_settled())
+                {
+                    return Ok(());
+                }
+                break;
+            }
+            file.recheck_requests.push(trigger.into());
+            match self.store_referee_file(&mut file, stored).await {
+                Err(CoreError::StaleRevision { .. }) => continue,
+                result => {
+                    result?;
+                    break;
+                }
+            }
+        }
+        self.ports.queue.enqueue(id, JobKind::Referee).await
+    }
+
+    pub async fn recheck_evidence(&self, caller: &Caller, id: &SubmissionId) -> CoreResult<String> {
+        caller.require(Role::Reviewer)?;
+        let (file, _) = self.referee_file(id).await?;
+        let Some(round) = file.current() else {
+            return Ok(String::new());
+        };
+        let mut evidence = vec![];
+        for trigger in &round.recheck_requests {
+            if let Some(report_id) = trigger.strip_prefix("error-report:") {
+                if let Some(report) = self
+                    .all_error_reports()
+                    .await?
+                    .into_iter()
+                    .find(|r| r.id == report_id)
+                {
+                    evidence.push(serde_json::json!({"subject":report.subject,"text":report.text,"resolution":report.resolution,"receipt":report.receipt,"solution":report.solution}));
+                }
+            } else if let Some(attempt_id) = trigger.strip_prefix("disproof:") {
+                let (solve, attempt) = self.find_attempt(attempt_id).await?;
+                let source = self.load(&solve.submission).await?;
+                let target = source
+                    .lean_statements
+                    .iter()
+                    .find(|t| t.digest == attempt.target_digest)
+                    .map(|t| &t.lean);
+                evidence.push(serde_json::json!({"claim":solve.claim,"verified_disproof":attempt.receipt,"solution":attempt.solution,"target":target}));
+            }
+        }
+        serde_json::to_string(&evidence).map_err(|_| CoreError::invalid("recheck evidence"))
+    }
     pub async fn agent_steps(
         &self,
         caller: &Caller,
@@ -162,11 +216,16 @@ impl App {
         let (mut file, stored) = self.referee_file(id).await?;
         let version = Self::version_number(&submission)?;
         if file.current().is_some_and(|r| {
-            r.version == version && r.claims_revision == submission.claims_revision
+            r.version == version
+                && r.claims_revision == submission.claims_revision
+                && (!r.is_settled() || r.recheck_requests == file.recheck_requests)
         }) {
             return Ok(file);
         }
-        if !submission.is_open() {
+        if !(submission.is_open()
+            || matches!(submission.status, SubmissionStatus::Accepted { .. })
+                && !file.recheck_requests.is_empty())
+        {
             return Err(CoreError::conflict(format!(
                 "the paper is {}",
                 submission.status.name()
@@ -448,10 +507,11 @@ impl App {
         if matches!(
             submission.status,
             SubmissionStatus::Accepted { .. } | SubmissionStatus::NotAccepted
-        ) {
+        ) && round.recheck_requests.is_empty()
+        {
             return Ok(submission);
         }
-        if !submission.is_open() {
+        if !submission.is_open() && round.recheck_requests.is_empty() {
             return Err(CoreError::conflict("paper is not in review"));
         }
         let marker = format!(
@@ -562,6 +622,12 @@ impl App {
             }
             self.save(&mut submission).await?;
         }
+        if !round.recheck_requests.is_empty()
+            && matches!(submission.status, SubmissionStatus::Accepted { .. })
+        {
+            // Publication inputs remain immutable; the new audit and assessment belong to this round.
+            return Ok(submission);
+        }
         self.apply_decision(caller, submission).await
     }
 
@@ -610,6 +676,7 @@ impl App {
     fn push_round(&self, file: &mut RefereeFile, submission: &Submission, version: u32) {
         let number = file.rounds.last().map_or(1, |r| r.number + 1);
         file.rounds.push(RefereeRound {
+            recheck_requests: file.recheck_requests.clone(),
             number,
             version,
             claims_revision: submission.claims_revision,
@@ -695,6 +762,44 @@ fn persist_progress(
     if terminal && !cleanup {
         let mut comparable = next.clone();
         let mut original = old.clone();
+        // RunState is owned by Layer 3; normalize its wire defaults here without
+        // a reverse layer dependency. New optional fields must not break replay.
+        for value in [&mut comparable, &mut original] {
+            for field in [
+                "create_intent",
+                "agent_id",
+                "response_id",
+                "answer",
+                "failure",
+                "typed_failure",
+                "cancel_intent",
+            ] {
+                value
+                    .as_object_mut()
+                    .unwrap()
+                    .entry(field)
+                    .or_insert(serde_json::Value::Null);
+            }
+            for field in ["next_chunk", "deadline"] {
+                value
+                    .as_object_mut()
+                    .unwrap()
+                    .entry(field)
+                    .or_insert(serde_json::json!(0));
+            }
+            value
+                .as_object_mut()
+                .unwrap()
+                .entry("input")
+                .or_insert(serde_json::json!(""));
+            for field in ["stopped", "deleted"] {
+                value
+                    .as_object_mut()
+                    .unwrap()
+                    .entry(field)
+                    .or_insert(serde_json::json!(false));
+            }
+        }
         for field in CLEANUP_FIELDS {
             comparable[field] = old[field].clone();
             original[field] = old[field].clone();

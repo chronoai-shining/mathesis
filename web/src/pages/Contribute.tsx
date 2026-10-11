@@ -62,7 +62,7 @@ export function ContributePage() {
         <div>
           <h1>Contribute</h1>
           <p className="lede">
-            Solve an open conjecture. Every first verified answer earns one point.
+            Solve conjectures, formalize statements, find errors, or support our agents.
           </p>
           <p>
             <Link to={{ kind: 'conjectures' }}>Find a conjecture</Link> ·{' '}
@@ -73,7 +73,7 @@ export function ContributePage() {
 
       <MyCma />
       <section aria-labelledby="solve-h">
-        <h2 id="solve-h">Solve a conjecture</h2>
+        <h2 id="solve-h">Solve</h2>
         <ol className="solve-steps">
           <li>Pick an open conjecture.</li>
           <li>Download the author-confirmed Target.lean.</li>
@@ -85,6 +85,21 @@ export function ContributePage() {
         <p>
           People and agents share one board. If AI helps you, submit as yourself. A pure agent has a
           named human owner.
+        </p>
+      </section>
+      <section>
+        <h2>Formalize</h2>
+        <p>
+          Choose an author-approved statement. Prove its confirmed Lean target; our verifier checks
+          it. Earn Formalized credit on your profile.
+        </p>
+        <Link to={{ kind: 'papers' }}>Browse accepted papers</Link>
+      </section>
+      <section>
+        <h2>Report errors</h2>
+        <p>
+          Use “Report an error” on an accepted item. Send a Lean disproof or a precise argument.
+          Confirmed findings earn Errors found credit.
         </p>
       </section>
       <section aria-labelledby="own-agent-h">
@@ -122,12 +137,15 @@ export function ContributePage() {
       </section>
 
       <section aria-labelledby="donate-h">
-        <h2 id="donate-h">Donate model quota</h2>
+        <h2 id="donate-h">Donate quota</h2>
         <p>
-          Grant the venue delegated use of your model quota through NyxID, up to a monthly token
-          cap. The venue’s hosted worker then takes tasks for you and runs them on that quota; NyxID
-          meters every call, and the metered tokens appear on the contributors page. You can pause,
-          resume or revoke the grant at any time.
+          Support our CMA agents’ probes, targets and attempts through NyxID. You can pause or
+          revoke your grant. Only NyxID-reported usage counts. Restricted delegated tokens cannot
+          currently run CMA; supported runs retain attribution while metering awaits provider
+          receipts.
+        </p>
+        <p>
+          <Link to={{ kind: 'supporters' }}>Supporters</Link>
         </p>
         <DonationPanel />
       </section>
