@@ -22,7 +22,8 @@ pub enum TaskKind {
     /// Search the literature for a statement.
     LiteratureCheck,
     /// Formalize an approved statement of an accepted paper.
-    Formalize,
+    #[serde(rename = "formalize")]
+    LegacyFormalize,
     /// Work on a conjecture of an accepted paper that was taken up.
     Probe,
 }
@@ -33,20 +34,15 @@ impl TaskKind {
             Self::JudgeEscape => Duration::hours(2),
             Self::LiteratureCheck => Duration::hours(4),
             Self::Probe => Duration::hours(24),
-            Self::Formalize => Duration::hours(72),
+            Self::LegacyFormalize => Duration::hours(72),
         }
-    }
-
-    /// Kinds a model can do alone on donated quota.
-    pub fn hosted_capable(self) -> bool {
-        matches!(self, Self::JudgeEscape | Self::LiteratureCheck)
     }
 
     /// The AI-contribution classification used for Erdős problems.
     pub fn nature(self) -> &'static str {
         match self {
             Self::LiteratureCheck => "2a-literature-search",
-            Self::Formalize => "2b-formalization",
+            Self::LegacyFormalize => "2b-formalization",
             Self::Probe => "2d-computation",
             Self::JudgeEscape => "assessment",
         }
@@ -184,7 +180,8 @@ pub enum ContributionOutput {
         note: String,
     },
     /// A pull request to the paper's formalization repository.
-    PullRequest {
+    #[serde(rename = "pull_request")]
+    LegacyPullRequest {
         url: String,
     },
 }
@@ -228,15 +225,6 @@ impl ContributionOutput {
                 prior.iter().try_for_each(|p| p.source.validate())
             }
             (Self::ProbeNote { note }, TaskKind::Probe) => require_text("note", note, 50_000),
-            (Self::PullRequest { url }, TaskKind::Formalize) => {
-                if is_pull_request_url(url) {
-                    Ok(())
-                } else {
-                    Err(CoreError::invalid(
-                        "expected https://github.com/<owner>/<repo>/pull/<n>",
-                    ))
-                }
-            }
             (_, kind) => Err(CoreError::invalid(format!(
                 "this output does not fit a {kind:?} task"
             ))),
@@ -318,10 +306,10 @@ mod tests {
                 .validate(TaskKind::JudgeEscape)
                 .is_err()
         );
-        let pr = ContributionOutput::PullRequest {
+        let pr = ContributionOutput::LegacyPullRequest {
             url: "https://github.com/a/b/pull/3".into(),
         };
-        assert!(pr.validate(TaskKind::Formalize).is_ok());
+        assert!(pr.validate(TaskKind::LegacyFormalize).is_err());
         assert!(pr.validate(TaskKind::Probe).is_err());
         assert!(!is_pull_request_url("https://github.com/a/b/issues/3"));
         let target = TaskTarget {

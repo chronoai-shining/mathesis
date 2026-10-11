@@ -51,6 +51,7 @@ pub(super) fn routes() -> Router<Arc<App>> {
 /// The parts of an upload form: `metadata` (JSON), `note` (text) and
 /// `source` (the `.tex`, `.zip` or `.tar.gz`).
 struct UploadForm {
+    processing_consent: Option<String>,
     metadata: Option<String>,
     note: String,
     source: Option<Upload>,
@@ -60,12 +61,16 @@ async fn read_form(mut multipart: Multipart) -> Result<UploadForm, Problem> {
     let bad =
         |e: axum::extract::multipart::MultipartError| Problem(CoreError::Invalid(e.body_text()));
     let mut form = UploadForm {
+        processing_consent: None,
         metadata: None,
         note: String::new(),
         source: None,
     };
     while let Some(field) = multipart.next_field().await.map_err(bad)? {
         match field.name().unwrap_or_default() {
+            "processing_consent" => {
+                form.processing_consent = Some(field.text().await.map_err(bad)?)
+            }
             "metadata" => form.metadata = Some(field.text().await.map_err(bad)?),
             "note" => form.note = field.text().await.map_err(bad)?,
             "source" => {
@@ -119,8 +124,14 @@ async fn upload_version(
     let form = read_form(multipart).await?;
     let source = form.source.ok_or_else(missing_source)?;
     Ok(Json(
-        app.upload_version(&caller, &SubmissionId(id), source, form.note)
-            .await?,
+        app.upload_version(
+            &caller,
+            &SubmissionId(id),
+            source,
+            form.note,
+            form.processing_consent,
+        )
+        .await?,
     ))
 }
 

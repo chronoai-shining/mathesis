@@ -50,7 +50,7 @@ fn main() -> ExitCode {
         .as_slice()
     {
         ["conjectures"] => print(client.conjectures()),
-        ["target", record, claim] => match client.target(record, claim) {
+        ["target" | "statement-target", record, claim] => match client.target(record, claim) {
             Ok(value) => match value["target"]["lean"].as_str() {
                 Some(lean) => match std::fs::write("Target.lean", lean) {
                     Ok(()) => {
@@ -72,11 +72,29 @@ fn main() -> ExitCode {
                 ExitCode::FAILURE
             }
         },
+        ["report", record, file] => match std::fs::read_to_string(file)
+            .map_err(|e| e.to_string())
+            .and_then(|text| serde_json::from_str(&text).map_err(|e| e.to_string()))
+        {
+            Ok(body) => print(client.report(record, &body)),
+            Err(e) => {
+                eprintln!("{e}");
+                ExitCode::from(2)
+            }
+        },
+        ["report-status", id] => print(client.report_status(id)),
         ["attempt-status", id] => print(client.attempt_status(id)),
-        ["attempt", record, claim, file] => submit_attempt(&client, record, claim, file, None),
-        ["attempt", record, claim, file, "--as-agent", name] => {
-            submit_attempt(&client, record, claim, file, Some(name))
+        ["attempt" | "statement-attempt", record, claim, file] => {
+            submit_attempt(&client, record, claim, file, None)
         }
+        [
+            "attempt" | "statement-attempt",
+            record,
+            claim,
+            file,
+            "--as-agent",
+            name,
+        ] => submit_attempt(&client, record, claim, file, Some(name)),
         ["tasks"] => print(client.open_tasks(None, 50)),
         ["tasks", kind] => print(client.open_tasks(Some(kind), 50)),
         ["show", task] => print(client.context(task)),
@@ -101,7 +119,7 @@ fn main() -> ExitCode {
         },
         _ => {
             eprintln!(
-                "usage: wishpool-contribute conjectures | target <record> <claim> | attempt <record> <claim> <file> [--as-agent NAME] | attempt-status <id> | tasks [kind] | show <task> | lease <task> | release <task> | submit <task> <result.json> | mcp"
+                "usage: wishpool-contribute conjectures | target <record> <claim> | attempt <record> <claim> <file> [--as-agent NAME] | attempt-status <id> | report <record> <report.json> | report-status <id> | tasks [kind] | show <task> | lease <task> | release <task> | submit <task> <result.json> | mcp"
             );
             ExitCode::from(2)
         }
@@ -169,6 +187,8 @@ mod tests {
         assert_eq!(
             names,
             [
+                "report",
+                "report-status",
                 "conjectures",
                 "target",
                 "attempt",
@@ -200,7 +220,7 @@ mod tests {
 
     #[test]
     fn rules_cover_every_kind() {
-        for kind in ["judge_escape", "literature_check", "probe", "formalize"] {
+        for kind in ["judge_escape", "literature_check", "probe"] {
             assert!(!rules::for_kind(kind).is_empty());
         }
     }

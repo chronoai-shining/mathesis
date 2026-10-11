@@ -15,7 +15,7 @@ private review material never enters the public projection.
 | `layer3-latex` | 3 | unpack `.tex`/`.zip`/`.tar.gz` with limits; find the main file, inline `\input`/`\include`, read title, authors, abstract and statement environments; compile with TeX Live |
 | `layer3-review` | 3 | Oracle broker and CMA agents through NyxID; optional LLM gateway contributor judgements with metered usage |
 | `wishpool-verifier` | 3 / binary | stateless Lean module checker, source scan, pinned workspace copy, bounded isolated processes, JSON receipt; no database or credentials |
-| `wishpool` | binary | composition, MongoDB stores and GridFS files, NyxID sign-in and delegated tokens, the paper worker (compile, S2 leads, S3 proposals), the hosted donation worker, lease reconciliation |
+| `wishpool` | binary | composition, MongoDB stores and GridFS files, NyxID sign-in and delegated tokens, the paper worker (compile, S2 leads, S3 proposals), donation attribution and credential cleanup, lease reconciliation |
 | `sdk/contribute` | client | `wishpool-contribute`: CLI and MCP server for contributors' own agents |
 
 Layer 2 depends on no workspace crate and no I/O crate; Layer 1 only on
@@ -100,13 +100,12 @@ editor files one.
 
 ## 4. Formalization and conjectures
 
-After acceptance an editor proposes a statement with a reason; the author
-approves or declines; an approved item may be worked on by the editors or,
-when the author opted in, by contributors through a `formalize` task whose
-pull request must target the paper's formalization repository. An editor
-records the verified proof: repository, full commit, declarations, axioms
-(only `propext`, `Classical.choice`, `Quot.sound`). The contribution named
-there is credited.
+After acceptance, the submitting author approves a proved statement (optionally
+from an editor's proposal). Its Target.lean then follows the same generation,
+independent CMA faithfulness audit, exact-digest author confirmation, attempt and
+credential-free verifier path as a conjecture. Public proof receipts credit the
+solver and count in Formalized only. The repository/start/editor-verification
+routes and formalize task creation are removed; legacy artifacts remain readable.
 
 Conjectures and questions the paper poses start in `screening` on
 acceptance. An editor moves each to `taken_up` (opening a `probe` task when
@@ -135,26 +134,30 @@ statements are public text, never proof-verification badges.
 |---|---|---|
 | `judge_escape` | per proved statement, when the author opts in and the paper is in review | corroborated or confirmed |
 | `literature_check` | per main result, same conditions | an editor accepts it |
-| `formalize` | when the author approves a formalization item | an editor records the verified proof naming it |
 | `probe` | when an editor takes up a conjecture | an editor accepts it |
 
-Leases are fenced by revision and expire (2 h, 4 h, 72 h, 24 h); a contributor
-holds at most five and never contributes twice to one task. Authors cannot
-take tasks on their own paper. Donated quota: the donor authorizes the venue
-in NyxID with incremental consent; the refresh token is sealed with
-AES-256-GCM; the hosted worker spends it on judgement and literature tasks
-through the NyxID gateway and charges the reported usage to the donor's
-monthly cap.
+Leases are fenced by revision and expire (2 h, 4 h, 24 h); at most five
+per contributor. Donated quota now supports venue CMA runs, with attribution
+stored before durable run creation. The old hosted judgement executor is gone.
+The credential worker retains refresh rotation and removes revoked credentials.
+CMA's unrestricted user-token contract does not accept restricted delegated
+execution tokens. Runs use configured venue credentials. No NyxID accounting
+receipt is exposed by the current CMA response transport, so attribution stays
+unmetered until an authoritative receipt is available. `record_funded_usage`
+accepts only metered composition data and atomically stores the immutable receipt
+and charges the grant once. Never infer usage from model answers or CMA estimates.
+Supporters lists public names and total receipt-backed tokens, alphabetically.
+
 
 ## 6. Storage and jobs
 
 MongoDB collections: `people`, `submissions`, `endorsements`, `records`,
 `counters`, `tasks`, `contributions`, `judgements`, `donation_grants`,
 `sessions`, `login_attempts`, `review_jobs`, `referee_files`, `solve_files`,
-`agent_entrants`, and the GridFS bucket `papers`
+`agent_entrants`, `error_reports`, and the GridFS bucket `papers`
 (sources and PDFs; a source may exceed the 16 MB document limit). Every
 aggregate replace is fenced on its revision. Jobs (`compile`,
-`stage:literature`, `stage:escape`, `referee`, `lean_statement`, `open_problems`, `verify_attempt`) are upserted per paper and kind, leased
+`stage:literature`, `stage:escape`, `referee`, `lean_statement`, `open_problems`, `verify_attempt`, `error_reports`, `agent_attempt`) are upserted per paper and kind, leased
 for thirty minutes, retried with backoff and parked after three attempts.
 
 ## 7. Untrusted input
@@ -173,7 +176,7 @@ for thirty minutes, retried with backoff and parked after three attempts.
 
 One image (`infra/api/Dockerfile`, Debian trixie with TeX Live) serves two
 roles: `api` (stateless replicas; parsing uploads happens here) and `worker`
-(one replica; compiling, model calls, hosted donations, lease
+(one replica; compiling, model calls, donation cleanup, lease
 reconciliation; it owns the TeX cache volume). NyxID provides sign-in, the
 LLM gateway and delegated access; the networked referee and CMA audit report opened sources.
 
@@ -315,8 +318,8 @@ and `opaque` declarations, `implemented_by`, `extern`, `unsafe`, `#exit` and
 theorem, and records `compiled` only when Lean reports no error and the
 theorem depends on nothing outside `propext`, `Classical.choice` and
 `Quot.sound`. The prover's statement of faithfulness is recorded as its note;
-whether the Lean statement is the paper's is for the editor and the author to
-judge. The probe files are staff-only and never a recorded formalization. Authors
+it carries no public verification authority. Public targets require a separate
+CMA faithfulness audit and author confirmation before the attempt/verifier flow. The probe files are staff-only and never a recorded formalization. Authors
 receive only claim, outcome and theorem name; publishing files needs their
 agreement. No second letter is required. The formal step budget is the
 configured `WISHPOOL_FORMAL_TIMEOUT_SECS` plus a margin for environment
@@ -385,8 +388,47 @@ account token; NetworkPolicy denies every egress destination.
 The earliest receipt timestamp (attempt id on an exact tie) selects one winner
 per confirmed target. Public status, in-app author notifications, profile solve
 lists, and leaderboard credit derive from that same winner. Later successes are
-“also verified”. One board ranks people and owned agents by proved + disproved,
-then earlier last solve and entrant id. Month means the current UTC calendar
+“also verified”. One board ranks people and owned agents by others’ conjectures, then total
+conjectures, earlier last solve and entrant id. Others excludes the source
+submitter and linked co-authors, using an agent’s owner for the comparison. Month means the current UTC calendar
 month. Visibility and version fences apply to all public solve projections.
 Author-confirmed cross-work S1 dependencies retain source version and claim
 revision, and a distinct-public-work downstream count; weighting is deferred.
+
+## 11. Consent, faithfulness and error reports
+
+New uploads and revisions require the current processing-consent version. The
+core stores a server timestamp; serde defaults keep older stored papers readable
+without fabricating agreement. Consent is private submission metadata.
+
+Each target is independently elaborated, then audited in a separate durable CMA
+step against the original statement and full source. Generation and audit keys
+include claim, target attempt and pass. A non-faithful audit causes exactly one
+regeneration, carrying its reason and mismatch. Only the final bounded audit
+is stored on the target shown to the author. An absent/invalid audit cannot be
+confirmed; legacy unaudited targets are rejected for fresh preparation.
+
+`ErrorReportFile` is an entrant-scoped, revision-fenced aggregate: admission and
+the five-per-24-hour quota are one CAS, including simultaneous reports across
+papers. Each report binds record, submission version and claims revision. Pending
+Lean evidence creates an ordinary attempt as its reporter, then runs the verifier
+under the report job lease. A verified disproof resolves immediately; other Lean
+outcomes fall back to text audit, or unclear when text is absent. Text inspections
+use the same durable CMA carrier, source inputs, bounded output and opened-source
+rules. Unknown/unsupported output becomes unclear. Input changes settle pending
+reports privately as unclear without checking another version.
+
+Resolution and effects are separately durable: reconciliation retries the exact
+confirmed effect after a crash. A target report rejects its bound digest and
+queues a new target. Every confirmed report and accepted-paper statement disproof
+also adds an idempotent recheck trigger to RefereeFile. A settled round with unconsumed triggers
+starts another round, carrying the exact findings to the referee and auditor.
+An active round finishes first. Accepted record inputs remain immutable.
+
+Readers get explicit allowlists. Report text/verdict becomes public only after
+confirmation and only while the source is public. Reporter, linked authors and
+staff may also read pending/refuted/unclear reports. Provider state, owner ids,
+internal effect markers and unpublished Lean evidence never enter public report
+payloads. In-app error notifications derive from confirmed reports for the authors.
+Venue agent attempts are owned by `wishpool:venue`, with stable `wishpool-agent`
+identity and one managed attempt per confirmed open-target digest.

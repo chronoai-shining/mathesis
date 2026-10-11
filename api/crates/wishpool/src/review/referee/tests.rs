@@ -192,6 +192,19 @@ impl Formalizer for FakeFormalizer {
 
 #[async_trait]
 impl Advisor for FakeAdvisor {
+    async fn inspect_with_store(
+        &self,
+        _: &AdvisorInput,
+        _: &str,
+        _: &dyn wishpool_review::cma::RunStore,
+    ) -> ReviewResult<wishpool_review::advisor::InspectionOut> {
+        Ok(wishpool_review::advisor::InspectionOut {
+            verdict: "faithful".into(),
+            reason: "Definitions and quantifiers agree.".into(),
+            ..Default::default()
+        })
+    }
+
     fn engine(&self) -> &str {
         "test-advisor"
     }
@@ -361,6 +374,7 @@ impl World {
             .submit_paper(
                 &author,
                 NewPaper {
+                    processing_consent: Some("ai-review-2026-10-11".into()),
                     kind,
                     make_public_after_acceptance: true,
                     typed_conjecture: None,
@@ -1706,4 +1720,209 @@ async fn withdrawn_paper_cleans_up_its_saved_cma_turn_after_a_worker_restart() {
             .any(|(method, path)| method == "DELETE" && path.ends_with("agt_previous_worker"))
     );
     assert_eq!(transport.created.load(Ordering::SeqCst), 0);
+}
+
+struct InspectionFake {
+    outputs: Mutex<VecDeque<wishpool_review::advisor::InspectionOut>>,
+    calls: AtomicUsize,
+}
+#[async_trait]
+impl Advisor for InspectionFake {
+    fn engine(&self) -> &str {
+        "fake-cma"
+    }
+    fn model(&self) -> &str {
+        "fake"
+    }
+    async fn advise(&self, _: &AdvisorInput) -> ReviewResult<AdviceOut> {
+        unreachable!()
+    }
+    async fn draft_letter(
+        &self,
+        _: &AdvisorInput,
+        _: Option<&AdviceOut>,
+    ) -> ReviewResult<LetterOut> {
+        unreachable!()
+    }
+    async fn inspect_with_store(
+        &self,
+        input: &AdvisorInput,
+        question: &str,
+        _: &dyn wishpool_review::cma::RunStore,
+    ) -> ReviewResult<wishpool_review::advisor::InspectionOut> {
+        assert!(input.text.as_ref().is_some_and(|t| t.contains("Every gap")));
+        assert!(!question.is_empty());
+        self.calls.fetch_add(1, Ordering::SeqCst);
+        Ok(self
+            .outputs
+            .lock()
+            .await
+            .pop_front()
+            .expect("one inspection per stage"))
+    }
+}
+fn inspection(verdict: &str) -> wishpool_review::advisor::InspectionOut {
+    wishpool_review::advisor::InspectionOut {
+        verdict: verdict.into(),
+        reason: "The statement needs the zero case.".into(),
+        mismatch: if verdict == "faithful" {
+            String::new()
+        } else {
+            "The source includes zero.".into()
+        },
+        evidence: "At n=0, left=1 and right=0.".into(),
+        basis: "offline".into(),
+    }
+}
+#[tokio::test]
+async fn statement_targets_run_faithfulness_audit_and_regenerate_exactly_once_before_confirmation()
+{
+    use wishpool_core::model::{FaithfulnessVerdict, SubmissionStatus};
+    let mut w = World::new(vec![completed("accept")], true).await;
+    w.run_round().await;
+    let paper = w
+        .worker
+        .app
+        .submission(&w.author, &w.paper.id)
+        .await
+        .unwrap();
+    assert!(matches!(paper.status, SubmissionStatus::Accepted { .. }));
+    w.worker
+        .app
+        .respond_to_formalization(&w.author, &paper.id, &"C1".into(), true, String::new())
+        .await
+        .unwrap();
+    let inspector = Arc::new(InspectionFake {
+        outputs: Mutex::new(VecDeque::from([
+            inspection("weaker"),
+            inspection("different"),
+        ])),
+        calls: AtomicUsize::new(0),
+    });
+    w.worker.advisor = Some(inspector.clone());
+    // Drain other jobs without using the inspection-only fake for review.
+    let job = loop {
+        let job = w.jobs.claim().await.unwrap().unwrap();
+        if job.kind == JobKind::LeanStatement {
+            break job;
+        }
+        w.jobs.complete(&job).await.unwrap();
+    };
+    assert!(!w.worker.lean_statement_job(&job).await.unwrap());
+    let paper = w.worker.app.submission(&w.author, &paper.id).await.unwrap();
+    assert_eq!(inspector.calls.load(Ordering::SeqCst), 2);
+    assert_eq!(paper.lean_statements.len(), 1);
+    let audit = paper.lean_statements[0].faithfulness.as_ref().unwrap();
+    assert_eq!(audit.verdict, FaithfulnessVerdict::Different);
+    assert!(audit.regenerated);
+    assert!(matches!(
+        paper.lean_statements[0].response,
+        wishpool_core::model::LeanStatementResponse::AwaitingAuthor
+    ));
+    let corrections = w.formalizer.corrections.lock().await;
+    assert!(
+        corrections
+            .last()
+            .unwrap()
+            .as_ref()
+            .unwrap()
+            .contains("source includes zero")
+    );
+    // Replay has no new generation or audit.
+    assert!(!w.worker.lean_statement_job(&job).await.unwrap());
+    assert_eq!(inspector.calls.load(Ordering::SeqCst), 2);
+}
+#[tokio::test]
+async fn text_reports_use_fake_audit_and_confirmed_review_starts_one_new_round() {
+    use wishpool_core::model::{ErrorSubject, ErrorVerdict, NewErrorReport, SubmissionStatus};
+    let mut w = World::new(vec![completed("accept")], true).await;
+    w.run_round().await;
+    let paper = w
+        .worker
+        .app
+        .submission(&w.author, &w.paper.id)
+        .await
+        .unwrap();
+    let SubmissionStatus::Accepted { record } = paper.status else {
+        panic!()
+    };
+    let inspector = Arc::new(InspectionFake {
+        outputs: Mutex::new(VecDeque::from([
+            inspection("confirmed"),
+            inspection("refuted"),
+            inspection("unclear"),
+        ])),
+        calls: AtomicUsize::new(0),
+    });
+    w.worker.advisor = Some(inspector.clone());
+    for expected in [
+        ErrorVerdict::Confirmed,
+        ErrorVerdict::Refuted,
+        ErrorVerdict::Unclear,
+    ] {
+        let report = w
+            .worker
+            .app
+            .file_error_report(
+                &w.author,
+                &record,
+                NewErrorReport {
+                    subject: ErrorSubject::Review,
+                    text: "Check the zero case".into(),
+                    solution: None,
+                    as_agent: None,
+                },
+            )
+            .await
+            .unwrap();
+        let job = loop {
+            let job = w.jobs.claim().await.unwrap().unwrap();
+            if job.kind == JobKind::ErrorReports {
+                break job;
+            }
+            w.jobs.complete(&job).await.unwrap();
+        };
+        w.worker.error_reports_job(&job).await.unwrap();
+        w.jobs.complete(&job).await.unwrap();
+        let result = w
+            .worker
+            .app
+            .error_report(Some(&w.author), &report.id)
+            .await
+            .unwrap();
+        assert_eq!(result.resolution.unwrap().verdict, expected);
+        assert_eq!(
+            w.worker.app.error_report(None, &report.id).await.is_ok(),
+            expected == ErrorVerdict::Confirmed
+        );
+    }
+    let restarted = w
+        .worker
+        .app
+        .begin_referee_round(&w.worker.referee_account, &w.paper.id)
+        .await
+        .unwrap();
+    assert_eq!(restarted.rounds.len(), 2);
+    assert_eq!(
+        w.worker
+            .app
+            .begin_referee_round(&w.worker.referee_account, &w.paper.id)
+            .await
+            .unwrap()
+            .rounds
+            .len(),
+        2
+    );
+    let evidence = w
+        .worker
+        .app
+        .recheck_evidence(&w.worker.auditor_account, &w.paper.id)
+        .await
+        .unwrap();
+    assert!(evidence.contains("Check the zero case"));
+    assert!(
+        !serde_json::to_string(&w.worker.app.paper(&record).await.unwrap())
+            .unwrap()
+            .contains("one inspection")
+    );
 }

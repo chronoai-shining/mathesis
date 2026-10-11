@@ -51,6 +51,12 @@ describe('paper workspace', () => {
           lean: 'theorem wishpool_target : True := by sorry',
           toolchain: 'Lean test',
           reading: 'A delayed translation.',
+          faithfulness: {
+            verdict: 'faithful',
+            reason: 'Quantifiers match.',
+            mismatch: '',
+            regenerated: false,
+          },
           response: { state: 'awaiting_author' as const },
           created_at: '2026-10-10T00:00:00Z',
         },
@@ -58,7 +64,9 @@ describe('paper workspace', () => {
     };
     fireEvent.focus(window);
     expect(await screen.findByText('A delayed translation.')).toBeInTheDocument();
-    expect(await screen.findByRole('button', { name: 'Yes, this is my conjecture' })).toBeEnabled();
+    expect(
+      await screen.findByRole('button', { name: 'Yes, this matches my statement' }),
+    ).toBeEnabled();
   });
 
   it('lets the author confirm the extracted statements', async () => {
@@ -209,10 +217,13 @@ describe('paper workspace', () => {
     await user.click(screen.getByRole('radio', { name: /^Public/ }));
     expect(setVisibility).toHaveBeenCalledWith('sub-acc', 'public');
 
-    await user.click(screen.getByRole('button', { name: 'Decline' }));
+    await user.click(screen.getAllByRole('button', { name: 'Decline' })[0]!);
     expect(await screen.findByText('Give a reason for declining.')).toBeInTheDocument();
-    await user.type(screen.getByLabelText('Reason (needed when declining)'), 'Not before v2.');
-    await user.click(screen.getByRole('button', { name: 'Decline' }));
+    await user.type(
+      screen.getAllByLabelText('Reason (needed when declining)')[0]!,
+      'Not before v2.',
+    );
+    await user.click(screen.getAllByRole('button', { name: 'Decline' })[0]!);
     expect(respondFormalization).toHaveBeenCalledWith('sub-acc', 'C1', {
       approve: false,
       reason: 'Not before v2.',

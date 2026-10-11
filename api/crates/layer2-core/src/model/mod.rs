@@ -36,3 +36,6 @@ pub use referee::{
 pub use review::*;
 pub use solving::*;
 pub use task::*;
+
+mod error_report;
+pub use error_report::*;

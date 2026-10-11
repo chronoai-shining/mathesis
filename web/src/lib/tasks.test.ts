@@ -16,9 +16,9 @@ function fields(patch: Partial<ContributionFields>): ContributionFields {
 
 describe('task kinds', () => {
   it('states what makes each kind count', () => {
-    expect(TASK_KINDS).toHaveLength(4);
+    expect(TASK_KINDS).toHaveLength(3);
     expect(TASK_KIND_VERIFICATION.judge_escape).toMatch(/different model family/);
-    expect(TASK_KIND_VERIFICATION.formalize).toMatch(/standard axioms/);
+    expect(TASK_KIND_VERIFICATION.formalize).toMatch(/independent verifier/);
     expect(isReviewedKind('literature_check')).toBe(true);
     expect(isReviewedKind('probe')).toBe(true);
     expect(isReviewedKind('judge_escape')).toBe(false);
@@ -94,7 +94,7 @@ describe('buildContribution', () => {
     });
   });
 
-  it('builds a probe note and a pull request', () => {
+  it('builds a probe note and refuses retired pull-request contributions', () => {
     expect(buildContribution('probe', fields({ note: ' Checked $n \\le 10^6$. ' }))).toMatchObject({
       ok: true,
       value: { output: { output: 'probe_note', note: 'Checked $n \\le 10^6$.' } },
@@ -102,8 +102,7 @@ describe('buildContribution', () => {
     expect(
       buildContribution('formalize', fields({ url: 'https://github.com/ada/sums-lean/pull/4' })),
     ).toMatchObject({
-      ok: true,
-      value: { output: { output: 'pull_request', url: 'https://github.com/ada/sums-lean/pull/4' } },
+      ok: false,
     });
     expect(buildContribution('formalize', fields({ url: 'javascript:alert(1)' })).ok).toBe(false);
   });

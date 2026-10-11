@@ -151,7 +151,7 @@ mod tests {
             .await
             .unwrap();
         let new: NewPaper = serde_json::from_value(serde_json::json!({
-            "kind":"conjecture", "ai_disclosure":{"level":"none","statement":"No AI used."}, "authors":[{"name":"A. Author"}],
+            "kind":"conjecture", "processing_consent":"ai-review-2026-10-11", "ai_disclosure":{"level":"none","statement":"No AI used."}, "authors":[{"name":"A. Author"}],
             "typed_conjecture":{"title":"A conjecture: 100% & x_y","statement":"For every $n > 1$, $f(n) > 0$.", "background":"Let $f$ be the given function.", "origin":"my own"}
         })).unwrap();
         let paper = app

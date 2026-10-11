@@ -16,6 +16,20 @@ use wishpool_core::{
 };
 pub(super) fn routes() -> Router<Arc<App>> {
     Router::new()
+        .route("/papers/{record}/statements/{claim}", get(statement))
+        .route("/papers/{record}/statements/{claim}/target", get(target))
+        .route(
+            "/papers/{record}/statements/{claim}/attempts",
+            get(verified).post(attempt),
+        )
+        .route(
+            "/papers/{record}/statements/{claim}/attempts/mine",
+            get(mine),
+        )
+        .route("/papers/{record}/errors", get(reports).post(report))
+        .route("/errors/{id}", get(error_report))
+        .route("/me/error-notifications", get(error_notifications))
+        .route("/supporters", get(supporters))
         .route("/me/agents", get(agents).post(create_agent))
         .route("/me/agents/{id}", patch(update_agent).delete(retire_agent))
         .route("/me/notifications", get(notifications))
@@ -179,4 +193,47 @@ async fn board(State(app): AppState, Query(q): Query<BoardQuery>) -> ApiResult<i
 }
 async fn profile(State(app): AppState, Path(id): Path<String>) -> ApiResult<impl IntoResponse> {
     Ok(Json(app.entrant_profile(&id).await?))
+}
+
+async fn statement(
+    State(app): AppState,
+    Path((r, c)): Path<(String, String)>,
+) -> ApiResult<impl IntoResponse> {
+    Ok(Json(app.public_statement(&RecordId(r), &ClaimId(c)).await?))
+}
+async fn report(
+    State(app): AppState,
+    AuthenticatedCaller(c): AuthenticatedCaller,
+    Path(r): Path<String>,
+    Body(b): Body<wishpool_core::model::NewErrorReport>,
+) -> ApiResult<impl IntoResponse> {
+    Ok((
+        StatusCode::ACCEPTED,
+        Json(app.file_error_report(&c, &RecordId(r), b).await?),
+    ))
+}
+async fn reports(
+    State(app): AppState,
+    c: Option<AuthenticatedCaller>,
+    Path(r): Path<String>,
+) -> ApiResult<impl IntoResponse> {
+    Ok(Json(
+        app.error_reports(caller(&c), Some(&RecordId(r))).await?,
+    ))
+}
+async fn error_report(
+    State(app): AppState,
+    c: Option<AuthenticatedCaller>,
+    Path(id): Path<String>,
+) -> ApiResult<impl IntoResponse> {
+    Ok(Json(app.error_report(caller(&c), &id).await?))
+}
+async fn error_notifications(
+    State(app): AppState,
+    AuthenticatedCaller(c): AuthenticatedCaller,
+) -> ApiResult<impl IntoResponse> {
+    Ok(Json(app.error_notifications(&c).await?))
+}
+async fn supporters(State(app): AppState) -> ApiResult<impl IntoResponse> {
+    Ok(Json(app.supporters().await?))
 }

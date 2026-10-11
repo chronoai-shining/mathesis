@@ -65,6 +65,7 @@ pub fn display_name(identity: &VerifiedIdentity) -> String {
 
 #[derive(Default)]
 pub struct MemoryStores {
+    error_reports: Mutex<BTreeMap<String, ErrorReportFile>>,
     solving: Mutex<BTreeMap<String, SolveFile>>,
     agents: Mutex<BTreeMap<String, Entrant>>,
     people: Mutex<BTreeMap<String, Person>>,
@@ -535,6 +536,9 @@ impl RefereeStore for MemoryStores {
 
 #[async_trait]
 impl GrantStore for MemoryStores {
+    async fn all_grants(&self) -> CoreResult<Vec<DonationGrant>> {
+        Ok(self.grants.lock().await.values().cloned().collect())
+    }
     async fn get(&self, donor: &PersonId) -> CoreResult<Option<DonationGrant>> {
         Ok(self.grants.lock().await.get(donor).cloned())
     }
@@ -578,6 +582,32 @@ impl GrantStore for MemoryStores {
 
 #[async_trait]
 impl SolvingStore for MemoryStores {
+    async fn report_files(&self) -> CoreResult<Vec<ErrorReportFile>> {
+        Ok(self.error_reports.lock().await.values().cloned().collect())
+    }
+    async fn insert_report_file(&self, file: &ErrorReportFile) -> CoreResult<()> {
+        let mut files = self.error_reports.lock().await;
+        if files.contains_key(&file.id) {
+            return Err(CoreError::conflict("report file exists"));
+        }
+        files.insert(file.id.clone(), file.clone());
+        Ok(())
+    }
+    async fn replace_report_file(&self, file: &ErrorReportFile, expected: u64) -> CoreResult<()> {
+        let mut files = self.error_reports.lock().await;
+        let stored = files
+            .get_mut(&file.id)
+            .ok_or_else(|| CoreError::not_found("report file", &file.id))?;
+        if stored.revision != expected {
+            return Err(CoreError::StaleRevision {
+                kind: "report file",
+                id: file.id.clone(),
+            });
+        }
+        *stored = file.clone();
+        Ok(())
+    }
+
     async fn get(&self, id: &str) -> CoreResult<Option<SolveFile>> {
         Ok(self.solving.lock().await.get(id).cloned())
     }

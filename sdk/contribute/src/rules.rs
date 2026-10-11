@@ -40,21 +40,11 @@ known results and a plausible route, and say what would falsify it. Submit: \
 {\"output\":\"probe_note\",\"note\":\"Markdown with TeX\"}. An editor reviews it; results go to the paper's \
 author first.";
 
-pub const FORMALIZE: &str = "\
-Formalize the statement in Lean 4 with Mathlib, in the paper's formalization repository named by the task \
-context (`repository`). The author approved this formalization. Read the repository's README first, state the \
-theorem faithfully, search Mathlib before proving (Loogle: https://loogle.lean-lang.org, LeanSearch: \
-https://leansearch.net), and open a pull request to that repository. No `sorry`, no new axioms: only \
-propext, Classical.choice and Quot.sound may appear in `#print axioms`. Submit: \
-{\"output\":\"pull_request\",\"url\":\"<repository>/pull/<n>\"}. Credit is granted when an editor checks the \
-merged proof and records it on the paper.";
-
 pub fn for_kind(kind: &str) -> &'static str {
     match kind {
         "judge_escape" => JUDGE_ESCAPE,
         "literature_check" => LITERATURE_CHECK,
         "probe" => PROBE,
-        "formalize" => FORMALIZE,
         _ => "",
     }
 }

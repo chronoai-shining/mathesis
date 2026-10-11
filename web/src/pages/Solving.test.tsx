@@ -66,6 +66,8 @@ const row = {
   solved: 1,
   disproved: 0,
   score: 1,
+  others: 1,
+  total: 1,
   last_solve: receipt.checked_at,
 };
 
@@ -194,6 +196,10 @@ describe('solving pages', () => {
       fakeApi({
         entrantProfile: vi.fn(async () => ({
           entrant: agent,
+          others: 1,
+          total: 1,
+          errors_found: 0,
+          formalized: [],
           solutions: [
             {
               record: detail.summary.record,

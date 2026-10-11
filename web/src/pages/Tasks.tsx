@@ -2,14 +2,7 @@ import { useCallback, useState, type FormEvent } from 'react';
 import { useApi } from '../api/context';
 import { useAsync } from '../api/useAsync';
 import { usePaged } from '../api/usePaged';
-import type {
-  ContributionMode,
-  ProofShape,
-  Task,
-  TaskContext,
-  TaskKind,
-  TaskState,
-} from '../api/types';
+import type { ProofShape, Task, TaskContext, TaskKind, TaskState } from '../api/types';
 import { useSession } from '../auth/session';
 import { ContributionList } from '../components/contributions';
 import { LatexText, MacrosProvider } from '../components/Markdown';
@@ -242,12 +235,10 @@ export function TaskView({
   onSubmitted: () => void;
 }) {
   const api = useApi();
-  const { person, session } = useSession();
+  const { person } = useSession();
   const task = context.task;
   const s = task.status;
   const mine = s.state === 'leased' && person !== null && s.lease.holder === person.id;
-  const donations = session.status === 'signed_in' && session.donationsEnabled;
-  const [mode, setMode] = useState<ContributionMode>('own_agent');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
   const repo = context.repository ? safeHttpUrl(context.repository) : null;
@@ -336,32 +327,19 @@ export function TaskView({
 
         <section aria-labelledby="work-h">
           <h2 id="work-h">Work on it</h2>
-          {s.state === 'open' && person ? (
+          {s.state === 'open' && person && task.kind !== 'formalize' ? (
             <div className="inline-form">
-              {donations ? (
-                <div className="field">
-                  <label htmlFor="lease-mode">Run with</label>
-                  <select
-                    id="lease-mode"
-                    value={mode}
-                    onChange={(e) => setMode(e.target.value as ContributionMode)}
-                  >
-                    <option value="own_agent">My own agent</option>
-                    <option value="hosted">The hosted worker on my donated quota</option>
-                  </select>
-                </div>
-              ) : null}
               <button
                 type="button"
                 className="button"
                 disabled={busy}
-                onClick={() => run(api.leaseTask(task.id, mode === 'own_agent' ? undefined : mode))}
+                onClick={() => run(api.leaseTask(task.id))}
               >
                 Lease task
               </button>
             </div>
           ) : null}
-          {mine ? (
+          {mine && task.kind !== 'formalize' ? (
             <>
               <button
                 type="button"
@@ -374,7 +352,10 @@ export function TaskView({
               {s.state === 'leased' && s.lease.mode === 'own_agent' ? (
                 <ContributionForm task={task} onSubmitted={onSubmitted} />
               ) : (
-                <p className="small">The hosted worker runs this task on your donated quota.</p>
+                <p className="small">
+                  This archived hosted lease can be released; donated quota now supports venue
+                  agents.
+                </p>
               )}
             </>
           ) : null}
@@ -484,12 +465,6 @@ export function ContributionForm({ task, onSubmitted }: { task: Task; onSubmitte
       {task.kind === 'probe' ? (
         <Field label="Probe note (Markdown with TeX)" htmlFor="c-note">
           <textarea id="c-note" rows={6} value={f.note} onChange={set('note')} />
-        </Field>
-      ) : null}
-
-      {task.kind === 'formalize' ? (
-        <Field label="Pull request URL" htmlFor="c-url">
-          <input id="c-url" type="url" value={f.url} onChange={set('url')} />
         </Field>
       ) : null}
 

@@ -19,6 +19,7 @@ pub(super) struct AgentStore {
     key: String,
     version: u32,
     claims_revision: u64,
+    funded: bool,
 }
 fn fence() -> ReviewError {
     ReviewError::Transport("CMA persistence fence lost".into())
@@ -68,6 +69,7 @@ impl Worker {
                 key,
                 version: step.version,
                 claims_revision: step.claims_revision,
+                funded: false,
             };
             if let Err(error) = client.cancel(&store).await {
                 tracing::warn!(%error,"CMA cleanup will be retried on the next paper job");
@@ -92,6 +94,9 @@ impl Worker {
             key: format!("wishpool:{:x}", Sha256::digest(identity.as_bytes())),
             version,
             claims_revision: paper.claims_revision,
+            funded: step.starts_with("target:")
+                || step.contains("formal")
+                || step.starts_with("agent-attempt:"),
         }
     }
 }
@@ -132,6 +137,19 @@ impl RunStore for AgentStore {
     async fn save(&self, progress: Value) -> ReviewResult<()> {
         if !self.jobs.renew(&self.job).await.map_err(|_| fence())? {
             return Err(fence());
+        }
+        if self.funded
+            && self
+                .app
+                .agent_step(&self.caller, &self.job.submission, &self.key)
+                .await
+                .map_err(|_| fence())?
+                .is_none()
+        {
+            self.app
+                .attribute_agent_run(&self.key)
+                .await
+                .map_err(|_| fence())?;
         }
         self.app
             .save_agent_step(

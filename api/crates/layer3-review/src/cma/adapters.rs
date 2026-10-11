@@ -15,6 +15,23 @@ pub struct CmaAdvisor {
 }
 #[async_trait]
 impl Advisor for CmaAdvisor {
+    async fn inspect_with_store(
+        &self,
+        input: &AdvisorInput,
+        question: &str,
+        store: &dyn RunStore,
+    ) -> ReviewResult<crate::advisor::InspectionOut> {
+        parse_answer(
+            &self
+                .client
+                .answer(
+                    store,
+                    crate::advisor::inspection_prompt(input, question),
+                    self.audit_timeout,
+                )
+                .await?,
+        )
+    }
     fn managed_client(&self) -> Option<&Client> {
         Some(&self.client)
     }

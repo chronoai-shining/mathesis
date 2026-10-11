@@ -63,6 +63,11 @@ export function SubmissionsPage({ scope }: { scope: SubmissionScope }) {
     (signal: AbortSignal) => api.notifications({ signal }),
     [api],
   );
+  const loadErrors = useCallback(
+    (signal: AbortSignal) => api.errorNotifications({ signal }),
+    [api],
+  );
+  const errorNotifications = useAsync(scope === 'mine' && person ? loadErrors : null);
   const notifications = useAsync(scope === 'mine' && person ? loadNotifications : null);
 
   return (
@@ -78,6 +83,23 @@ export function SubmissionsPage({ scope }: { scope: SubmissionScope }) {
           </Link>
         ) : null}
       </header>
+      <Async state={errorNotifications.state} onRetry={errorNotifications.reload}>
+        {(reports) =>
+          reports.length ? (
+            <section className="notice">
+              <h2>Confirmed errors in your work</h2>
+              <ul>
+                {reports.map((r) => (
+                  <li key={r.id}>
+                    <Link to={{ kind: 'paper', record: r.record }}>{r.record}</Link>:{' '}
+                    {r.resolution?.reason}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null
+        }
+      </Async>
       {session.status === 'loading' ? <Loading /> : null}
       {session.status !== 'loading' && person === null ? (
         <SignInPrompt what={`see ${copy.title.toLowerCase()}`} />

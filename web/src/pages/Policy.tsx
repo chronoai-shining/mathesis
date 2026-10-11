@@ -1,3 +1,4 @@
+import { PROCESSING_CONSENT_TEXT } from '../api/types';
 import { usePolicyState } from '../api/policy';
 import { Async } from '../components/ui';
 import { BASIS_DESCRIPTIONS, BASIS_LABELS, rejectReasonText } from '../lib/labels';
@@ -23,6 +24,15 @@ export function PolicyPage() {
   const state = usePolicyState();
   return (
     <div className="page narrow-page">
+      <section>
+        <h2>Third-party AI review</h2>
+        <p>{PROCESSING_CONSENT_TEXT}</p>
+        <p>
+          Uploads require explicit agreement. We store the consent version and time. The source and
+          statements go to OpenAI ChatGPT through the Oracle broker and to Codex on CMA. Private
+          review material stays private to authors and staff.
+        </p>
+      </section>
       <header className="page-head">
         <div>
           <h1>Review policy</h1>

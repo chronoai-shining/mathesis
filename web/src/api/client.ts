@@ -1,4 +1,8 @@
 import type {
+  ErrorReport,
+  NewErrorReport,
+  StatementDetail,
+  Supporter,
   ConjectureSummary,
   ConjectureDetail,
   Entrant,
@@ -16,7 +20,6 @@ import type {
   DonationGrant,
   DonationPatch,
   FileReport,
-  FormalVerification,
   Listing,
   NewContribution,
   NewJudgement,
@@ -205,10 +208,11 @@ export function uploadBody(metadata: NewPaper, source?: File): FormData {
 }
 
 /** The multipart body of `POST /submissions/{id}/versions`. */
-export function versionBody(source: File, note: string): FormData {
+export function versionBody(source: File, note: string, processingConsent?: string): FormData {
   const form = new FormData();
   form.append(UPLOAD_FIELDS.source, source, source.name);
   form.append(UPLOAD_FIELDS.note, note);
+  if (processingConsent) form.append('processing_consent', processingConsent);
   return form;
 }
 
@@ -229,7 +233,12 @@ export interface ApiClient {
   ): Promise<Listing<Submission>>;
   getSubmission(id: string, options?: RequestOptions): Promise<Submission>;
   confirmClaims(id: string, claims: ClaimConfirmation[]): Promise<Submission>;
-  uploadVersion(id: string, source: File, note: string): Promise<Submission>;
+  uploadVersion(
+    id: string,
+    source: File,
+    note: string,
+    processingConsent?: string,
+  ): Promise<Submission>;
   withdrawSubmission(id: string): Promise<Submission>;
   setContributors(id: string, open: boolean): Promise<Submission>;
   setVisibility(
@@ -255,19 +264,29 @@ export interface ApiClient {
   judgeClaim(id: string, claim: string, judgement: NewJudgement): Promise<ClaimJudgement>;
   adoptJudgements(id: string): Promise<Submission>;
   applyDecision(id: string): Promise<Submission>;
-  setFormalRepository(id: string, repository: string): Promise<Submission>;
   proposeFormalization(id: string, claim: string, reason: string): Promise<Submission>;
-  startFormalization(id: string, claim: string): Promise<Submission>;
-  verifyFormalization(
-    id: string,
-    claim: string,
-    verification: FormalVerification,
-  ): Promise<Submission>;
   updateConjecture(id: string, claim: string, state: ConjectureState): Promise<Submission>;
   generateTasks(id: string): Promise<TaskGeneration>;
   restartReferee(id: string): Promise<RefereeFile>;
   sendFeedback(id: string, letter: SendFeedback): Promise<FeedbackLetter>;
 
+  supporters(options?: RequestOptions): Promise<Supporter[]>;
+  getStatement(record: string, claim: string, options?: RequestOptions): Promise<StatementDetail>;
+  reportError(record: string, body: NewErrorReport): Promise<ErrorReport>;
+  errorReports(record: string, options?: RequestOptions): Promise<ErrorReport[]>;
+  errorNotifications(options?: RequestOptions): Promise<ErrorReport[]>;
+  submitStatementAttempt(
+    record: string,
+    claim: string,
+    solution: string,
+    as_agent?: string,
+    note?: string,
+  ): Promise<AttemptView>;
+  myStatementAttempts(
+    record: string,
+    claim: string,
+    options?: RequestOptions,
+  ): Promise<AttemptView[]>;
   listConjectures(
     page?: PageParams & { status?: 'open' | 'solved' | 'disproved' },
     options?: RequestOptions,
@@ -379,8 +398,8 @@ export function createApiClient(fetchImpl: FetchLike = (input, init) => fetch(in
       request('GET', api(`/submissions${buildQuery({ scope, ...page(p) })}`), undefined, o),
     getSubmission: (id, o) => request('GET', sub(id), undefined, o),
     confirmClaims: (id, claims) => request('POST', sub(id, '/claims'), { claims }),
-    uploadVersion: (id, source, note) =>
-      request('POST', sub(id, '/versions'), versionBody(source, note)),
+    uploadVersion: (id, source, note, processingConsent) =>
+      request('POST', sub(id, '/versions'), versionBody(source, note, processingConsent)),
     withdrawSubmission: (id) => request('POST', sub(id, '/withdraw')),
     setContributors: (id, open) => request('PUT', sub(id, '/contributors'), { open }),
     setVisibility: (id, visibility) => request('PUT', sub(id, '/visibility'), { visibility }),
@@ -399,14 +418,8 @@ export function createApiClient(fetchImpl: FetchLike = (input, init) => fetch(in
       request('POST', sub(id, `/claims/${seg(claim)}/judgements`), judgement),
     adoptJudgements: (id) => request('POST', sub(id, '/escape/adopt')),
     applyDecision: (id) => request('POST', sub(id, '/decision')),
-    setFormalRepository: (id, repository) =>
-      request('PUT', sub(id, '/formalization/repository'), { repository }),
     proposeFormalization: (id, claim, reason) =>
       request('POST', sub(id, '/formalization/items'), { claim, reason }),
-    startFormalization: (id, claim) =>
-      request('POST', sub(id, `/formalization/items/${seg(claim)}/start`)),
-    verifyFormalization: (id, claim, verification) =>
-      request('POST', sub(id, `/formalization/items/${seg(claim)}/verification`), verification),
     updateConjecture: (id, claim, state) =>
       request('PUT', sub(id, `/conjectures/${seg(claim)}`), { state }),
     generateTasks: (id) => request('POST', sub(id, '/tasks')),
@@ -432,6 +445,20 @@ export function createApiClient(fetchImpl: FetchLike = (input, init) => fetch(in
     renameAgent: (id, name) => request('PATCH', api(`/me/agents/${seg(id)}`), { name }),
     retireAgent: (id) => request('DELETE', api(`/me/agents/${seg(id)}`)),
     notifications: (o) => request('GET', api('/me/notifications'), undefined, o),
+    supporters: (o) => request('GET', api('/supporters'), undefined, o),
+    getStatement: (r, c, o) =>
+      request('GET', api(`/papers/${seg(r)}/statements/${seg(c)}`), undefined, o),
+    reportError: (r, b) => request('POST', api(`/papers/${seg(r)}/errors`), b),
+    errorReports: (r, o) => request('GET', api(`/papers/${seg(r)}/errors`), undefined, o),
+    errorNotifications: (o) => request('GET', api('/me/error-notifications'), undefined, o),
+    submitStatementAttempt: (r, c, solution, as_agent, note) =>
+      request('POST', api(`/papers/${seg(r)}/statements/${seg(c)}/attempts`), {
+        solution,
+        as_agent,
+        note,
+      }),
+    myStatementAttempts: (r, c, o) =>
+      request('GET', api(`/papers/${seg(r)}/statements/${seg(c)}/attempts/mine`), undefined, o),
     listConjectures: (p = {}, o) =>
       request(
         'GET',

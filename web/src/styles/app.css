@@ -2104,3 +2104,61 @@ input[type='file'] {
     padding: var(--space-4);
   }
 }
+
+/* Contribution cards stay within a 390px viewport, including long evidence and Lean. */
+.error-report,
+.profile-credit,
+.supporter-list,
+.report-text {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.error-report {
+  margin-block: 0.75rem;
+}
+.error-report .form {
+  max-width: 40rem;
+}
+.report-text {
+  white-space: pre-wrap;
+}
+.profile-credit > div,
+.supporter-list > li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.25rem;
+  justify-content: space-between;
+}
+.profile-credit dd {
+  margin: 0;
+}
+.leaderboard-table {
+  width: 100%;
+  table-layout: fixed;
+}
+.leaderboard-table th,
+.leaderboard-table td {
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+.leaderboard-table th:first-child,
+.leaderboard-table td:first-child {
+  width: 3.5rem;
+}
+@media (max-width: 480px) {
+  .leaderboard-table th,
+  .leaderboard-table td {
+    padding: 0.6rem 0.3rem;
+  }
+  .leaderboard-table {
+    min-width: 0;
+    font-size: 0.85rem;
+  }
+  .error-report input,
+  .error-report select,
+  .error-report textarea {
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+}

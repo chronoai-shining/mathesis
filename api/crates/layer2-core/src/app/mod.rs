@@ -2,6 +2,7 @@
 //! project. Authorization is decided here, never in an interface.
 
 mod donations;
+mod error_reports;
 mod formalization;
 mod lean_statements;
 mod papers;

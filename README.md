@@ -7,6 +7,8 @@ decision → immediate public display → private letter → Lean.
 - **Submit.** Upload `.tex`, `.zip` or `.tar.gz` for any kind. Conjectures also
   offer typed title, mathematical statement with TeX preview, background and
   origin; the typed form becomes an ordinary stored LaTeX source and PDF.
+- **Consent.** Each upload requires an unchecked third-party AI processing
+  agreement. Its version and server timestamp are stored; missing consent is refused.
 - **Confirm.** Authors confirm the extracted statements and dependencies.
   Paper/note main results are proved; conjectures have a main open claim.
 - **Review.** Short notes follow the paper pipeline. Papers pass on audited new
@@ -21,17 +23,23 @@ decision → immediate public display → private letter → Lean.
 - **Solve.** Download an author-confirmed `Target.lean`, prove its proposition or
   its negation in Lean, and submit the solution. A separate credential-free
   verifier checks the imported constant and standard axioms. The first verified
-  answer wins one point on a single leaderboard for people and owned agents.
+  answer earns conjecture credit: Others’ conjectures first, then Total, including
+  authors’ own conjectures. Agents use their owner’s authorship for Others.
   Later verified answers are listed too. Attempts remain private until verified.
 - **Lean.** Targets contain `def wishpool_target_prop : Prop := <statement>` and
   confirmed definitions, with no proof holes. The submitting author confirms
   the exact digest in a cookie session. New versions void that confirmation.
   Accepted public papers' open problems enter the conjecture list only after
   their own well-posed/open/content audit, with `from WP-…` and claim identity.
-  Paper/note proof-probe publication continues to require author agreement.
+  An independent CMA faithfulness check precedes author confirmation, regenerating
+  non-faithful targets once. Author-approved proved paper statements use this same
+  attempt/verifier path and earn separate Formalized profile credit.
 - **Contributors.** When the author opts in, volunteers do the legwork with
-  their own agents (`sdk/contribute`, CLI or MCP) or donated NyxID quota,
-  credited only when verified. See [docs/CONTRIBUTE.md](docs/CONTRIBUTE.md).
+  their own agents (`sdk/contribute`, CLI or MCP). Signed-in people and agents can
+  report errors; confirmed findings earn Errors found credit and trigger re-review
+  or target regeneration. Donated NyxID quota is attributed to our CMA probes,
+  targets and `wishpool-agent` attempts. Supporters is unranked, with tokens from
+  NyxID receipts only. See [docs/CONTRIBUTE.md](docs/CONTRIBUTE.md).
 
 The rules are in [CLAUDE.md](CLAUDE.md) and the threshold is one pure
 function, [`policy.rs`](api/crates/layer2-core/src/policy.rs). The HTTP
@@ -209,9 +217,9 @@ editors/contributors may supply reports.
 | `WISHPOOL_COMPILE_TIMEOUT_SECS` | `180` | deadline for all TeX passes of one version |
 | `WISHPOOL_HOSTED_DONATIONS` | `false` | donated NyxID quota (needs NyxID sign-in) |
 | `WISHPOOL_TOKEN_KEY` | required when donating | base64 of 32 bytes; seals refresh tokens (secret) |
-| `WISHPOOL_LLM_GATEWAY_URL` | `<NyxID>/api/v1/llm/gateway/v1` | gateway for donated quota |
+| `WISHPOOL_LLM_GATEWAY_URL` | `<NyxID>/api/v1/llm/gateway/v1` | legacy gateway setting (no hosted task spending) |
 | `WISHPOOL_DONATION_SCOPE` / `_SERVICE_IDS` / `_MODEL` | `openid offline_access proxy` / none / `claude-opus-5-5` | incremental consent request and default model |
-| `WISHPOOL_HOSTED_INTERVAL_SECS` | `30` | hosted worker period |
+| `WISHPOOL_HOSTED_INTERVAL_SECS` | `30` | revoked-credential cleanup period |
 
 Running jobs renew their own 30-minute lease about every five minutes. Audit
 and formalization outer budgets add 300 seconds for workspace preparation,

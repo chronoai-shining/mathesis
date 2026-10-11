@@ -134,6 +134,8 @@ pub enum JobKind {
     LeanStatement,
     OpenProblems,
     VerifyAttempt,
+    ErrorReports,
+    AgentAttempt,
 }
 
 /// A job together with the opaque lease token that fences its worker.
@@ -237,6 +239,7 @@ pub trait RefereeStore: Send + Sync {
 
 #[async_trait]
 pub trait GrantStore: Send + Sync {
+    async fn all_grants(&self) -> CoreResult<Vec<DonationGrant>>;
     async fn get(&self, donor: &PersonId) -> CoreResult<Option<DonationGrant>>;
     async fn insert(&self, grant: &DonationGrant) -> CoreResult<()>;
     async fn replace(&self, grant: &DonationGrant, expected: u64) -> CoreResult<()>;
@@ -264,6 +267,14 @@ pub struct Ports {
 
 #[async_trait]
 pub trait SolvingStore: Send + Sync {
+    async fn report_files(&self) -> CoreResult<Vec<crate::model::ErrorReportFile>>;
+    async fn insert_report_file(&self, file: &crate::model::ErrorReportFile) -> CoreResult<()>;
+    async fn replace_report_file(
+        &self,
+        file: &crate::model::ErrorReportFile,
+        expected: u64,
+    ) -> CoreResult<()>;
+
     async fn get(&self, id: &str) -> CoreResult<Option<crate::model::SolveFile>>;
     async fn all(&self) -> CoreResult<Vec<crate::model::SolveFile>>;
     async fn insert(&self, file: &crate::model::SolveFile) -> CoreResult<()>;

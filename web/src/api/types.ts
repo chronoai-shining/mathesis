@@ -209,6 +209,7 @@ export type TypedConjecture = {
   origin?: string;
 };
 export type NewPaper = {
+  processing_consent?: string;
   kind?: SubmissionKind;
   make_public_after_acceptance?: boolean;
   typed_conjecture?: TypedConjecture;
@@ -469,6 +470,12 @@ export type ConjectureReading = {
   suggestions: string[];
 };
 export type LeanStatementAttempt = {
+  faithfulness?: {
+    verdict: 'faithful' | 'weaker' | 'stronger' | 'different' | 'trivial';
+    reason: string;
+    mismatch: string;
+    regenerated: boolean;
+  } | null;
   claim: string;
   version: number;
   claims_revision: number;
@@ -517,6 +524,7 @@ export type PaperSummary = {
   lean_verified?: number;
 };
 export type PublicClaim = {
+  verified?: VerifiedAttempt | null;
   id: string;
   kind: ClaimKind;
   role: ClaimRole;
@@ -678,9 +686,21 @@ export type LeaderboardRow = {
   solved: number;
   disproved: number;
   score: number;
+  others: number;
+  total: number;
   last_solve: string;
 };
 export type EntrantProfile = {
+  others: number;
+  total: number;
+  errors_found: number;
+  formalized: {
+    record: string;
+    claim: string;
+    title: string;
+    attempt: string;
+    receipt: VerificationReceipt;
+  }[];
   entrant: Entrant;
   solutions: {
     record: string;
@@ -696,4 +716,43 @@ export type SolveNotification = {
   claim: string;
   entrant: Entrant;
   at: string;
+};
+
+export const PROCESSING_CONSENT_VERSION = 'ai-review-2026-10-11';
+export const PROCESSING_CONSENT_TEXT =
+  'I agree that the source and statements are processed by third-party AI services (OpenAI ChatGPT via the Oracle broker, Codex on CMA) for review.';
+export type ErrorSubject =
+  | { kind: 'statement'; claim: string }
+  | { kind: 'target'; claim: string; digest: string }
+  | { kind: 'review' };
+export type NewErrorReport = {
+  subject: ErrorSubject;
+  text: string;
+  solution?: string;
+  as_agent?: string;
+};
+export type ErrorReport = {
+  id: string;
+  record: string;
+  reporter: Entrant;
+  subject: ErrorSubject;
+  text: string;
+  created_at: string;
+  resolution: {
+    verdict: 'confirmed' | 'refuted' | 'unclear';
+    reason: string;
+    evidence: string;
+    at: string;
+  } | null;
+  solution?: string;
+  receipt?: VerificationReceipt;
+};
+export type Supporter = { name: string; tokens: number };
+export type StatementDetail = {
+  record: string;
+  title: string;
+  claim: PublicClaim;
+  target: ConjectureDetail['target'];
+  verified_attempts: VerifiedAttempt[];
+  macros: Record<string, string>;
 };

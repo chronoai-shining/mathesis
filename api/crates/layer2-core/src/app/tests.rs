@@ -100,6 +100,7 @@ impl World {
         doi: Option<&str>,
     ) -> Submission {
         let new = NewPaper {
+            processing_consent: Some("ai-review-2026-10-11".into()),
             kind: crate::model::SubmissionKind::Paper,
             make_public_after_acceptance: true,
             typed_conjecture: None,
@@ -402,18 +403,6 @@ async fn upload_confirm_review_accept_and_formalize() {
         .propose_formalization(&editor, &paper.id, &c1, "The headline bound.".into())
         .await
         .unwrap();
-    let artifact = FormalArtifact {
-        repository: "https://github.com/omega/gaps-lean".into(),
-        commit: "b".repeat(40),
-        declarations: vec!["Gaps.main".into()],
-    };
-    assert!(
-        w.app
-            .verify_formalization(&editor, &paper.id, &c1, artifact.clone(), vec![], None)
-            .await
-            .is_err(),
-        "the author approves first"
-    );
     assert!(
         w.app
             .respond_to_formalization(&editor, &paper.id, &c1, true, String::new())
@@ -425,32 +414,15 @@ async fn upload_confirm_review_accept_and_formalize() {
         .await
         .unwrap();
     assert!(
-        w.app
-            .verify_formalization(
-                &editor,
-                &paper.id,
-                &c1,
-                artifact.clone(),
-                vec!["sorryAx".into()],
-                None
-            )
+        w.stores
+            .queued()
             .await
-            .is_err()
+            .iter()
+            .any(|(_, kind)| *kind == JobKind::LeanStatement)
     );
-    w.app
-        .verify_formalization(
-            &editor,
-            &paper.id,
-            &c1,
-            artifact.clone(),
-            vec!["propext".into()],
-            None,
-        )
-        .await
-        .unwrap();
     let public = w.app.paper(&record).await.unwrap();
-    assert_eq!(public.claims[0].lean, Some(artifact));
-    assert_eq!(public.summary.lean_verified, 1);
+    assert!(public.claims[0].lean.is_none());
+    assert_eq!(public.summary.lean_verified, 0);
 
     // The conjecture's follow-up is public with the analysis.
     w.app
@@ -535,7 +507,13 @@ async fn known_results_are_not_accepted_and_may_be_revised() {
     };
     let revised = w
         .app
-        .upload_version(&author, &paper.id, upload, "New second theorem.".into())
+        .upload_version(
+            &author,
+            &paper.id,
+            upload,
+            "New second theorem.".into(),
+            Some("ai-review-2026-10-11".into()),
+        )
         .await
         .unwrap();
     assert_eq!(
@@ -634,6 +612,7 @@ async fn authority_and_limits() {
     w.submit(&author, "t", false).await;
     w.submit(&author, "t", false).await;
     let new = NewPaper {
+        processing_consent: Some("ai-review-2026-10-11".into()),
         kind: crate::model::SubmissionKind::Paper,
         make_public_after_acceptance: true,
         typed_conjecture: None,
@@ -851,7 +830,13 @@ async fn a_changed_claim_set_voids_judgements_and_tasks() {
     };
     let revised = w
         .app
-        .upload_version(&author, &paper.id, upload, String::new())
+        .upload_version(
+            &author,
+            &paper.id,
+            upload,
+            String::new(),
+            Some("ai-review-2026-10-11".into()),
+        )
         .await
         .unwrap();
     let revised = w.review_version(&author, &revised, 2).await;
@@ -917,94 +902,32 @@ async fn formalization_tasks_credit_the_contributor() {
         .respond_to_formalization(&author, &paper.id, &c1, true, String::new())
         .await
         .unwrap();
-    let filter = TaskFilter {
-        kind: Some(TaskKind::Formalize),
-        ..TaskFilter::default()
-    };
-    let task = w
-        .app
-        .list_tasks(filter, None, None)
-        .await
-        .unwrap()
-        .items
-        .remove(0);
     assert!(
         w.app
-            .lease_task(&carol, &task.id, ContributionMode::OwnAgent)
+            .list_tasks(
+                TaskFilter {
+                    kind: Some(TaskKind::LegacyFormalize),
+                    ..Default::default()
+                },
+                None,
+                None
+            )
             .await
-            .is_err(),
-        "no repository yet"
+            .unwrap()
+            .items
+            .is_empty()
     );
-    w.app
-        .set_formalization_repository(
-            &editor,
-            &paper.id,
-            "https://github.com/omega/gaps-lean".into(),
-        )
-        .await
-        .unwrap();
     assert!(
         w.app
-            .lease_task(&carol, &task.id, ContributionMode::Hosted)
-            .await
-            .is_err(),
-        "formalization needs a full agent"
-    );
-    w.app
-        .lease_task(&carol, &task.id, ContributionMode::OwnAgent)
-        .await
-        .unwrap();
-    let elsewhere = NewContribution {
-        agent: agent("claude-opus-5-5"),
-        output: ContributionOutput::PullRequest {
-            url: "https://github.com/x/y/pull/1".into(),
-        },
-        tokens: None,
-    };
-    assert!(
-        w.app
-            .submit_contribution(&carol, &task.id, elsewhere)
+            .open_task(&carol, &paper.id, &c1, TaskKind::LegacyFormalize)
             .await
             .is_err()
     );
-    let pr = NewContribution {
-        agent: agent("claude-opus-5-5"),
-        output: ContributionOutput::PullRequest {
-            url: "https://github.com/omega/gaps-lean/pull/7".into(),
-        },
-        tokens: None,
-    };
-    let contribution = w
-        .app
-        .submit_contribution(&carol, &task.id, pr)
-        .await
-        .unwrap();
-
-    let artifact = FormalArtifact {
-        repository: "https://github.com/omega/gaps-lean".into(),
-        commit: "c".repeat(40),
-        declarations: vec!["Gaps.main".into()],
-    };
-    w.app
-        .verify_formalization(
-            &editor,
-            &paper.id,
-            &c1,
-            artifact,
-            vec![],
-            Some(contribution.id.clone()),
-        )
-        .await
-        .unwrap();
-    let credits = w.app.credits(Some(&carol.person)).await.unwrap();
-    assert_eq!(
-        (credits[0].verified, credits[0].verified_formalizations),
-        (1, 1)
-    );
-    assert!(matches!(
-        w.app.task(&task.id).await.unwrap().status,
-        TaskStatus::Done { .. }
-    ));
+    let legacy: ContributionOutput = serde_json::from_value(
+        serde_json::json!({"output":"pull_request","url":"https://github.com/a/b/pull/1"}),
+    )
+    .unwrap();
+    assert!(legacy.validate(TaskKind::LegacyFormalize).is_err());
 }
 
 fn done_step<T>(result: T) -> Step<T> {
@@ -1530,21 +1453,17 @@ async fn audit_recovers_record_insert_and_preserves_publication_on_revision() {
         .respond_to_formalization(&author, &paper.id, claim, true, String::new())
         .await
         .unwrap();
-    w.app
-        .verify_formalization(
-            &editor,
-            &paper.id,
-            claim,
-            FormalArtifact {
-                repository: "https://github.com/example/paper".into(),
-                commit: "a".repeat(40),
-                declarations: vec!["Original.main".into()],
-            },
-            vec![],
-            None,
-        )
-        .await
-        .unwrap();
+    let mut legacy = w.app.submission(&author, &paper.id).await.unwrap();
+    legacy.formalization.items[0].state = ItemState::Verified {
+        artifact: FormalArtifact {
+            repository: "https://github.com/example/paper".into(),
+            commit: "a".repeat(40),
+            declarations: vec!["Original.main".into()],
+        },
+        axioms: vec![],
+        contribution: None,
+    };
+    w.app.save(&mut legacy).await.unwrap();
     w.app
         .update_conjecture(
             &editor,
@@ -1594,6 +1513,7 @@ async fn audit_recovers_record_insert_and_preserves_publication_on_revision() {
                 filename: "tl.tex".into(),
             },
             "clarified proof".into(),
+            Some("ai-review-2026-10-11".into()),
         )
         .await
         .unwrap();
@@ -1666,6 +1586,7 @@ async fn legacy_publication_can_be_revised_without_mutating_its_record() {
                 filename: "tl.tex".into(),
             },
             "a revised argument".into(),
+            Some("ai-review-2026-10-11".into()),
         )
         .await
         .unwrap();
@@ -1702,6 +1623,7 @@ async fn legacy_publication_can_be_revised_without_mutating_its_record() {
                 filename: "tlc.tex".into(),
             },
             "another revision".into(),
+            Some("ai-review-2026-10-11".into()),
         )
         .await
         .unwrap();
@@ -2186,6 +2108,12 @@ async fn lean_statement_confirmation_is_cookie_only_digest_bound_and_voided_on_r
             "Lean test".into(),
             "The conjecture says True.".into(),
             None,
+            crate::model::FaithfulnessCheck {
+                verdict: crate::model::FaithfulnessVerdict::Faithful,
+                reason: "Definitions and quantifiers agree.".into(),
+                mismatch: String::new(),
+                regenerated: false,
+            },
         )
         .await
         .unwrap();
@@ -2266,6 +2194,12 @@ async fn lean_statement_confirmation_is_cookie_only_digest_bound_and_voided_on_r
             "Lean test".into(),
             "Every natural number equals itself.".into(),
             Some(digest),
+            crate::model::FaithfulnessCheck {
+                verdict: crate::model::FaithfulnessVerdict::Faithful,
+                reason: "Definitions and quantifiers agree.".into(),
+                mismatch: String::new(),
+                regenerated: false,
+            },
         )
         .await
         .unwrap();
@@ -2296,6 +2230,7 @@ async fn lean_statement_confirmation_is_cookie_only_digest_bound_and_voided_on_r
                 bytes: b"new source".to_vec(),
             },
             "Revised".into(),
+            Some("ai-review-2026-10-11".into()),
         )
         .await
         .unwrap();
@@ -2404,7 +2339,7 @@ async fn upload_checkbox_maps_to_visibility() {
         let w = World::new().await;
         let author = w.person("author", &[]).await;
         let mut new: NewPaper = serde_json::from_value(
-            serde_json::json!({"ai_disclosure":{"level":"none","statement":"No AI used."}}),
+            serde_json::json!({"processing_consent":"ai-review-2026-10-11", "ai_disclosure":{"level":"none","statement":"No AI used."}}),
         )
         .unwrap();
         new.make_public_after_acceptance = checked;

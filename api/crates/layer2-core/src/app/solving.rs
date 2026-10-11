@@ -12,6 +12,63 @@ fn digest(text: &str) -> String {
     format!("{:x}", Sha256::digest(text.as_bytes()))
 }
 impl App {
+    pub async fn record_venue_attempt(
+        &self,
+        caller: &Caller,
+        record: &RecordId,
+        claim: &ClaimId,
+        digest: &str,
+    ) -> CoreResult<()> {
+        caller.require(Role::Reviewer)?;
+        if self.target(record, claim).await?.digest != digest {
+            return Err(CoreError::conflict("target changed"));
+        }
+        loop {
+            let mut file = self.solve_file(record, claim).await?;
+            if !file.agent_attempted.insert(digest.into()) {
+                return Ok(());
+            }
+            match self.save_solve_file(&mut file).await {
+                Err(CoreError::StaleRevision { .. }) => continue,
+                result => return result,
+            }
+        }
+    }
+    pub async fn venue_agent(&self, caller: &Caller) -> CoreResult<(Caller, Entrant)> {
+        caller.require(Role::Reviewer)?;
+        let owner = self
+            .caller(&VerifiedIdentity {
+                subject: "wishpool:venue".into(),
+                name: Some("wishpool".into()),
+                email: None,
+                picture: None,
+            })
+            .await?;
+        if let Some(agent) = self
+            .ports
+            .solving
+            .agents()
+            .await?
+            .into_iter()
+            .find(|a| a.id == "wishpool-agent")
+        {
+            return Ok((owner, agent));
+        }
+        let agent = Entrant {
+            id: "wishpool-agent".into(),
+            name: "wishpool-agent".into(),
+            kind: EntrantKind::Agent,
+            owner: Some(Owner {
+                id: owner.person.clone(),
+                name: "wishpool".into(),
+            }),
+            retired: false,
+            revision: 0,
+        };
+        self.ports.solving.insert_agent(&agent).await?;
+        Ok((owner, agent))
+    }
+
     pub(crate) async fn conjecture_source(&self, record: &RecordId) -> CoreResult<Submission> {
         let record = self
             .ports
@@ -40,6 +97,11 @@ impl App {
     }
     pub async fn create_agent(&self, caller: &Caller, name: String) -> CoreResult<Entrant> {
         require_text("agent name", &name, 40)?;
+        if name.trim().eq_ignore_ascii_case("wishpool-agent") {
+            return Err(CoreError::invalid(
+                "this agent name is reserved for the venue",
+            ));
+        }
         let person = self.me(caller).await?;
         let agent = Entrant {
             id: format!("agent:{}", new_uuid()),
@@ -70,6 +132,11 @@ impl App {
             .ok_or_else(|| CoreError::not_found("agent", id))?;
         if let Some(name) = name {
             require_text("agent name", &name, 40)?;
+            if name.trim().eq_ignore_ascii_case("wishpool-agent") {
+                return Err(CoreError::invalid(
+                    "this agent name is reserved for the venue",
+                ));
+            }
             agent.name = name.trim().into();
         }
         let expected = agent.revision;
@@ -84,11 +151,13 @@ impl App {
         claim: &ClaimId,
     ) -> CoreResult<SolveFile> {
         let s = self.conjecture_source(record).await?;
-        if !s.claim(claim).is_some_and(|c| {
-            c.kind.is_open()
-                && (s.kind == SubmissionKind::Conjecture && c.role == ClaimRole::Main
-                    || s.kind != SubmissionKind::Conjecture && !c.has_proof)
-        }) {
+        if !s.approved_statement(claim)
+            && !s.claim(claim).is_some_and(|c| {
+                c.kind.is_open()
+                    && (s.kind == SubmissionKind::Conjecture && c.role == ClaimRole::Main
+                        || s.kind != SubmissionKind::Conjecture && !c.has_proof)
+            })
+        {
             return Err(CoreError::not_found("conjecture", claim.as_str()));
         }
         let version = s.current_version().unwrap().number;
@@ -97,6 +166,7 @@ impl App {
             return Ok(file);
         }
         let file = SolveFile {
+            agent_attempted: Default::default(),
             id: id.clone(),
             record: record.clone(),
             submission: s.id.clone(),
@@ -104,12 +174,13 @@ impl App {
             version,
             claims_revision: s.claims_revision,
             revision: 0,
-            admitted: s.kind == SubmissionKind::Conjecture
-                && matches!(
-                    s.latest_report(Stage::Escape).map(|r| &r.payload),
-                    Some(StagePayload::Escape { assessments }) if assessments.iter().any(|a| a.claim == *claim
-                        && a.conjecture.as_ref().is_some_and(crate::policy::Policy::admits_open_problem))
-                ),
+            admitted: s.approved_statement(claim)
+                || s.kind == SubmissionKind::Conjecture
+                    && matches!(
+                        s.latest_report(Stage::Escape).map(|r| &r.payload),
+                        Some(StagePayload::Escape { assessments }) if assessments.iter().any(|a| a.claim == *claim
+                            && a.conjecture.as_ref().is_some_and(crate::policy::Policy::admits_open_problem))
+                    ),
             failure: None,
             review_round: 1,
             task: None,
@@ -223,10 +294,12 @@ impl App {
             .await?
             .lean_statements
             .into_iter()
+            .rev()
             .find(|a| {
                 a.claim == *claim
                     && a.version == file.version
                     && a.claims_revision == file.claims_revision
+                    && a.faithfulness.is_some()
                     && a.lean.contains("def wishpool_target_prop : Prop :=")
                     && matches!(a.response, LeanStatementResponse::Confirmed { .. })
             })
@@ -237,6 +310,29 @@ impl App {
                 toolchain: a.toolchain,
             })
             .ok_or_else(|| CoreError::conflict("the author has not confirmed a target"))
+    }
+    pub(crate) async fn resolve_entrant(
+        &self,
+        caller: &Caller,
+        as_agent: Option<String>,
+    ) -> CoreResult<Entrant> {
+        let entrant = if let Some(agent) = as_agent {
+            self.agents(caller)
+                .await?
+                .into_iter()
+                .find(|a| (a.id == agent || a.name == agent) && !a.retired)
+                .ok_or_else(|| CoreError::not_found("agent", agent))?
+        } else {
+            Entrant {
+                id: caller.person.to_string(),
+                name: self.me(caller).await?.display_name,
+                kind: EntrantKind::Person,
+                owner: None,
+                retired: false,
+                revision: 0,
+            }
+        };
+        Ok(entrant)
     }
     pub async fn submit_attempt(
         &self,
@@ -256,22 +352,7 @@ impl App {
             return Err(CoreError::invalid("note exceeds 2,000 characters"));
         }
         let target = self.target(record, claim).await?;
-        let entrant = if let Some(agent) = as_agent {
-            self.agents(caller)
-                .await?
-                .into_iter()
-                .find(|a| (a.id == agent || a.name == agent) && !a.retired)
-                .ok_or_else(|| CoreError::not_found("agent", agent))?
-        } else {
-            Entrant {
-                id: caller.person.to_string(),
-                name: self.me(caller).await?.display_name,
-                kind: EntrantKind::Person,
-                owner: None,
-                retired: false,
-                revision: 0,
-            }
-        };
+        let entrant = self.resolve_entrant(caller, as_agent).await?;
         let hash = digest(&solution);
         let blob = self
             .ports
@@ -384,7 +465,7 @@ impl App {
             }
         }
     }
-    async fn find_attempt(&self, id: &str) -> CoreResult<(SolveFile, Attempt)> {
+    pub(crate) async fn find_attempt(&self, id: &str) -> CoreResult<(SolveFile, Attempt)> {
         for file in self.ports.solving.all().await? {
             if let Some(a) = file.attempts.iter().find(|a| a.id == id) {
                 return Ok((file.clone(), a.clone()));
@@ -469,7 +550,7 @@ impl App {
         self.verify_attempt_inner(caller, job.submission.as_str(), Some((job, lease)))
             .await
     }
-    async fn verify_attempt_inner(
+    pub(crate) async fn verify_attempt_inner(
         &self,
         caller: &Caller,
         id: &str,
@@ -478,7 +559,7 @@ impl App {
         caller.require(Role::Reviewer)?;
         let (file, attempt) = self.find_attempt(id).await?;
         if attempt.receipt.is_some() || attempt.invalidated.is_some() {
-            return Ok(());
+            return self.disproof_recheck(&file, &attempt).await;
         }
         let target = match self.target(&file.record, &file.claim).await {
             Ok(target)
@@ -535,9 +616,35 @@ impl App {
             stored.receipt = Some(receipt.clone());
             match self.save_solve_file(&mut current).await {
                 Err(CoreError::StaleRevision { .. }) => continue,
-                result => return result,
+                result => {
+                    result?;
+                    return self
+                        .disproof_recheck(
+                            &current,
+                            current.attempts.iter().find(|a| a.id == id).unwrap(),
+                        )
+                        .await;
+                }
             }
         }
+    }
+    pub(crate) async fn disproof_recheck(
+        &self,
+        file: &SolveFile,
+        attempt: &Attempt,
+    ) -> CoreResult<()> {
+        if attempt
+            .receipt
+            .as_ref()
+            .is_some_and(|r| r.verdict == Verdict::Disproved)
+        {
+            let s = self.load(&file.submission).await?;
+            if s.kind != SubmissionKind::Conjecture {
+                self.request_recheck(&file.submission, &format!("disproof:{}", attempt.id))
+                    .await?;
+            }
+        }
+        Ok(())
     }
     pub async fn public_attempts(
         &self,
@@ -580,9 +687,18 @@ impl App {
             let Some(winner) = file.winner(&target.digest) else {
                 continue;
             };
+            let source = self.conjecture_source(&file.record).await?;
+            let identity = winner
+                .entrant
+                .owner
+                .as_ref()
+                .map(|o| o.id.clone())
+                .unwrap_or_else(|| winner.entrant.id.clone().into());
             out.push((
                 self.current_entrant(&winner.entrant).await?,
                 SolveCredit {
+                    others: !source.involves(&identity),
+                    formalized: !source.claim(&file.claim).is_some_and(|c| c.kind.is_open()),
                     record: file.record.clone(),
                     claim: file.claim.clone(),
                     title: self.conjecture_source(&file.record).await?.title,
@@ -604,6 +720,9 @@ impl App {
         let now = self.ports.clock.now();
         let mut rows: BTreeMap<String, LeaderboardRow> = BTreeMap::new();
         for (entrant, credit) in self.solve_credits().await? {
+            if credit.formalized {
+                continue;
+            }
             let at = credit.receipt.checked_at;
             if period == "month" && (at.year() != now.year() || at.month() != now.month()) {
                 continue;
@@ -619,6 +738,8 @@ impl App {
                 solved: 0,
                 disproved: 0,
                 score: 0,
+                others: 0,
+                total: 0,
                 last_solve: at,
             });
             if credit.receipt.verdict == Verdict::Proved {
@@ -627,12 +748,15 @@ impl App {
                 row.disproved += 1;
             }
             row.score += 1;
+            row.total += 1;
+            row.others += usize::from(credit.others);
             row.last_solve = row.last_solve.max(at);
         }
         let mut rows: Vec<_> = rows.into_values().collect();
         rows.sort_by_key(|r| {
             (
-                std::cmp::Reverse(r.score),
+                std::cmp::Reverse(r.others),
+                std::cmp::Reverse(r.total),
                 r.last_solve,
                 r.entrant.id.clone(),
             )
@@ -663,12 +787,35 @@ impl App {
         let mut profile = EntrantProfile {
             entrant: entrant.ok_or_else(|| CoreError::not_found("entrant", id))?,
             solutions: vec![],
+            others: 0,
+            total: 0,
+            formalized: vec![],
+            errors_found: 0,
         };
         for (e, credit) in self.solve_credits().await? {
             if e.id == id {
-                profile.solutions.push(credit);
+                if credit.formalized {
+                    if credit.receipt.verdict == Verdict::Proved {
+                        profile.formalized.push(credit);
+                    }
+                } else {
+                    profile.others += usize::from(credit.others);
+                    profile.total += 1;
+                    profile.solutions.push(credit);
+                }
             }
         }
+        profile.errors_found = self
+            .error_reports(None, None)
+            .await?
+            .iter()
+            .filter(|r| {
+                r.reporter.id == id
+                    && r.resolution
+                        .as_ref()
+                        .is_some_and(|r| r.verdict == ErrorVerdict::Confirmed)
+            })
+            .count();
         profile
             .solutions
             .sort_by_key(|s| std::cmp::Reverse(s.receipt.checked_at));
@@ -790,6 +937,19 @@ impl App {
                                 && a.version == file.version
                                 && a.claims_revision == file.claims_revision
                         });
+                        if file.admitted
+                            && latest.is_some_and(|a| {
+                                a.faithfulness.is_some()
+                                    && matches!(a.response, LeanStatementResponse::Confirmed { .. })
+                                    && !file.agent_attempted.contains(&a.digest)
+                                    && file.winner(&a.digest).is_none()
+                            })
+                        {
+                            self.ports
+                                .queue
+                                .enqueue(&s.id, JobKind::AgentAttempt)
+                                .await?;
+                        }
                         needs_target |= file.admitted
                             && latest.is_none_or(|a| {
                                 matches!(a.response, LeanStatementResponse::Rejected { .. })
@@ -822,10 +982,34 @@ impl App {
                         }
                     }
                 }
+                if s.claims.iter().any(|c| {
+                    s.approved_statement(&c.id)
+                        && s.lean_statements
+                            .iter()
+                            .rev()
+                            .find(|a| a.claim == c.id)
+                            .is_none_or(|a| {
+                                matches!(a.response, LeanStatementResponse::Rejected { .. })
+                            })
+                }) {
+                    self.ports
+                        .queue
+                        .enqueue(&s.id, JobKind::LeanStatement)
+                        .await?;
+                }
+                if let Some(file) = self.ports.referees.get(&s.id).await?
+                    && !file.recheck_requests.is_empty()
+                    && file
+                        .current()
+                        .is_none_or(|r| r.recheck_requests != file.recheck_requests)
+                {
+                    self.ports.queue.enqueue(&s.id, JobKind::Referee).await?;
+                }
                 if s.lean_statements.iter().any(|a| {
                     a.version == s.current_version().unwrap().number
                         && a.claims_revision == s.claims_revision
-                        && !a.lean.contains("def wishpool_target_prop")
+                        && (a.faithfulness.is_none()
+                            || !a.lean.contains("def wishpool_target_prop"))
                         && !matches!(a.response, LeanStatementResponse::Rejected { .. })
                 }) {
                     self.ports
@@ -839,7 +1023,18 @@ impl App {
                 break;
             }
         }
+        for r in self.all_error_reports().await? {
+            if r.resolution.is_none() || !r.effects_applied {
+                self.ports
+                    .queue
+                    .enqueue(&r.submission, JobKind::ErrorReports)
+                    .await?;
+            }
+        }
         for file in self.ports.solving.all().await? {
+            for a in &file.attempts {
+                self.disproof_recheck(&file, a).await?;
+            }
             for a in file
                 .attempts
                 .iter()

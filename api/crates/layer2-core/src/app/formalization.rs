@@ -51,8 +51,8 @@ impl App {
         Ok(submission)
     }
 
-    /// The author approves or declines a proposed formalization. Approval
-    /// opens a formalization task when the author lets contributors help.
+    /// The author approves or declines a proved statement. Approval queues
+    /// target generation and audit for the shared attempt/verifier path.
     pub async fn respond_to_formalization(
         &self,
         caller: &Caller,
@@ -63,6 +63,28 @@ impl App {
     ) -> CoreResult<Submission> {
         let mut submission = self.load(id).await?;
         Self::require_submitter(caller, &submission)?;
+        Self::require_accepted(&submission)?;
+        if submission.analysis_visibility != Visibility::Public {
+            return Err(CoreError::conflict(
+                "formalization requires a public accepted paper",
+            ));
+        }
+        let statement = submission
+            .claim(claim)
+            .ok_or_else(|| CoreError::not_found("statement", claim.as_str()))?;
+        if statement.kind.is_open() || !statement.has_proof {
+            return Err(CoreError::invalid(
+                "only proved paper statements may be formalized",
+            ));
+        }
+        if submission.formalization.item(claim).is_none() {
+            submission.formalization.items.push(FormalizationItem {
+                claim: claim.clone(),
+                reason: "Author requested formalization".into(),
+                state: ItemState::Proposed,
+                updated_at: self.ports.clock.now(),
+            });
+        }
         let now = self.ports.clock.now();
         let item = submission
             .formalization
@@ -84,96 +106,11 @@ impl App {
             }
         };
         item.updated_at = now;
-        let open = submission.open_to_contributors;
         self.save(&mut submission).await?;
-        if approve && open {
-            self.open_task(caller, id, claim, TaskKind::Formalize)
-                .await?;
-        }
-        Ok(submission)
-    }
-
-    pub async fn set_formalization_repository(
-        &self,
-        caller: &Caller,
-        id: &SubmissionId,
-        repository: String,
-    ) -> CoreResult<Submission> {
-        caller.require(Role::Editor)?;
-        if !is_web_url(&repository) {
-            return Err(CoreError::invalid("the repository must be an http(s) URL"));
-        }
-        let mut submission = self.submission(caller, id).await?;
-        Self::require_accepted(&submission)?;
-        submission.formalization.repository = Some(repository);
-        self.save(&mut submission).await?;
-        Ok(submission)
-    }
-
-    pub async fn start_formalization(
-        &self,
-        caller: &Caller,
-        id: &SubmissionId,
-        claim: &ClaimId,
-    ) -> CoreResult<Submission> {
-        caller.require(Role::Editor)?;
-        let mut submission = self.submission(caller, id).await?;
-        let now = self.ports.clock.now();
-        let item = submission
-            .formalization
-            .items
-            .iter_mut()
-            .find(|i| &i.claim == claim)
-            .ok_or_else(|| CoreError::not_found("plan item", claim.as_str()))?;
-        if item.state != ItemState::Approved {
-            return Err(CoreError::conflict(format!(
-                "the item is {}; the author approves first",
-                item.state.name()
-            )));
-        }
-        item.state = ItemState::InProgress;
-        item.updated_at = now;
-        self.save(&mut submission).await?;
-        Ok(submission)
-    }
-
-    /// An editor records a checked Lean proof. Only the standard axioms are
-    /// accepted. A contribution named here is credited.
-    pub async fn verify_formalization(
-        &self,
-        caller: &Caller,
-        id: &SubmissionId,
-        claim: &ClaimId,
-        artifact: FormalArtifact,
-        axioms: Vec<String>,
-        contribution: Option<String>,
-    ) -> CoreResult<Submission> {
-        caller.require(Role::Editor)?;
-        validate_verification(&artifact, &axioms)?;
-        let mut submission = self.submission(caller, id).await?;
-        Self::require_accepted(&submission)?;
-        let now = self.ports.clock.now();
-        let item = submission
-            .formalization
-            .items
-            .iter_mut()
-            .find(|i| &i.claim == claim)
-            .ok_or_else(|| CoreError::not_found("plan item", claim.as_str()))?;
-        if !matches!(item.state, ItemState::Approved | ItemState::InProgress) {
-            return Err(CoreError::conflict(format!(
-                "the item is {}",
-                item.state.name()
-            )));
-        }
-        item.state = ItemState::Verified {
-            artifact: artifact.clone(),
-            axioms,
-            contribution: contribution.clone(),
-        };
-        item.updated_at = now;
-        self.save(&mut submission).await?;
-        if let Some(contribution) = contribution {
-            self.credit_formalization(&contribution, id, claim, &artifact)
+        if approve {
+            self.ports
+                .queue
+                .enqueue(id, crate::ports::JobKind::LeanStatement)
                 .await?;
         }
         Ok(submission)

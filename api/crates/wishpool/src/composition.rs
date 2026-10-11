@@ -140,7 +140,7 @@ impl Composition {
                     cipher: TokenCipher::from_base64(&hosted.token_key)?,
                     scope: hosted.scope.clone(),
                     service_ids: hosted.service_ids.clone(),
-                    gateway_url: hosted.gateway_url.clone(),
+
                     default_model: hosted.default_model.clone(),
                 }))
             }

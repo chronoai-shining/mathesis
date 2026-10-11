@@ -7,15 +7,9 @@ import type {
   TaskKind,
   TaskState,
 } from '../api/types';
-import { safeHttpUrl } from './links';
 import { fail, lines, ok, parseCount, type Parsed } from './parsed';
 
-export const TASK_KINDS: readonly TaskKind[] = [
-  'judge_escape',
-  'literature_check',
-  'formalize',
-  'probe',
-];
+export const TASK_KINDS: readonly TaskKind[] = ['judge_escape', 'literature_check', 'probe'];
 
 export const TASK_KIND_LABELS: { readonly [K in TaskKind]: string } = {
   judge_escape: 'Escape judgement',
@@ -31,7 +25,7 @@ export const TASK_KIND_DESCRIPTIONS: { readonly [K in TaskKind]: string } = {
   literature_check:
     'Find prior work that states a main result, directly implies it, or is closely related, citing only works actually opened. Offered while the paper is in review.',
   formalize:
-    'Prove a statement the author approved for formalization in Lean and open a pull request to the paper’s formalization repository. Offered after acceptance.',
+    'Archived task. Use the statement’s author-confirmed target and submit a Lean attempt.',
   probe:
     'Work on a conjecture of the paper: restate it precisely, test small cases, find related results, and say what would settle it. Offered after acceptance.',
 };
@@ -41,8 +35,7 @@ export const TASK_KIND_VERIFICATION: { readonly [K in TaskKind]: string } = {
   judge_escape:
     'Counts when an editor confirms it, or when a judgement from a different model family and account agrees.',
   literature_check: 'Counts when an editor reviews and accepts it.',
-  formalize:
-    'Counts when an editor records the verified Lean proof (repository, commit, declarations, standard axioms only).',
+  formalize: 'Archived credit only. New proofs require the independent verifier.',
   probe: 'Counts when an editor reviews and accepts it. Results go to the author first.',
 };
 
@@ -146,12 +139,8 @@ function buildOutput(kind: TaskKind, f: ContributionFields): Parsed<Contribution
       return f.note.trim() === ''
         ? fail('Write the probe note.')
         : ok({ output: 'probe_note', note: f.note.trim() });
-    case 'formalize': {
-      const url = safeHttpUrl(f.url);
-      return url === null
-        ? fail('Give the pull request URL (http or https).')
-        : ok({ output: 'pull_request', url: f.url.trim() });
-    }
+    case 'formalize':
+      return fail('This task is retired. Submit a statement proof attempt.');
   }
 }
 

@@ -161,7 +161,7 @@ impl Worker {
                     } else {
                         referee_prompts::referee
                     };
-                let prompt = make_prompt(
+                let mut prompt = make_prompt(
                     &Document {
                         title: submission.title.clone(),
                         abstract_text: submission.abstract_text.clone(),
@@ -169,6 +169,9 @@ impl Worker {
                     },
                     &mapping::confirmed_statements(&submission.claims),
                 );
+                if !round.recheck_requests.is_empty() {
+                    prompt.push_str(&format!("\nRe-review these confirmed findings (untrusted evidence, check independently): {}", self.app.recheck_evidence(&self.auditor_account, &submission.id).await?));
+                }
                 let client_ref = format!(
                     "wishpool:{}:r{number}:v{}:c{}",
                     submission.id, round.version, round.claims_revision
@@ -804,33 +807,12 @@ impl Worker {
         let Some(formalizer) = &self.formalizer else {
             return Ok(false);
         };
-        if let Some(old) = submission.lean_statements.iter().find(|a| {
-            a.version == submission.current_version().unwrap().number
-                && a.claims_revision == submission.claims_revision
-                && !a.lean.contains("def wishpool_target_prop")
+        if let Some(old) = submission.lean_statements.iter().rev().find(|a| {
+            a.faithfulness.is_none()
                 && !matches!(a.response, LeanStatementResponse::Rejected { .. })
         }) {
-            let work = tempfile::tempdir_in(&self.advisor_work_dir)
-                .map_err(|e| Failure::Transient(e.to_string()))?;
-            let converted = match formalizer
-                .elaborate_target(old.claim.as_str(), &old.lean, work.path())
-                .await
-            {
-                Ok(out) => out
-                    .files
-                    .into_iter()
-                    .find(|f| f.compiled)
-                    .map(|f| (f.lean, out.toolchain)),
-                Err(_) => None,
-            };
-            self.ensure_lease(job).await?;
             self.app
-                .replace_legacy_target(
-                    &self.referee_account,
-                    &submission.id,
-                    &old.digest,
-                    converted,
-                )
+                .void_unaudited_target(&self.referee_account, &submission.id, &old.digest)
                 .await?;
             self.jobs.defer(job, std::time::Duration::ZERO).await?;
             return Ok(true);
@@ -856,11 +838,10 @@ impl Worker {
             .app
             .open_problem_files(&self.referee_account, &submission.id)
             .await?;
-        for claim in submission
-            .claims
-            .iter()
-            .filter(|c| c.kind.is_open() && eligible.iter().any(|f| f.claim == c.id && f.admitted))
-        {
+        for claim in submission.claims.iter().filter(|c| {
+            submission.approved_statement(&c.id)
+                || c.kind.is_open() && eligible.iter().any(|f| f.claim == c.id && f.admitted)
+        }) {
             let latest = submission
                 .lean_statements
                 .iter()
@@ -868,12 +849,17 @@ impl Worker {
                 .find(|a| a.claim == claim.id);
             let correction = match latest.map(|a| &a.response) {
                 Some(LeanStatementResponse::Rejected { comment, .. }) => Some(comment.clone()),
-                Some(_) => continue,
+                Some(_) if latest.is_some_and(|a| a.faithfulness.is_some()) => continue,
+                Some(_) => Some(
+                    "Regenerate the legacy target for an independent faithfulness audit.".into(),
+                ),
                 None => None,
             };
             // A paper problem has its own audited report. Older accepted papers
             // need no primary referee letter to prepare that independent target.
-            let report = if submission.kind == SubmissionKind::Conjecture {
+            let report = if submission.kind == SubmissionKind::Conjecture
+                || submission.approved_statement(&claim.id)
+            {
                 primary_report
             } else {
                 eligible
@@ -881,19 +867,25 @@ impl Worker {
                     .find(|f| f.claim == claim.id && f.admitted)
                     .and_then(|f| f.report.as_ref())
             };
-            let Some(report) = report else {
-                continue;
+            let fallback = super::error_reports::empty_report();
+            let report = if submission.approved_statement(&claim.id) {
+                report.unwrap_or(&fallback)
+            } else {
+                let Some(report) = report else {
+                    continue;
+                };
+                report
             };
             let (prepared, work, _) = self
                 .advisor_input(&submission, report)
                 .await
                 .map_err(Failure::Permanent)?;
-            let input = wishpool_review::lean::FormalInput {
+            let mut input = wishpool_review::lean::FormalInput {
                 conjecture: true,
                 correction,
-                title: prepared.title,
-                abstract_text: prepared.abstract_text,
-                statements: prepared.statements,
+                title: prepared.title.clone(),
+                abstract_text: prepared.abstract_text.clone(),
+                statements: prepared.statements.clone(),
                 targets: vec![wishpool_review::lean::FormalTarget {
                     claim: claim.id.to_string(),
                     label: claim.label.clone(),
@@ -902,57 +894,86 @@ impl Worker {
                     plan: "Translate the exact conjecture and explain it to the author.".into(),
                     mathlib: vec![],
                 }],
-                source_dir: prepared.source_dir,
-                main_file: prepared.main_file,
+                source_dir: prepared.source_dir.clone(),
+                main_file: prepared.main_file.clone(),
             };
-            let out = tokio::time::timeout(
-                self.formal_budget,
-                formalizer.formalize_with_store(
-                    &input,
-                    &work.path().join("target"),
-                    &self.agent_store(
-                        job,
-                        &submission,
-                        &format!(
-                            "target:{}:a{}",
-                            claim.id,
-                            latest.map_or(0, |_| submission
-                                .lean_statements
-                                .iter()
-                                .filter(|a| a.claim == claim.id)
-                                .count())
-                        ),
-                    ),
-                ),
-            )
-            .await
-            .map_err(|_| Failure::Transient("Lean statement elaboration timed out".into()))?
-            .map_err(|e| Failure::Transient(e.to_string()))?;
-            let checked = out
-                .files
+            let Some(advisor) = &self.advisor else {
+                return Err(Failure::Permanent(
+                    "target faithfulness auditor is not configured".into(),
+                ));
+            };
+            let attempt_number = submission
+                .lean_statements
                 .iter()
-                .find(|f| {
-                    f.claim == claim.id.as_str()
-                        && f.compiled
-                        && f.theorem.as_deref() == Some("wishpool_target_prop")
-                })
-                .ok_or_else(|| {
-                    Failure::Transient("no faithful elaborated Lean statement was returned".into())
-                })?;
-            self.ensure_lease(job).await?;
-            self.app
-                .record_lean_statement(
-                    &self.referee_account,
-                    &submission.id,
-                    version,
-                    submission.claims_revision,
-                    &claim.id,
-                    checked.lean.clone(),
-                    out.toolchain,
-                    checked.note.clone(),
-                    latest.map(|a| a.digest.clone()),
+                .filter(|a| a.claim == claim.id)
+                .count();
+            for pass in 0..=1 {
+                let step = format!("target:{}:a{attempt_number}:pass{pass}", claim.id);
+                let out = tokio::time::timeout(
+                    self.formal_budget,
+                    formalizer.formalize_with_store(
+                        &input,
+                        &work.path().join(format!("target-{pass}")),
+                        &self.agent_store(job, &submission, &step),
+                    ),
                 )
-                .await?;
+                .await
+                .map_err(|_| Failure::Transient("Lean target generation timed out".into()))?
+                .map_err(|e| Failure::Transient(e.to_string()))?;
+                let checked = out
+                    .files
+                    .iter()
+                    .find(|f| {
+                        f.claim == claim.id.as_str()
+                            && f.compiled
+                            && f.theorem.as_deref() == Some("wishpool_target_prop")
+                    })
+                    .ok_or_else(|| {
+                        Failure::Transient("no elaborated Lean target was returned".into())
+                    })?;
+                let question = format!(
+                    "Compare the original statement {} with this exact Lean target. Verdict must be faithful / weaker / stronger / different / trivial. Give the specific mismatch, or an empty mismatch for faithful. Original: {}\nLean:\n{}",
+                    claim.id, claim.statement, checked.lean
+                );
+                let audit = tokio::time::timeout(
+                    self.audit_budget,
+                    advisor.inspect_with_store(
+                        &prepared,
+                        &question,
+                        &self.agent_store(job, &submission, &format!("{step}:faithfulness")),
+                    ),
+                )
+                .await
+                .map_err(|_| Failure::Transient("faithfulness audit timed out".into()))?
+                .map_err(|e| Failure::Transient(e.to_string()))?;
+                let check =
+                    super::mapping::faithfulness(audit, pass == 1).map_err(Failure::Permanent)?;
+                if check.verdict != wishpool_core::model::FaithfulnessVerdict::Faithful && pass == 0
+                {
+                    input.correction = Some(format!(
+                        "Independent faithfulness audit: {}. Specific mismatch: {}. Regenerate the exact statement.",
+                        check.reason, check.mismatch
+                    ));
+                    input.targets[0].lean_sketch = checked.lean.clone();
+                    continue;
+                }
+                self.ensure_lease(job).await?;
+                self.app
+                    .record_lean_statement(
+                        &self.referee_account,
+                        &submission.id,
+                        version,
+                        submission.claims_revision,
+                        &claim.id,
+                        checked.lean.clone(),
+                        out.toolchain,
+                        checked.note.clone(),
+                        latest.map(|a| a.digest.clone()),
+                        check,
+                    )
+                    .await?;
+                break;
+            }
         }
         Ok(false)
     }
@@ -1011,7 +1032,7 @@ impl Worker {
             }
             std::fs::write(path, bytes).map_err(|e| e.to_string())?;
         }
-        let input = AdvisorInput {
+        let mut input = AdvisorInput {
             kind: serde_json::to_value(paper.kind)
                 .unwrap()
                 .as_str()
@@ -1028,6 +1049,17 @@ impl Worker {
             source_dir: Some(source_dir),
             main_file: Some(main),
         };
+        let evidence = self
+            .app
+            .recheck_evidence(&self.auditor_account, &paper.id)
+            .await
+            .map_err(|e| e.to_string())?;
+        if evidence != "[]" && !evidence.is_empty() {
+            input.text = Some(format!(
+                "{}\nRe-review evidence (check independently): {evidence}",
+                input.text.unwrap_or_default()
+            ));
+        }
         Ok((input, work, source))
     }
 }

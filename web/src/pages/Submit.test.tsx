@@ -33,11 +33,17 @@ describe('SubmitPage', () => {
       'https://doi.org/10.48550/arXiv.2609.33421',
     );
     await user.click(screen.getByRole('checkbox', { name: /volunteer contributors/ }));
+    if (
+      !(screen.getByRole('checkbox', { name: /I agree that the source/ }) as HTMLInputElement)
+        .checked
+    )
+      await user.click(screen.getByRole('checkbox', { name: /I agree that the source/ }));
     await user.click(screen.getByRole('button', { name: 'Upload and read statements' }));
 
     expect(createSubmission).toHaveBeenCalledWith(
       {
         kind: 'paper',
+        processing_consent: 'ai-review-2026-10-11',
         make_public_after_acceptance: true,
         ai_disclosure: { level: 'substantial', statement: 'A model drafted Lemma 2.' },
         msc: ['11B83', '05D10'],
@@ -59,6 +65,11 @@ describe('SubmitPage', () => {
     );
     await user.type(screen.getByLabelText('AI disclosure statement'), 'None.');
     await user.type(screen.getByLabelText('DOI (optional)'), '2609.33421');
+    if (
+      !(screen.getByRole('checkbox', { name: /I agree that the source/ }) as HTMLInputElement)
+        .checked
+    )
+      await user.click(screen.getByRole('checkbox', { name: /I agree that the source/ }));
     await user.click(screen.getByRole('button', { name: 'Upload and read statements' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('"2609.33421" is not a DOI');
     expect(createSubmission).not.toHaveBeenCalled();
@@ -78,11 +89,21 @@ describe('SubmitPage', () => {
 
     await user.upload(input, new File(['%PDF'], 'paper.pdf', { type: 'application/pdf' }));
     await user.type(screen.getByLabelText('AI disclosure statement'), 'None.');
+    if (
+      !(screen.getByRole('checkbox', { name: /I agree that the source/ }) as HTMLInputElement)
+        .checked
+    )
+      await user.click(screen.getByRole('checkbox', { name: /I agree that the source/ }));
     await user.click(screen.getByRole('button', { name: 'Upload and read statements' }));
     expect(await screen.findByRole('alert')).toHaveTextContent(/Choose a \.tex file/);
     expect(createSubmission).not.toHaveBeenCalled();
 
     await user.upload(input, new File(['x'], 'paper.zip', { type: 'application/zip' }));
+    if (
+      !(screen.getByRole('checkbox', { name: /I agree that the source/ }) as HTMLInputElement)
+        .checked
+    )
+      await user.click(screen.getByRole('checkbox', { name: /I agree that the source/ }));
     await user.click(screen.getByRole('button', { name: 'Upload and read statements' }));
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'no main file: the archive has no .tex file with \\documentclass',
@@ -99,6 +120,11 @@ describe('SubmitPage', () => {
     const source = new File(['source'], 'note.tex', { type: 'application/x-tex' });
     await user.upload(screen.getByLabelText('LaTeX source'), source);
     await user.type(screen.getByLabelText('AI disclosure statement'), 'No AI was used.');
+    if (
+      !(screen.getByRole('checkbox', { name: /I agree that the source/ }) as HTMLInputElement)
+        .checked
+    )
+      await user.click(screen.getByRole('checkbox', { name: /I agree that the source/ }));
     await user.click(screen.getByRole('button', { name: 'Upload and read statements' }));
     expect(createSubmission).toHaveBeenCalledWith(
       expect.objectContaining({ kind: 'note', make_public_after_acceptance: false }),
@@ -122,6 +148,11 @@ describe('SubmitPage', () => {
     expect(preview.querySelector('.katex')).not.toBeNull();
     expect(screen.getByRole('checkbox', { name: 'Make public after acceptance' })).toBeChecked();
     expect(screen.getByText('Reviews and letters are only shown to you.')).toBeInTheDocument();
+    if (
+      !(screen.getByRole('checkbox', { name: /I agree that the source/ }) as HTMLInputElement)
+        .checked
+    )
+      await user.click(screen.getByRole('checkbox', { name: /I agree that the source/ }));
     await user.click(screen.getByRole('button', { name: 'Upload and read statements' }));
     expect(createSubmission).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -138,4 +169,21 @@ describe('SubmitPage', () => {
       undefined,
     );
   });
+});
+
+it('requires explicit AI processing consent, unchecked on a fresh upload', async () => {
+  const createSubmission = vi.fn(async () => draft);
+  const user = userEvent.setup();
+  renderWithApp(<SubmitPage />, fakeApi({ createSubmission }, author));
+  await user.upload(
+    await screen.findByLabelText('LaTeX source'),
+    new File(['source'], 'paper.tex', { type: 'text/plain' }),
+  );
+  await user.type(screen.getByLabelText('AI disclosure statement'), 'None.');
+  expect(screen.getByRole('checkbox', { name: /I agree that the source/ })).not.toBeChecked();
+  await user.click(screen.getByRole('button', { name: 'Upload and read statements' }));
+  expect(createSubmission).not.toHaveBeenCalled();
+  expect(await screen.findByRole('alert')).toHaveTextContent(
+    'Agree to third-party AI review before uploading.',
+  );
 });

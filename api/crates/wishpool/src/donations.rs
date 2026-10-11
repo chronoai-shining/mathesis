@@ -1,12 +1,6 @@
-//! Donated model quota: the encrypted delegated credential, and the hosted
-//! worker that spends it on tasks a model can do alone.
-//!
-//! A donor authorizes the venue in NyxID (incremental consent for delegated
-//! access). The venue keeps only the refresh token, encrypted with
-//! AES-256-GCM under a deployment key, exchanges it for a short-lived access
-//! token when it works, and calls the donor's models through the NyxID LLM
-//! gateway. Usage is taken from the gateway's reply and charged to the
-//! donor's monthly cap; every contribution records it as metered.
+//! Donated quota attribution for venue CMA agent work. Credentials stay sealed.
+//! CMA v2 currently refuses restricted delegated tokens; accounting awaits real
+//! NyxID receipts. The maintenance loop only removes revoked credentials.
 
 use std::{collections::HashMap, sync::Arc, time::Duration};
 
@@ -18,21 +12,10 @@ use async_trait::async_trait;
 use base64::Engine as _;
 use mongodb::bson::doc;
 use tokio::sync::{Mutex, watch};
-use wishpool_core::{
-    CoreError, CoreResult,
-    app::App,
-    ids::PersonId,
-    model::{
-        AgentInfo, Caller, ContributionMode, NewContribution, TaskKind, TaskStatus, TokenUsage,
-        VerifiedIdentity,
-    },
-    ports::TaskFilter,
-};
-use wishpool_review::{ReviewModel, openai_compat::ChatModel};
+use wishpool_core::{CoreError, CoreResult, app::App, ids::PersonId};
 
 use crate::{
     auth::nyxid::NyxIdClient,
-    review::mapping,
     store::{MongoStore, unavailable, write_error},
 };
 
@@ -149,7 +132,6 @@ pub struct Donations {
     pub cipher: TokenCipher,
     pub scope: String,
     pub service_ids: Vec<String>,
-    pub gateway_url: String,
     pub default_model: String,
 }
 
@@ -161,9 +143,6 @@ pub fn valid_model(model: &str) -> bool {
             .all(|c| c.is_ascii_alphanumeric() || matches!(c, '-' | '.' | '_' | '/'))
 }
 
-/// Tokens reserved before a call; a call is skipped when less remains.
-const CALL_RESERVE: u64 = 40_000;
-
 pub struct HostedWorker {
     pub app: Arc<App>,
     pub nyxid: Arc<NyxIdClient>,
@@ -171,52 +150,23 @@ pub struct HostedWorker {
     pub interval: Duration,
 }
 
-enum Outcome {
-    Submitted,
-    Idle,
-}
-
 impl HostedWorker {
     pub async fn run(self: Arc<Self>, mut shutdown: watch::Receiver<bool>) {
+        tracing::info!(
+            "Donations attribute venue CMA runs; restricted delegated tokens cannot execute CMA v2. Usage awaits NyxID receipts."
+        );
         loop {
-            match self.round().await {
-                Ok(0) => {}
-                Ok(n) => tracing::info!(contributions = n, "hosted round"),
-                Err(error) => tracing::warn!(%error, "hosted round failed"),
+            if *shutdown.borrow() {
+                break;
             }
-            tokio::select! {
-                _ = tokio::time::sleep(self.interval) => {}
-                _ = shutdown.changed() => break,
+            // Rotation is demand-driven in CmaTokens. No legacy hosted judgement jobs.
+            // Revoke also destroys the sealed credential; no quota is spent by this loop.
+            for grant in self.app.revoked_donations().await.unwrap_or_default() {
+                let _ = self.donations.tokens.delete(&grant).await;
             }
+            tokio::select! { _ = tokio::time::sleep(self.interval) => {}, _ = shutdown.changed() => break }
         }
     }
-
-    #[cfg(test)]
-    pub async fn round_for_test(&self) -> CoreResult<usize> {
-        self.round().await
-    }
-
-    /// One task per donor with budget left.
-    async fn round(&self) -> CoreResult<usize> {
-        let mut done = 0;
-        for grant in self.app.spendable_donations().await? {
-            if grant.remaining(chrono::Utc::now()) < CALL_RESERVE {
-                continue;
-            }
-            match self.work_for(&grant.donor, &grant.model).await {
-                Ok(Outcome::Submitted) => done += 1,
-                Ok(Outcome::Idle) => {}
-                Err(CoreError::Unauthenticated) => {
-                    tracing::warn!(donor = %grant.donor, "delegated credential refused; revoking the grant");
-                    self.app.revoke_donation(&grant.donor).await?;
-                    self.donations.tokens.delete(&grant.donor).await?;
-                }
-                Err(error) => tracing::warn!(donor = %grant.donor, %error, "hosted task failed"),
-            }
-        }
-        Ok(done)
-    }
-
     pub(crate) async fn access_token(&self, donor: &PersonId) -> CoreResult<String> {
         let sealed = self
             .donations
@@ -233,131 +183,6 @@ impl HostedWorker {
                 .await?;
         }
         Ok(tokens.access_token)
-    }
-
-    async fn pick(&self, donor: &Caller) -> CoreResult<Option<wishpool_core::model::Task>> {
-        for kind in [TaskKind::JudgeEscape] {
-            let page = self
-                .app
-                .list_tasks(
-                    TaskFilter {
-                        kind: Some(kind),
-                        status: Some("open".into()),
-                        ..Default::default()
-                    },
-                    Some(50),
-                    None,
-                )
-                .await?;
-            if let Some(task) = page
-                .items
-                .into_iter()
-                .find(|t| !t.contributors.contains(&donor.person))
-            {
-                return Ok(Some(task));
-            }
-        }
-        Ok(None)
-    }
-
-    async fn work_for(&self, donor: &PersonId, model: &str) -> CoreResult<Outcome> {
-        let caller = self
-            .app
-            .caller(&VerifiedIdentity {
-                subject: donor.clone(),
-                name: None,
-                email: None,
-                picture: None,
-            })
-            .await?;
-        let Some(task) = self.pick(&caller).await? else {
-            return Ok(Outcome::Idle);
-        };
-        let task = match self
-            .app
-            .lease_task(&caller, &task.id, ContributionMode::Hosted)
-            .await
-        {
-            Ok(task) => task,
-            Err(CoreError::Conflict(_)) => return Ok(Outcome::Idle),
-            Err(error) => return Err(error),
-        };
-        let result = self.perform(&caller, &task, model).await;
-        if result.is_err()
-            && matches!(
-                self.app.task(&task.id).await.map(|t| t.status),
-                Ok(TaskStatus::Leased { .. })
-            )
-        {
-            let _ = self.app.release_task(&caller, &task.id).await;
-        }
-        result
-    }
-
-    async fn perform(
-        &self,
-        caller: &Caller,
-        task: &wishpool_core::model::Task,
-        model: &str,
-    ) -> CoreResult<Outcome> {
-        let token = self.access_token(&caller.person).await?;
-        let chat = ChatModel::new(&self.donations.gateway_url, token, model.to_owned())
-            .map_err(|e| CoreError::Unavailable(e.to_string()))?;
-        let review = |e: wishpool_review::ReviewError| match e {
-            wishpool_review::ReviewError::Provider {
-                status: 401 | 403, ..
-            } => CoreError::Unauthenticated,
-            other => CoreError::Unavailable(other.to_string()),
-        };
-        let context = self.app.task_context(caller, &task.id).await?;
-        let (output, usage) = match task.kind {
-            TaskKind::JudgeEscape => {
-                let mut background = format!(
-                    "PAPER: {}\nABSTRACT: {}\n",
-                    context.paper_title, context.abstract_text
-                );
-                for dependency in &context.dependencies {
-                    background.push_str(&format!(
-                        "\n{}: {}\n",
-                        dependency.label, dependency.statement
-                    ));
-                }
-                let (draft, usage) = chat
-                    .judge_statement(&context.claim.statement, &background)
-                    .await
-                    .map_err(review)?;
-                let output = mapping::draft_judgement(&draft).ok_or_else(|| {
-                    CoreError::Unavailable(format!(
-                        "model returned an unusable judgement ({:?})",
-                        draft.shape
-                    ))
-                })?;
-                (output, usage)
-            }
-            TaskKind::LiteratureCheck | TaskKind::Formalize | TaskKind::Probe => {
-                return Ok(Outcome::Idle);
-            }
-        };
-        let tokens = TokenUsage {
-            input: usage.input,
-            output: usage.output,
-            metered: true,
-        };
-        let contribution = NewContribution {
-            agent: AgentInfo {
-                tool: "wishpool-hosted".into(),
-                model: model.to_owned(),
-            },
-            output,
-            tokens: Some(tokens),
-        };
-        self.app
-            .submit_contribution_as(caller, &task.id, contribution)
-            .await?;
-        self.app
-            .charge_donation(&caller.person, tokens.total())
-            .await?;
-        Ok(Outcome::Submitted)
     }
 }
 

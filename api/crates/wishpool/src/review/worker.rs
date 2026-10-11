@@ -148,6 +148,12 @@ impl Worker {
             return Ok(false);
         }
         self.cleanup_agents(job).await?;
+        if job.kind == JobKind::ErrorReports {
+            return self.error_reports_job(job).await;
+        }
+        if job.kind == JobKind::AgentAttempt {
+            return self.agent_attempt_job(job).await;
+        }
         if job.kind == JobKind::OpenProblems {
             return self.open_problems_job(job).await;
         }
@@ -163,7 +169,9 @@ impl Worker {
             Err(error) => return Err(error.into()),
         };
         match job.kind {
-            JobKind::OpenProblems
+            JobKind::ErrorReports
+            | JobKind::AgentAttempt
+            | JobKind::OpenProblems
             | JobKind::VerifyAttempt
             | JobKind::LeanStatement
             | JobKind::Referee => unreachable!("referee handled above"),

@@ -61,6 +61,12 @@ async fn target(w: &World, author: &Caller, reviewer: &Caller) -> (Submission, R
             "test".into(),
             "True".into(),
             None,
+            crate::model::FaithfulnessCheck {
+                verdict: crate::model::FaithfulnessVerdict::Faithful,
+                reason: "Definitions and quantifiers agree.".into(),
+                mismatch: String::new(),
+                regenerated: false,
+            },
         )
         .await
         .unwrap();
@@ -274,6 +280,18 @@ async fn agents_are_owned_unique_renameable_retireable_and_share_one_board() {
     assert!(w.app.create_agent(&owner, "x".repeat(41)).await.is_err());
     assert!(
         w.app
+            .create_agent(&owner, "wishpool-agent".into())
+            .await
+            .is_err()
+    );
+    assert!(
+        w.app
+            .update_agent(&owner, &agent.id, Some("Wishpool-agent".into()), false)
+            .await
+            .is_err()
+    );
+    assert!(
+        w.app
             .submit_attempt(
                 &other,
                 &record,
@@ -391,6 +409,7 @@ async fn visibility_and_versions_hide_solutions_and_remove_their_credit() {
                 bytes: b"new".to_vec(),
             },
             String::new(),
+            Some("ai-review-2026-10-11".into()),
         )
         .await
         .unwrap();
@@ -533,6 +552,7 @@ async fn unconfirmed_targets_reject_attempts_and_legacy_conversion_requires_new_
     let legacy = "import Mathlib\ntheorem wishpool_target : True := by sorry";
     let old = format!("{:x}", sha2::Sha256::digest(legacy.as_bytes()));
     current.lean_statements.push(LeanStatementAttempt {
+        faithfulness: None,
         claim: "C1".into(),
         version: 1,
         claims_revision: current.claims_revision,
@@ -610,6 +630,7 @@ async fn superseded_pending_attempts_are_terminal_private_and_not_requeued() {
                 bytes: b"new version".to_vec(),
             },
             String::new(),
+            Some("ai-review-2026-10-11".into()),
         )
         .await
         .unwrap();
@@ -839,4 +860,466 @@ async fn reconciliation_repairs_requested_problem_jobs_without_backfilling_legac
             .iter()
             .any(|(id, kind)| id == &paper.id && *kind == JobKind::OpenProblems)
     );
+}
+
+fn faithful() -> FaithfulnessCheck {
+    FaithfulnessCheck {
+        verdict: FaithfulnessVerdict::Faithful,
+        reason: "The domains, assumptions and conclusion agree.".into(),
+        mismatch: String::new(),
+        regenerated: false,
+    }
+}
+async fn paper_target(w: &World, author: &Caller, reviewer: &Caller) -> (Submission, RecordId) {
+    let paper = w
+        .review_paper(author, &w.submit(author, "t", false).await)
+        .await;
+    w.app
+        .begin_referee_round(reviewer, &paper.id)
+        .await
+        .unwrap();
+    w.app
+        .update_referee_round(
+            reviewer,
+            &paper.id,
+            1,
+            RoundUpdate::Referee(done_step(referee_report(Some(Recommendation::Accept)))),
+        )
+        .await
+        .unwrap();
+    let paper = audited(
+        w,
+        reviewer,
+        &paper,
+        audit_for(
+            &paper,
+            Recommendation::Accept,
+            Correctness::Correct,
+            ProofShape::Content,
+            None,
+        ),
+    )
+    .await;
+    let SubmissionStatus::Accepted { record } = paper.status.clone() else {
+        panic!()
+    };
+    w.app
+        .respond_to_formalization(author, &paper.id, &"C1".into(), true, String::new())
+        .await
+        .unwrap();
+    let paper = w
+        .app
+        .record_lean_statement(
+            reviewer,
+            &paper.id,
+            1,
+            paper.claims_revision,
+            &"C1".into(),
+            "import Mathlib\ndef wishpool_target_prop : Prop := True\n".into(),
+            "test".into(),
+            "True".into(),
+            None,
+            faithful(),
+        )
+        .await
+        .unwrap();
+    let paper = w
+        .app
+        .respond_lean_statement(
+            author,
+            AuthenticationMethod::CookieSession,
+            &paper.id,
+            &paper.lean_statements[0].digest,
+            true,
+            String::new(),
+        )
+        .await
+        .unwrap();
+    (paper, record)
+}
+#[tokio::test]
+async fn paper_statement_uses_attempt_verifier_and_credits_formalized_only() {
+    let w = world(20).await;
+    let a = w.person("author", &[]).await;
+    let r = w.person("reviewer", &[Role::Reviewer]).await;
+    let solver = w.person("solver", &[]).await;
+    let (paper, record) = paper_target(&w, &a, &r).await;
+    assert!(
+        w.app
+            .list_tasks(
+                TaskFilter {
+                    kind: Some(TaskKind::LegacyFormalize),
+                    ..Default::default()
+                },
+                None,
+                None
+            )
+            .await
+            .unwrap()
+            .items
+            .is_empty()
+    );
+    let attempt = w
+        .app
+        .submit_attempt(
+            &solver,
+            &record,
+            &"C1".into(),
+            "proof".into(),
+            None,
+            "secret note".into(),
+        )
+        .await
+        .unwrap();
+    assert!(
+        w.app.paper(&record).await.unwrap().claims[0]
+            .verified
+            .is_none()
+    );
+    w.app.verify_attempt(&r, &attempt.id).await.unwrap();
+    let public = w.app.paper(&record).await.unwrap();
+    assert_eq!(public.summary.lean_verified, 1);
+    assert_eq!(
+        w.app.list_papers(None, None).await.unwrap().items[0].lean_verified,
+        1
+    );
+    assert_eq!(
+        public.claims[0].verified.as_ref().unwrap().entrant.id,
+        solver.person.as_str()
+    );
+    assert!(
+        !serde_json::to_string(&public)
+            .unwrap()
+            .contains("secret note")
+    );
+    assert!(w.app.leaderboard("all", "all").await.unwrap().is_empty());
+    let profile = w.app.entrant_profile(solver.person.as_str()).await.unwrap();
+    assert_eq!((profile.formalized.len(), profile.total), (1, 0));
+    // Stored history is readable even when new consent/audit fields are absent.
+    let mut legacy = serde_json::to_value(&paper).unwrap();
+    legacy.as_object_mut().unwrap().remove("processing_consent");
+    legacy["lean_statements"][0]
+        .as_object_mut()
+        .unwrap()
+        .remove("faithfulness");
+    let legacy: Submission = serde_json::from_value(legacy).unwrap();
+    assert!(legacy.processing_consent.is_none());
+    assert!(legacy.lean_statements[0].faithfulness.is_none());
+}
+#[tokio::test]
+async fn leaderboard_ranks_others_before_total_including_coauthors_and_agent_owners() {
+    let w = world(20).await;
+    let author = w.person("author", &[]).await;
+    let coauthor = w.person("coauthor", &[]).await;
+    let outsider = w.person("outsider", &[]).await;
+    let r = w.person("reviewer", &[Role::Reviewer]).await;
+    let agent = w
+        .app
+        .create_agent(&coauthor, "coauthor-agent".into())
+        .await
+        .unwrap();
+    for (solver, as_agent, coauthored) in [
+        (&author, None, false),
+        (&author, None, false),
+        (&coauthor, Some(agent.id.clone()), true),
+        (&outsider, None, false),
+    ] {
+        let (mut paper, record) = target(&w, &author, &r).await;
+        if coauthored {
+            paper = w.app.submission(&author, &paper.id).await.unwrap();
+            paper.authors.push(Author {
+                name: "Coauthor".into(),
+                person: Some(coauthor.person.clone()),
+                orcid: None,
+                affiliation: None,
+            });
+            w.app.save(&mut paper).await.unwrap();
+        }
+        let attempt = w
+            .app
+            .submit_attempt(
+                solver,
+                &record,
+                &"C1".into(),
+                "proof".into(),
+                as_agent,
+                String::new(),
+            )
+            .await
+            .unwrap();
+        w.app.verify_attempt(&r, &attempt.id).await.unwrap();
+    }
+    let rows = w.app.leaderboard("all", "all").await.unwrap();
+    assert_eq!(rows[0].entrant.id, outsider.person.as_str());
+    assert_eq!((rows[0].others, rows[0].total), (1, 1));
+    assert_eq!(rows[1].entrant.id, author.person.as_str());
+    assert_eq!((rows[1].others, rows[1].total), (0, 2));
+    assert_eq!(
+        (rows[2].entrant.id.as_str(), rows[2].others, rows[2].total),
+        (agent.id.as_str(), 0, 1)
+    );
+    let p = w.app.entrant_profile(&agent.id).await.unwrap();
+    assert_eq!((p.others, p.total), (0, 1));
+}
+struct ReportLease;
+#[async_trait]
+impl crate::ports::JobLease for ReportLease {
+    async fn claim(&self) -> CoreResult<Option<crate::ports::LeasedJob>> {
+        Ok(None)
+    }
+    async fn renew(&self, _: &crate::ports::LeasedJob) -> CoreResult<bool> {
+        Ok(true)
+    }
+    async fn complete(&self, _: &crate::ports::LeasedJob) -> CoreResult<()> {
+        Ok(())
+    }
+    async fn defer(&self, _: &crate::ports::LeasedJob, _: std::time::Duration) -> CoreResult<()> {
+        Ok(())
+    }
+    async fn retry(&self, _: &crate::ports::LeasedJob, _: &str) -> CoreResult<()> {
+        Ok(())
+    }
+}
+#[tokio::test]
+async fn error_reports_verify_disproofs_gate_privacy_credit_recheck_and_void_targets() {
+    let w = world(20).await;
+    let a = w.person("author", &[]).await;
+    let r = w.person("reviewer", &[Role::Reviewer]).await;
+    let reporter = w.person("reporter", &[]).await;
+    let stranger = w.person("stranger", &[]).await;
+    let (paper, record) = paper_target(&w, &a, &r).await;
+    let agent = w
+        .app
+        .create_agent(&reporter, "reporter-agent".into())
+        .await
+        .unwrap();
+    let report = w
+        .app
+        .file_error_report(
+            &reporter,
+            &record,
+            NewErrorReport {
+                subject: ErrorSubject::Statement { claim: "C1".into() },
+                text: "PRIVATE while pending".into(),
+                solution: Some("disproof".into()),
+                as_agent: Some(agent.id.clone()),
+            },
+        )
+        .await
+        .unwrap();
+    assert!(w.app.error_report(None, &report.id).await.is_err());
+    assert!(
+        w.app
+            .error_report(Some(&stranger), &report.id)
+            .await
+            .is_err()
+    );
+    assert!(w.app.error_report(Some(&a), &report.id).await.is_ok());
+    let job = crate::ports::LeasedJob {
+        submission: paper.id.clone(),
+        kind: JobKind::ErrorReports,
+        attempts: 1,
+        lease: "fake".into(),
+    };
+    assert!(
+        w.app
+            .verify_report_evidence(&r, &report.id, &job, &ReportLease)
+            .await
+            .unwrap()
+    );
+    let public = w.app.error_report(None, &report.id).await.unwrap();
+    assert_eq!(public.resolution.unwrap().verdict, ErrorVerdict::Confirmed);
+    assert!(public.solution.is_none());
+    assert_eq!(
+        w.app.entrant_profile(&agent.id).await.unwrap().errors_found,
+        1
+    );
+    assert_eq!(w.app.error_notifications(&a).await.unwrap().len(), 1);
+    let files = w
+        .stores
+        .ports(Arc::new(SystemClock), Arc::new(FakeReader))
+        .referees;
+    let file = files.get(&paper.id).await.unwrap().unwrap();
+    assert!(
+        file.recheck_requests
+            .iter()
+            .any(|x| x.starts_with("disproof:"))
+    );
+    assert!(
+        file.recheck_requests
+            .contains(&format!("error-report:{}", report.id))
+    );
+    for verdict in [
+        ErrorVerdict::Refuted,
+        ErrorVerdict::Unclear,
+        ErrorVerdict::Confirmed,
+    ] {
+        let report = w
+            .app
+            .file_error_report(
+                &reporter,
+                &record,
+                NewErrorReport {
+                    subject: ErrorSubject::Review,
+                    text: "Check the omitted case n=0.".into(),
+                    solution: None,
+                    as_agent: None,
+                },
+            )
+            .await
+            .unwrap();
+        w.app
+            .resolve_error_report(
+                &r,
+                &report.id,
+                verdict,
+                "Checked n=0 explicitly.".into(),
+                "For n=0 the left side equals 1 and the right side equals 0.".into(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(
+            w.app.error_report(None, &report.id).await.is_ok(),
+            verdict == ErrorVerdict::Confirmed
+        );
+        assert!(w.app.error_report(Some(&a), &report.id).await.is_ok());
+    }
+    let target_report = w
+        .app
+        .file_error_report(
+            &reporter,
+            &record,
+            NewErrorReport {
+                subject: ErrorSubject::Target {
+                    claim: "C1".into(),
+                    digest: paper.lean_statements[0].digest.clone(),
+                },
+                text: "Missing n=0.".into(),
+                solution: None,
+                as_agent: None,
+            },
+        )
+        .await
+        .unwrap();
+    w.app
+        .resolve_error_report(
+            &r,
+            &target_report.id,
+            ErrorVerdict::Confirmed,
+            "Missing a quantified case.".into(),
+            "Lean assumes n>0 whereas the source includes n=0.".into(),
+        )
+        .await
+        .unwrap();
+    assert!(w.app.target(&record, &"C1".into()).await.is_err());
+    assert!(
+        files
+            .get(&paper.id)
+            .await
+            .unwrap()
+            .unwrap()
+            .recheck_requests
+            .contains(&format!("error-report:{}", target_report.id))
+    );
+    assert!(
+        w.stores
+            .queued()
+            .await
+            .contains(&(paper.id.clone(), JobKind::LeanStatement))
+    );
+    assert!(
+        w.app
+            .paper(&record)
+            .await
+            .unwrap()
+            .lean_statements
+            .is_empty()
+    );
+    assert_eq!(
+        w.app
+            .entrant_profile(reporter.person.as_str())
+            .await
+            .unwrap()
+            .errors_found,
+        2
+    );
+    // Fifth report is permitted; the sixth is rejected globally for this entrant.
+    let draft = || NewErrorReport {
+        subject: ErrorSubject::Review,
+        text: "Another precise concern".into(),
+        solution: None,
+        as_agent: None,
+    };
+    w.app
+        .file_error_report(&reporter, &record, draft())
+        .await
+        .unwrap();
+    assert!(matches!(
+        w.app.file_error_report(&reporter, &record, draft()).await,
+        Err(CoreError::Conflict(_))
+    ));
+}
+#[tokio::test]
+async fn supporters_require_authoritative_usage_and_never_rank_by_tokens() {
+    let w = world(20).await;
+    let z = w.person("Zoe", &[]).await;
+    let a = w.person("Ada", &[]).await;
+    w.app
+        .create_or_renew_donation(&z.person, 10000, "model")
+        .await
+        .unwrap();
+    let donor = w
+        .app
+        .attribute_agent_run("CMA:probe:1")
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(donor, z.person);
+    assert_eq!(
+        w.app.attribute_agent_run("CMA:probe:1").await.unwrap(),
+        Some(donor.clone())
+    );
+    assert_eq!(w.app.supporters().await.unwrap()[0].tokens, 0);
+    assert!(
+        w.app
+            .record_funded_usage(
+                &donor,
+                "CMA:probe:1",
+                TokenUsage {
+                    input: 100,
+                    output: 10,
+                    metered: false
+                }
+            )
+            .await
+            .is_err()
+    );
+    let receipt = TokenUsage {
+        input: 100,
+        output: 10,
+        metered: true,
+    };
+    w.app
+        .record_funded_usage(&donor, "CMA:probe:1", receipt)
+        .await
+        .unwrap();
+    w.app
+        .record_funded_usage(&donor, "CMA:probe:1", receipt)
+        .await
+        .unwrap();
+    assert_eq!(w.app.donation(&z).await.unwrap().unwrap().used, 110);
+    w.app
+        .create_or_renew_donation(&a.person, 10000, "model")
+        .await
+        .unwrap();
+    let rows = w.app.supporters().await.unwrap();
+    assert_eq!(
+        rows.iter()
+            .map(|s| (s.name.as_str(), s.tokens))
+            .collect::<Vec<_>>(),
+        vec![("Ada", 0), ("Zoe", 110)]
+    );
+    let public = serde_json::to_string(&rows).unwrap();
+    assert!(!public.contains("CMA:"));
+    assert!(!public.contains("rank"));
 }

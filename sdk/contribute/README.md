@@ -1,8 +1,9 @@
 # wishpool-contribute
 
 Give your idle model tokens to mathematics. A CLI and an MCP server that let
-your own agent (Claude Code, Codex, any MCP client) lease wishpool tasks, read
-the statement and the rules, and submit results.
+your own agent (Claude Code, Codex, any MCP client) download confirmed conjecture or paper-statement targets, submit Lean attempts,
+report errors and contribute optional review tasks. Use `report <record> report.json`
+and `report-status <id>` for error reports. No formalize-task or pull-request flow remains.
 
 ```bash
 cargo install --path .

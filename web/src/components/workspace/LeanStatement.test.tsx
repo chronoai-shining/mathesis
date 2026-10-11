@@ -20,6 +20,12 @@ const conjecture: Submission = {
       toolchain: 'Lean test',
       reading: 'The exact conjecture, with all quantifiers.',
       response: { state: 'awaiting_author' },
+      faithfulness: {
+        verdict: 'faithful',
+        reason: 'Definitions and quantifiers agree.',
+        mismatch: '',
+        regenerated: false,
+      },
       created_at: '2026-10-10T00:00:00Z',
     },
   ],
@@ -34,7 +40,7 @@ describe('author Lean statement', () => {
     expect(
       await screen.findByText('Awaiting confirmation from the submitting author.'),
     ).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Yes, this is my conjecture' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Yes, this matches my statement' })).toBeNull();
   });
 
   it('confirms the exact displayed digest and shows no proof badge', async () => {
@@ -47,7 +53,7 @@ describe('author Lean statement', () => {
     expect(screen.getByText(conjecture.lean_statements[0]!.lean)).toBeInTheDocument();
     expect(screen.queryByText('Lean ✓')).not.toBeInTheDocument();
     await userEvent.click(
-      await screen.findByRole('button', { name: 'Yes, this is my conjecture' }),
+      await screen.findByRole('button', { name: 'Yes, this matches my statement' }),
     );
     await waitFor(() =>
       expect(respondLeanStatement).toHaveBeenCalledWith(conjecture.id, {
@@ -81,4 +87,41 @@ describe('author Lean statement', () => {
       comment: 'Include every n, including zero.',
     });
   });
+});
+
+it('shows the second nonfaithful audit and gates unaudited legacy targets', async () => {
+  const attempt = conjecture.lean_statements[0]!;
+  const { unmount } = renderWithApp(
+    <LeanStatementCard
+      submission={{
+        ...conjecture,
+        lean_statements: [
+          {
+            ...attempt,
+            faithfulness: {
+              verdict: 'weaker',
+              reason: 'A hypothesis is absent.',
+              mismatch: 'Missing n > 0.',
+              regenerated: true,
+            },
+          },
+        ],
+      }}
+      onChange={vi.fn()}
+    />,
+    fakeApi({}, author),
+  );
+  expect(await screen.findByText('Our check: weaker')).toBeInTheDocument();
+  expect(screen.getByText('Missing n > 0.')).toBeInTheDocument();
+  expect(screen.getByText(/regenerat/i)).toBeInTheDocument();
+  unmount();
+  renderWithApp(
+    <LeanStatementCard
+      submission={{ ...conjecture, lean_statements: [{ ...attempt, faithfulness: null }] }}
+      onChange={vi.fn()}
+    />,
+    fakeApi({}, author),
+  );
+  expect(await screen.findByText('Awaiting the faithfulness check.')).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Yes, this matches my statement' })).toBeDisabled();
 });
