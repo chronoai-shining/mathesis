@@ -13,6 +13,12 @@ const PROTOCOL_VERSION: &str = "2025-06-18";
 fn tools() -> Value {
     let string = |description: &str| json!({ "type": "string", "description": description });
     json!([
+        {"name":"papers", "description":"Search the public research archive by plain words, author, MSC prefix or kind. Cursor pagination, newest first. No private drafts or reports are searchable.", "inputSchema":{"type":"object", "properties":{"q":string("Title, abstract words, DOI or exact WP record"), "author":string("Author name"), "msc":string("MSC prefix"), "kind":{"enum":["paper","note","conjecture"]}, "limit":{"type":"integer","minimum":1,"maximum":100}, "before":string("next_before from previous page")}}},
+        {"name":"paper", "description":"Read a published record and its public statements and proof receipts.", "inputSchema":{"type":"object","properties":{"record":string("WP record")},"required":["record"]}},
+        {"name":"review", "description":"Download your private Orchestra review dossier, bound to source version and statement revision. Includes available reports, audits and delivered letters. Requires author/staff identity.","inputSchema":{"type":"object","properties":{"id":string("Submission id")},"required":["id"]}},
+        {"name":"submit-formalization", "description":"Deposit an existing Lean module with original authors, source and license. Receipt means stored, not verified. A later verification request uses the independent verifier.", "inputSchema":{"type":"object","properties":{"title":string("Title"),"authors":{"type":"array","items":{"type":"string"},"minItems":1,"maxItems":50},"statement":string("Original mathematical statement"),"source_reference":{"type":"object","properties":{"kind":{"enum":["url","doi","arxiv"]},"locator":{"type":"string"}},"required":["kind","locator"]},"toolchain":string("Exact confirmed target toolchain"),"license":string("Source license"),"solution":string("Complete Lean module up to 1 MB")},"required":["title","authors","statement","source_reference","toolchain","license","solution"]}},
+        {"name":"formalization", "description":"Read your deposited formalization and linked verification attempt ids.","inputSchema":{"type":"object","properties":{"id":string("Deposit id")},"required":["id"]}},
+        {"name":"verify-formalization", "description":"Queue a stored Lean module against a public author-confirmed target. Requires the same toolchain; this does not assert success.","inputSchema":{"type":"object","properties":{"id":string("Deposit id"),"record":string("WP record"),"claim":string("Claim id")},"required":["id","record","claim"]}},
         { "name": "report", "description": "Report an error in an accepted statement, target or review. Evidence is text up to 20000 characters and/or a Lean disproof. Reports remain private until confirmed.", "inputSchema": { "type": "object", "properties": { "record": string("WP record"), "subject": { "oneOf": [{"type":"object","properties":{"kind":{"const":"review"}},"required":["kind"]},{"type":"object","properties":{"kind":{"const":"statement"},"claim":{"type":"string"}},"required":["kind","claim"]},{"type":"object","properties":{"kind":{"const":"target"},"claim":{"type":"string"},"digest":{"type":"string"}},"required":["kind","claim","digest"]}] }, "text": string("Evidence and argument"), "solution": string("Optional complete Lean disproof"), "as_agent": string("Owned agent name or id") }, "required": ["record", "subject"] } },
         { "name": "report-status", "description": "Read your error report and its audit result.", "inputSchema": { "type": "object", "properties": { "id": string("Report id") }, "required": ["id"] } },
         { "name": "conjectures", "description": "List audited public conjectures and their target status.", "inputSchema": { "type": "object", "properties": {} } },
@@ -71,6 +77,12 @@ fn call(client: &Client, name: &str, args: &Value) -> Result<Value, String> {
             .ok_or_else(|| format!("{key} is required"))
     };
     let result = match name {
+        "papers" => client.papers(args),
+        "paper" => client.paper(required("record")?),
+        "review" => client.review(required("id")?),
+        "submit-formalization" => client.post("/formalizations", args),
+        "formalization" => client.formalization(required("id")?),
+        "verify-formalization" => client.verify_formalization(required("id")?, required("record")?, required("claim")?),
         "report" => client.report(required("record")?, &json!({"subject": args["subject"], "text": args["text"].as_str().unwrap_or(""), "solution":args["solution"], "as_agent":args["as_agent"]})),
         "report-status" => client.report_status(required("id")?),
         "conjectures" => client.conjectures(),
@@ -120,7 +132,7 @@ pub fn handle(client: &Client, message: &Value) -> Option<Value> {
             "protocolVersion": PROTOCOL_VERSION,
             "capabilities": { "tools": {} },
             "serverInfo": { "name": "wishpool-contribute", "version": env!("CARGO_PKG_VERSION") },
-            "instructions": "Contribute to mathematics: list_tasks, lease_task, get_task_context, do the work with care, submit_contribution. Never invent citations or witnesses."
+            "instructions": "Search papers, read your private review, deposit Lean formalizations, and contribute verified attempts. A stored source is not a verified proof. Never invent citations, receipts or witnesses."
         })),
         "ping" => Ok(json!({})),
         "tools/list" => Ok(json!({ "tools": tools() })),

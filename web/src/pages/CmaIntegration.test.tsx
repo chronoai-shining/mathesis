@@ -103,26 +103,22 @@ describe('Optional own agents in pages', () => {
     },
   );
 
-  it('places the optional connection panel at the Contribute link destination', async () => {
+  it('keeps optional compute settings in the advanced section', async () => {
     renderWithApp(<ContributePage />, fakeApi({}, author));
-    expect(await screen.findByText(CMA_COPY)).toBeInTheDocument();
-    expect(screen.getByRole('region', { name: 'Use your own agents (optional)' })).toHaveAttribute(
-      'id',
-      'own-agents',
-    );
+    const advanced = screen.getByText('Advanced: use your own compute account').closest('details');
+    expect(advanced).toHaveAttribute('id', 'own-agents');
+    expect(advanced).not.toHaveAttribute('open');
+    await userEvent.click(screen.getByText('Advanced: use your own compute account'));
+    expect(
+      await screen.findByRole('region', { name: 'Use your own agents (optional)' }),
+    ).toBeInTheDocument();
   });
 
-  it('offers a muted optional link on Submit without loading CMA', async () => {
+  it('offers research and Lean intake without requiring a compute account', async () => {
     const api = fakeApi({}, author);
     renderWithApp(<SubmitPage />, api);
     await screen.findByLabelText('LaTeX source');
-    const link = screen.getByRole('link', { name: 'run the Codex review on your own agents.' });
-    expect(link).toHaveAttribute('href', '/contribute#own-agents');
-    expect(link.parentElement).toHaveClass('muted');
-    expect(link.parentElement).toHaveTextContent(
-      'Optional: run the Codex review on your own agents.',
-    );
-    expect(screen.queryByRole('region', { name: 'Use your own agents (optional)' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Lean formalization' })).toBeInTheDocument();
     expect(screen.queryByText(CMA_COPY)).toBeNull();
     expect(api.getCma).not.toHaveBeenCalled();
   });

@@ -2,6 +2,7 @@
 //! project. Authorization is decided here, never in an interface.
 
 mod cma;
+mod deposits;
 mod donations;
 mod error_reports;
 mod formalization;
@@ -11,6 +12,8 @@ mod people;
 mod records;
 mod referee;
 mod review;
+mod review_report;
+pub use review_report::ReviewReport;
 mod solving;
 mod tasks;
 

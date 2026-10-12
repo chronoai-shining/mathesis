@@ -11,7 +11,7 @@ describe('ContributePage', () => {
     renderWithApp(<ContributePage />, fakeApi());
     const mcp = screen.getByLabelText('MCP setup command');
     expect(mcp).toHaveTextContent(
-      `claude mcp add wishpool -e WISHPOOL_URL=${window.location.origin} -e WISHPOOL_TOKEN=<NyxID access token> -- wishpool-contribute mcp`,
+      'claude mcp add wishpool -e WISHPOOL_NYXID_SERVICE=wishpool -- wishpool-contribute mcp',
     );
     const cli = screen.getByLabelText('Command-line usage');
     for (const cmd of [

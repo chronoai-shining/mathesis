@@ -639,3 +639,100 @@ async fn uploads_require_explicit_current_consent_and_retired_proof_routes_are_a
         assert_eq!(status, StatusCode::NOT_FOUND);
     }
 }
+
+#[tokio::test]
+async fn research_service_contract_and_formalization_permissions() {
+    let app = router();
+    let (status, spec, _) = call(&app, "GET", "/openapi.json", None, None).await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(spec["openapi"], "3.1.0");
+    assert_eq!(
+        spec["paths"]["/api/v1/papers"]["get"]["operationId"],
+        "search_papers"
+    );
+    assert_eq!(
+        spec["paths"]["/api/v1/formalizations"]["post"]["security"][0]["nyxid"],
+        serde_json::json!([])
+    );
+    assert_eq!(
+        call(&app, "GET", "/papers?q=%2A", None, None).await.0,
+        StatusCode::UNPROCESSABLE_ENTITY
+    );
+    assert_eq!(
+        call(
+            &app,
+            "GET",
+            "/papers?msc=11&kind=paper&author=Smith",
+            None,
+            None
+        )
+        .await
+        .0,
+        StatusCode::OK
+    );
+    let input = serde_json::json!({"title":"Lean contribution", "authors":["Original author"],"statement":"True", "source_reference":{"kind":"url","locator":"https://example.org/source.lean"},"toolchain":"leanprover/lean4:v4.24.0", "license":"Apache-2.0", "solution":"import Target\ntheorem wishpool_solution : wishpool_target_prop := True.intro"});
+    assert_eq!(
+        call(&app, "POST", "/formalizations", None, Some(input.clone()))
+            .await
+            .0,
+        StatusCode::UNAUTHORIZED
+    );
+    let (status, deposit, _) = call(
+        &app,
+        "POST",
+        "/formalizations",
+        Some("owner"),
+        Some(input.clone()),
+    )
+    .await;
+    assert_eq!(status, StatusCode::CREATED);
+    assert_eq!(deposit["authors"][0], "Original author");
+    assert!(deposit["attempts"].as_array().unwrap().is_empty());
+    let id = deposit["id"].as_str().unwrap();
+    assert_eq!(
+        call(&app, "POST", "/formalizations", Some("owner"), Some(input))
+            .await
+            .1["id"],
+        id
+    );
+    assert_eq!(
+        call(
+            &app,
+            "GET",
+            &format!("/formalizations/{id}"),
+            Some("stranger"),
+            None
+        )
+        .await
+        .0,
+        StatusCode::NOT_FOUND
+    );
+    assert_eq!(
+        call(
+            &app,
+            "GET",
+            &format!("/formalizations/{id}/source"),
+            Some("stranger"),
+            None
+        )
+        .await
+        .0,
+        StatusCode::NOT_FOUND
+    );
+    let listing = call(&app, "GET", "/formalizations", Some("owner"), None)
+        .await
+        .1;
+    assert_eq!(listing["items"].as_array().unwrap().len(), 1);
+    assert_eq!(
+        call(
+            &app,
+            "GET",
+            "/submissions/private/review",
+            Some("stranger"),
+            None
+        )
+        .await
+        .0,
+        StatusCode::NOT_FOUND
+    );
+}

@@ -658,6 +658,7 @@ export type VerificationReceipt = {
   duration: number;
 };
 export type VerifiedAttempt = {
+  attribution?: FormalizationAttribution;
   id: string;
   entrant: Entrant;
   receipt: VerificationReceipt;
@@ -665,6 +666,7 @@ export type VerifiedAttempt = {
   also_verified: boolean;
 };
 export type AttemptView = {
+  attribution?: FormalizationAttribution;
   id: string;
   record: string;
   claim: string;
@@ -796,3 +798,28 @@ export type StatementDetail = {
   verified_attempts: VerifiedAttempt[];
   macros: Record<string, string>;
 };
+
+export interface NewLeanDeposit {
+  title: string;
+  authors: string[];
+  statement: string;
+  source_reference: Source;
+  toolchain: string;
+  license: string;
+  solution: string;
+}
+export interface LeanDeposit extends Omit<NewLeanDeposit, 'solution'> {
+  id: string;
+  owner: string;
+  source: { id: string; bytes: number; sha256: string };
+  submitted_at: string;
+  attempts: string[];
+  revision: number;
+}
+
+export interface FormalizationAttribution {
+  deposit: string;
+  authors: string[];
+  source_reference: Source;
+  license: string;
+}

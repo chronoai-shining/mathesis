@@ -821,3 +821,41 @@ statements) and their faithfulness audits use the ready submitter binding when
 available. Error-report audits and venue attempts use the operator account;
 venue attempts retain separate supporter attribution. These entries use the
 same private history projection and never expose tokens or provider progress.
+
+## Research services
+
+`GET /api/v1/openapi.json` publishes the machine-readable research-service
+contract, with complete `/api/v1` paths suitable for NyxID service discovery.
+See [RESEARCH_SERVICES.md](RESEARCH_SERVICES.md) for architecture, index semantics,
+identity configuration, verification boundaries and current limitations.
+
+| Method | Path (under `/api/v1`) | Access | Result |
+|---|---|---|---|
+| GET | `/papers?q=&author=&msc=&kind=&limit=&before=` | Public | Indexed public archive search; plain words, author substring, MSC prefix and type; newest record first |
+| GET | `/submissions/{id}/review` | Authors/staff | Downloadable Orchestra review dossier, current source digest and version, safe projected rounds and letters |
+| POST | `/formalizations` | Signed in | Store attributed Lean source; returns a deposit, never a verification receipt |
+| GET | `/formalizations?limit=&before=` | Owner | Cursor page of own deposits |
+| GET | `/formalizations/{id}` | Owner/staff | Deposit metadata and linked attempt ids |
+| GET | `/formalizations/{id}/source` | Owner/staff | Original Lean source download |
+| POST | `/formalizations/{id}/attempts` | Owner | `{record, claim}` → existing durable verification attempt, HTTP 202 |
+
+A formalization request is:
+
+```json
+{
+  "title": "A formal proof of the statement",
+  "authors": ["Original author"],
+  "statement": "The mathematical statement being formalized",
+  "source_reference": {"kind": "url", "locator": "https://example.org/source.lean"},
+  "toolchain": "copy the exact toolchain from the confirmed target",
+  "license": "Apache-2.0",
+  "solution": "import Target\ntheorem wishpool_solution : wishpool_target_prop := by\n  ..."
+}
+```
+
+The example is an input shape, not a valid proof. Actual source is limited to
+1 MiB and checked only through the existing verifier. Exact request retries
+for the same authenticated owner return the same deposit id. Changed metadata
+or source creates a new deposit. The existing source-processing consent remains
+required for paper/conjecture AI review; depositing code alone does not start
+an AI review or grant permission to publish it.

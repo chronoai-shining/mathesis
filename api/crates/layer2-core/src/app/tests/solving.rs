@@ -1323,3 +1323,118 @@ async fn supporters_require_authoritative_usage_and_never_rank_by_tokens() {
     assert!(!public.contains("CMA:"));
     assert!(!public.contains("rank"));
 }
+
+#[tokio::test]
+async fn deposited_sources_preserve_authorship_and_use_only_independent_verification() {
+    let w = world(20).await;
+    let a = w.person("author", &[]).await;
+    let r = w.person("reviewer", &[Role::Reviewer]).await;
+    let solver = w.person("depositor", &[]).await;
+    let (_, record) = target(&w, &a, &r).await;
+    let new = NewLeanDeposit {
+        title: "Existing formalization".into(),
+        authors: vec!["Original mathematician".into()],
+        statement: "True".into(),
+        source_reference: Source {
+            kind: SourceKind::Url,
+            locator: "https://example.org/proof.lean".into(),
+            year: None,
+        },
+        toolchain: "test".into(),
+        license: "Apache-2.0".into(),
+        solution: "import Target\ntheorem wishpool_solution : wishpool_target_prop := True.intro"
+            .into(),
+    };
+    let deposit = w
+        .app
+        .submit_lean_deposit(&solver, new.clone())
+        .await
+        .unwrap();
+    assert_eq!(deposit.authors, new.authors);
+    assert!(deposit.attempts.is_empty());
+    assert!(
+        w.app
+            .public_attempts(&record, &"C1".into())
+            .await
+            .unwrap()
+            .is_empty()
+    );
+    assert_eq!(
+        w.app
+            .submit_lean_deposit(&solver, new.clone())
+            .await
+            .unwrap()
+            .id,
+        deposit.id
+    );
+    assert!(matches!(
+        w.app.lean_deposit(&a, &deposit.id).await,
+        Err(CoreError::NotFound { .. })
+    ));
+    assert!(
+        w.app
+            .verify_lean_deposit(&r, &deposit.id, &record, &"C1".into())
+            .await
+            .is_err()
+    );
+    let attempt = w
+        .app
+        .verify_lean_deposit(&solver, &deposit.id, &record, &"C1".into())
+        .await
+        .unwrap();
+    assert!(attempt.receipt.is_none());
+    assert_eq!(attempt.state, "queued");
+    assert_eq!(
+        attempt.attribution.as_ref().unwrap().authors,
+        vec!["Original mathematician"]
+    );
+    assert_eq!(
+        w.app
+            .verify_lean_deposit(&solver, &deposit.id, &record, &"C1".into())
+            .await
+            .unwrap()
+            .id,
+        attempt.id
+    );
+    assert_eq!(
+        w.app
+            .lean_deposit(&solver, &deposit.id)
+            .await
+            .unwrap()
+            .attempts,
+        vec![attempt.id.clone()]
+    );
+    w.app.verify_attempt(&r, &attempt.id).await.unwrap();
+    assert_eq!(
+        w.app
+            .attempt(Some(&solver), &attempt.id)
+            .await
+            .unwrap()
+            .receipt
+            .unwrap()
+            .verdict,
+        Verdict::Proved
+    );
+    assert_eq!(
+        w.app
+            .public_attempts(&record, &"C1".into())
+            .await
+            .unwrap()
+            .len(),
+        1
+    );
+    let public_proofs = w.app.public_attempts(&record, &"C1".into()).await.unwrap();
+    assert_eq!(
+        public_proofs[0].attribution.as_ref().unwrap().license,
+        "Apache-2.0"
+    );
+    let mut mismatch = new;
+    mismatch.toolchain = "a different toolchain".into();
+    let d = w.app.submit_lean_deposit(&solver, mismatch).await.unwrap();
+    assert!(
+        w.app
+            .verify_lean_deposit(&solver, &d.id, &record, &"C1".into())
+            .await
+            .is_err()
+    );
+}

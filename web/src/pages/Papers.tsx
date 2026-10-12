@@ -1,7 +1,8 @@
+import { ProofAttribution } from '../components/ProofAttribution';
 import { ReportError, ErrorReports } from '../components/ErrorReports';
 import { EntrantName } from './Leaderboard';
 import { useCallback, useState } from 'react';
-import { pdfHref } from '../api/client';
+import { pdfHref, type PaperQuery } from '../api/client';
 import { useApi } from '../api/context';
 import { useAsync } from '../api/useAsync';
 import { usePaged } from '../api/usePaged';
@@ -51,27 +52,102 @@ export function PaperEntry({ paper }: { paper: PaperSummary }) {
 
 export function PapersPage() {
   const api = useApi();
+  const [query, setQuery] = useState<PaperQuery>({});
+  const [draft, setDraft] = useState<PaperQuery>({});
   const fetchPage = useCallback(
     (before: string | null, signal: AbortSignal) =>
-      api.listPapers({ before, limit: 25 }, { signal }),
-    [api],
+      api.listPapers({ ...query, before, limit: 25 }, { signal }),
+    [api, query],
   );
   const paged = usePaged(fetchPage);
   return (
     <div className="page">
       <header className="page-head">
         <div>
-          <h1>Accepted papers</h1>
+          <h1>Research archive</h1>
           <p className="lede">
             Papers and notes with new mathematical content, and conjectures accepted for display.{' '}
             <Link to={{ kind: 'policy' }}>Review policy</Link>
           </p>
         </div>
       </header>
+      <form
+        className="archive-search"
+        role="search"
+        aria-label="Search papers"
+        onSubmit={(event) => {
+          event.preventDefault();
+          setQuery({ ...draft });
+        }}
+      >
+        <div className="archive-search-main">
+          <label htmlFor="paper-query">Find research</label>
+          <div className="archive-search-input">
+            <input
+              id="paper-query"
+              type="search"
+              maxLength={300}
+              placeholder="Title, abstract, keywords or WP record…"
+              value={draft.q ?? ''}
+              onChange={(e) => setDraft({ ...draft, q: e.target.value })}
+            />
+            <button className="button" type="submit">
+              Search
+            </button>
+          </div>
+        </div>
+        <div className="archive-search-filters">
+          <label>
+            Author
+            <input
+              maxLength={160}
+              placeholder="Author name"
+              value={draft.author ?? ''}
+              onChange={(e) => setDraft({ ...draft, author: e.target.value })}
+            />
+          </label>
+          <label>
+            Subject (MSC)
+            <input
+              maxLength={5}
+              placeholder="e.g. 11 or 11A"
+              value={draft.msc ?? ''}
+              onChange={(e) => setDraft({ ...draft, msc: e.target.value })}
+            />
+          </label>
+          <label>
+            Type
+            <select
+              value={draft.kind ?? ''}
+              onChange={(e) => setDraft({ ...draft, kind: e.target.value as PaperQuery['kind'] })}
+            >
+              <option value="">All research</option>
+              <option value="paper">Papers</option>
+              <option value="note">Short notes</option>
+              <option value="conjecture">Conjectures</option>
+            </select>
+          </label>
+          <button
+            className="button button-quiet"
+            type="button"
+            onClick={() => {
+              setDraft({});
+              setQuery({});
+            }}
+          >
+            Clear filters
+          </button>
+        </div>
+        <p className="hint">
+          Search public titles and abstracts across the archive. Results are ordered newest first.
+        </p>
+      </form>
       <Async state={paged.state} onRetry={paged.reload}>
         {(listing) =>
           listing.items.length === 0 ? (
-            <p className="muted">No papers have been accepted yet.</p>
+            <p className="muted">
+              No papers match this view. Try a broader search or clear the filters.
+            </p>
           ) : (
             <ul className="entry-list">
               {listing.items.map((p) => (
@@ -202,6 +278,7 @@ export function PaperView({ paper }: { paper: PublicPaper }) {
                       proved the author-confirmed Lean target.
                     </p>
                   ) : null}
+                  <ProofAttribution attribution={claim.verified?.attribution} />
                   <ReportError record={s.record} subject={{ kind: 'statement', claim: claim.id }} />
                 </li>
               ))}

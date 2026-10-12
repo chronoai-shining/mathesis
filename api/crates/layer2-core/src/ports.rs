@@ -78,6 +78,12 @@ pub trait EndorsementStore: Send + Sync {
 
 #[async_trait]
 pub trait RecordStore: Send + Sync {
+    async fn search(
+        &self,
+        search: &crate::model::PaperSearch,
+        limit: u32,
+        before: Option<String>,
+    ) -> CoreResult<Listing<Record>>;
     async fn for_submission(&self, id: &SubmissionId) -> CoreResult<Option<Record>>;
     async fn next_sequence(&self, year: i32) -> CoreResult<u64>;
     async fn insert(&self, record: &Record) -> CoreResult<()>;
@@ -248,6 +254,7 @@ pub trait GrantStore: Send + Sync {
 
 /// Everything Layer 2 needs, bundled for composition.
 pub struct Ports {
+    pub deposits: Arc<dyn LeanDepositStore>,
     pub cma_bindings: Arc<dyn CmaBindingStore>,
     pub cma_setup: Arc<dyn CmaSetup>,
     pub solving: Arc<dyn SolvingStore>,
@@ -339,4 +346,17 @@ impl CmaSetup for UnavailableCmaSetup {
             "CMA connection is disabled".into(),
         ))
     }
+}
+
+#[async_trait]
+pub trait LeanDepositStore: Send + Sync {
+    async fn get(&self, id: &str) -> CoreResult<Option<crate::model::LeanDeposit>>;
+    async fn insert(&self, value: &crate::model::LeanDeposit) -> CoreResult<()>;
+    async fn replace(&self, value: &crate::model::LeanDeposit, expected: u64) -> CoreResult<()>;
+    async fn list(
+        &self,
+        owner: &PersonId,
+        limit: u32,
+        before: Option<String>,
+    ) -> CoreResult<Listing<crate::model::LeanDeposit>>;
 }

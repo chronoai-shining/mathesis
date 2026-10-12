@@ -11,6 +11,13 @@ use std::collections::BTreeMap;
 fn digest(text: &str) -> String {
     format!("{:x}", Sha256::digest(text.as_bytes()))
 }
+pub(crate) struct AttemptInput {
+    pub expected_target: Option<String>,
+    pub solution: String,
+    pub as_agent: Option<String>,
+    pub note: String,
+    pub attribution: Option<FormalizationAttribution>,
+}
 impl App {
     pub async fn record_venue_attempt(
         &self,
@@ -343,6 +350,34 @@ impl App {
         as_agent: Option<String>,
         note: String,
     ) -> CoreResult<AttemptView> {
+        self.submit_attributed_attempt(
+            caller,
+            record,
+            claim,
+            AttemptInput {
+                expected_target: None,
+                solution,
+                as_agent,
+                note,
+                attribution: None,
+            },
+        )
+        .await
+    }
+    pub(crate) async fn submit_attributed_attempt(
+        &self,
+        caller: &Caller,
+        record: &RecordId,
+        claim: &ClaimId,
+        input: AttemptInput,
+    ) -> CoreResult<AttemptView> {
+        let AttemptInput {
+            expected_target,
+            solution,
+            as_agent,
+            note,
+            attribution,
+        } = input;
         if solution.trim().is_empty() || solution.len() > 1_048_576 {
             return Err(CoreError::invalid(
                 "solution must be a Lean file of at most 1 MB",
@@ -352,6 +387,14 @@ impl App {
             return Err(CoreError::invalid("note exceeds 2,000 characters"));
         }
         let target = self.target(record, claim).await?;
+        if expected_target
+            .as_ref()
+            .is_some_and(|digest| digest != &target.digest)
+        {
+            return Err(CoreError::conflict(
+                "target changed; review the new target before verification",
+            ));
+        }
         let entrant = self.resolve_entrant(caller, as_agent).await?;
         let hash = digest(&solution);
         let blob = self
@@ -366,6 +409,11 @@ impl App {
                     && a.target_digest == target.digest
                     && a.solution_digest == hash
             }) {
+                if attribution.is_some() && existing.attribution != attribution {
+                    return Err(CoreError::conflict(
+                        "this source already has an attempt with different attribution; use its existing receipt",
+                    ));
+                }
                 if existing.receipt.is_none() && existing.invalidated.is_none() {
                     self.ports
                         .queue
@@ -387,6 +435,7 @@ impl App {
                 ));
             }
             let attempt = Attempt {
+                attribution: attribution.clone(),
                 id: new_uuid(),
                 owner: caller.person.clone(),
                 entrant: entrant.clone(),
@@ -498,6 +547,7 @@ impl App {
             return Err(CoreError::not_found("attempt", id));
         }
         Ok(AttemptView {
+            attribution: attempt.attribution.clone(),
             id: attempt.id.clone(),
             record: file.record,
             claim: file.claim,
@@ -661,6 +711,7 @@ impl App {
             .filter(|a| a.verified() && a.target_digest == target.digest)
         {
             out.push(PublicAttempt {
+                attribution: a.attribution.clone(),
                 id: a.id.clone(),
                 entrant: self.current_entrant(&a.entrant).await?,
                 receipt: a.receipt.clone().unwrap(),

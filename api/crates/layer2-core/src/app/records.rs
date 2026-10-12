@@ -254,6 +254,54 @@ impl App {
         })
     }
 
+    /// Search the full accepted archive, collecting a page after visibility checks.
+    /// Search candidates are immutable publication inputs, never a new private revision.
+    pub async fn search_papers(
+        &self,
+        mut search: PaperSearch,
+        limit: Option<u32>,
+        before: Option<String>,
+    ) -> CoreResult<Listing<PaperSummary>> {
+        search.validate()?;
+        if search.is_empty() {
+            return self.list_papers(limit, before).await;
+        }
+        let limit = clamp(limit) as usize;
+        let mut cursor = before;
+        let mut items = Vec::new();
+        loop {
+            let page = self.ports.records.search(&search, 100, cursor).await?;
+            for record in page.items {
+                let submission = match self.accepted(&record).await {
+                    Ok(s) => s,
+                    Err(CoreError::NotFound { .. }) => continue,
+                    Err(e) => return Err(e),
+                };
+                if submission.analysis_visibility != Visibility::Public {
+                    continue;
+                }
+                // Reuse the public projection, including independently verified proof counts.
+                let paper = self.paper(&record.id).await?;
+                if !paper.summary.public {
+                    continue;
+                }
+                items.push(paper.summary);
+                if items.len() > limit {
+                    items.pop();
+                    let next_before = items.last().map(|p| p.record.to_string());
+                    return Ok(Listing { items, next_before });
+                }
+            }
+            cursor = page.next_before;
+            if cursor.is_none() {
+                return Ok(Listing {
+                    items,
+                    next_before: None,
+                });
+            }
+        }
+    }
+
     pub async fn list_conjectures(
         &self,
         limit: Option<u32>,

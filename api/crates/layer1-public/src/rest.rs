@@ -19,6 +19,7 @@ use wishpool_core::{
 use crate::{auth::AuthenticatedCaller, problems::Problem};
 
 mod cma;
+mod deposits;
 mod network;
 mod papers;
 mod review;
@@ -46,6 +47,16 @@ pub(crate) fn routes() -> Router<Arc<App>> {
         .merge(review::routes())
         .merge(network::routes())
         .merge(cma::routes())
+        .merge(deposits::routes())
+        .route(
+            "/openapi.json",
+            get(|| async {
+                axum::response::Response::builder()
+                    .header("content-type", "application/json")
+                    .body(axum::body::Body::from(include_str!("openapi.json")))
+                    .unwrap()
+            }),
+        )
         .route("/policy", get(policy))
         .route("/me", get(me))
         .route("/people", get(list_people))

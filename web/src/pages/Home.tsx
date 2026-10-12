@@ -30,8 +30,8 @@ export function HomePage() {
         <p className="eyebrow">An open home for mathematical research</p>
         <h1 id="intro-heading">Mathematical papers & conjectures.</h1>
         <p className="lede">
-          Publish and read mathematical papers, short notes, and conjectures. Share your results —
-          and the questions still to be answered.
+          Read and publish mathematical research. Get an Orchestra review, explore open conjectures,
+          and contribute Lean formalizations.
         </p>
         <div className="intro-actions">
           <Link to={{ kind: 'papers' }} className="button">
@@ -128,6 +128,13 @@ export function HomePage() {
               <dt>Conjectures</dt>
               <dd>
                 Publish a precise mathematical question, with context, even before you have a proof.
+              </dd>
+            </div>
+            <div>
+              <dt>Lean formalizations</dt>
+              <dd>
+                Submit existing Lean sources with attribution, then request independent
+                verification.
               </dd>
             </div>
           </dl>

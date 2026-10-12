@@ -164,6 +164,90 @@ impl EndorsementStore for MongoStore {
 
 #[async_trait]
 impl RecordStore for MongoStore {
+    async fn search(
+        &self,
+        search: &wishpool_core::model::PaperSearch,
+        limit: u32,
+        before: Option<String>,
+    ) -> CoreResult<Listing<Record>> {
+        let mut filter = doc! {};
+        if let Some(q) = &search.q {
+            if q.starts_with("WP-") {
+                filter.insert("$and", vec![doc! {"id": q}]);
+            } else {
+                // Accept plain words only, never Mongo text operators or regex syntax.
+                let words = q
+                    .split(|c: char| !c.is_alphanumeric())
+                    .filter(|w| !w.is_empty())
+                    .collect::<Vec<_>>()
+                    .join(" ");
+                filter.insert("$text", doc! {"$search": words, "$language": "none"});
+            }
+        }
+        if let Some(kind) = search.kind {
+            if kind == wishpool_core::model::SubmissionKind::Paper {
+                filter.insert(
+                    "$or",
+                    vec![doc! {"kind": "paper"}, doc! {"kind": {"$exists": false}}],
+                );
+            } else {
+                filter.insert("kind", bson_value(&kind)?);
+            }
+        }
+        let literal = |s: &str| {
+            s.chars()
+                .map(|c| {
+                    if "\\.^$|?*+()[]{}".contains(c) {
+                        format!("\\{c}")
+                    } else {
+                        c.to_string()
+                    }
+                })
+                .collect::<String>()
+        };
+        if let Some(author) = &search.author {
+            filter.insert(
+                "authors.name",
+                doc! {"$regex": literal(author), "$options": "i"},
+            );
+        }
+        if let Some(msc) = &search.msc {
+            filter.insert(
+                "publication.msc",
+                doc! {"$regex": format!("^{}", literal(msc))},
+            );
+        }
+        if let Some(before) = before {
+            filter.insert("id", doc! {"$lt": before});
+        }
+        // Gate candidates against authoritative live visibility before limiting the page.
+        // The application checks it again when producing the public projection.
+        let mut documents: Vec<Document> = self.raw(RECORDS).aggregate(vec![
+            doc! {"$match": filter},
+            doc! {"$sort": {"id": -1}},
+            doc! {"$lookup": {"from": SUBMISSIONS, "localField": "submission", "foreignField": "id", "pipeline": [{"$match": {"analysis_visibility": "public"}}, {"$project": {"_id": 1}}], "as": "search_visibility"}},
+            doc! {"$match": {"search_visibility.0": {"$exists": true}}},
+            doc! {"$unset": "search_visibility"},
+            doc! {"$limit": i64::from(limit) + 1},
+        ]).max_time(std::time::Duration::from_secs(10)).await.map_err(unavailable)?.try_collect().await.map_err(unavailable)?;
+        let next_before = if documents.len() > limit as usize {
+            documents.pop();
+            documents
+                .last()
+                .and_then(|d| d.get_str("id").ok())
+                .map(str::to_owned)
+        } else {
+            None
+        };
+        Ok(Listing {
+            items: documents
+                .into_iter()
+                .map(from_document)
+                .collect::<CoreResult<_>>()?,
+            next_before,
+        })
+    }
+
     async fn for_submission(&self, id: &SubmissionId) -> CoreResult<Option<Record>> {
         self.raw(RECORDS)
             .find_one(doc! { "submission": id.as_str() })
@@ -227,6 +311,38 @@ impl RefereeStore for MongoStore {
             file.id.as_str(),
             file,
             expected,
+        )
+        .await
+    }
+}
+
+#[async_trait]
+impl LeanDepositStore for MongoStore {
+    async fn get(&self, id: &str) -> CoreResult<Option<wishpool_core::model::LeanDeposit>> {
+        self.get_by_id("lean_deposits", id).await
+    }
+    async fn insert(&self, value: &wishpool_core::model::LeanDeposit) -> CoreResult<()> {
+        MongoStore::insert(self, "lean_deposits", value).await
+    }
+    async fn replace(
+        &self,
+        value: &wishpool_core::model::LeanDeposit,
+        expected: u64,
+    ) -> CoreResult<()> {
+        self.replace_revision("lean_deposits", "deposit", &value.id, value, expected)
+            .await
+    }
+    async fn list(
+        &self,
+        owner: &PersonId,
+        limit: u32,
+        before: Option<String>,
+    ) -> CoreResult<Listing<wishpool_core::model::LeanDeposit>> {
+        self.page(
+            "lean_deposits",
+            doc! {"owner": owner.as_str()},
+            limit,
+            before,
         )
         .await
     }

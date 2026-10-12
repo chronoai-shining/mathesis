@@ -293,3 +293,11 @@ refusals and concurrent token rotation remain transient, with the same payer.
 Disconnect/reconnect revokes the old generation; outstanding agent cleanup is
 best effort and may fail after revocation. Cleanup never substitutes operator
 credentials for author resources.
+
+## Research services
+
+The archive now exposes indexed paper discovery, private Orchestra review
+exports and attributed Lean source intake through the website, REST, OpenAPI,
+CLI and MCP. MongoDB/GridFS preserve publication inputs, source files and
+verification provenance. See [the service architecture](docs/RESEARCH_SERVICES.md)
+for current capabilities, NyxID connection requirements and verification scope.

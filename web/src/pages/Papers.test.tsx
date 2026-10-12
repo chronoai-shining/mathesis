@@ -1,4 +1,5 @@
-import { screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { screen, within, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { paperSummary, publicPaper, SHA } from '../test/fixtures';
 import { KATEX_ERROR, MACROS } from '../test/katex';
@@ -135,4 +136,26 @@ describe('public paper page', () => {
     );
     expect(screen.getByText('Lean ✓ 1')).toBeInTheDocument();
   });
+});
+
+it('searches the complete archive through the API and resets pagination when filters change', async () => {
+  const listPapers = vi.fn(async () => ({ items: [paperSummary], next_before: 'WP-2026-0001' }));
+  renderWithApp(<PapersPage />, fakeApi({ listPapers }));
+  const user = userEvent.setup();
+  await screen.findByText(paperSummary.title);
+  await user.type(screen.getByLabelText('Find research'), 'prime gaps');
+  await user.type(screen.getByLabelText('Author'), 'A. Author');
+  await user.type(screen.getByLabelText('Subject (MSC)'), '11');
+  await user.selectOptions(screen.getByLabelText('Type'), 'paper');
+  await user.click(screen.getByRole('button', { name: 'Search' }));
+  await waitFor(() =>
+    expect(listPapers).toHaveBeenLastCalledWith(
+      { q: 'prime gaps', author: 'A. Author', msc: '11', kind: 'paper', before: null, limit: 25 },
+      expect.any(Object),
+    ),
+  );
+  await user.click(screen.getByRole('button', { name: 'Clear filters' }));
+  await waitFor(() =>
+    expect(listPapers).toHaveBeenLastCalledWith({ before: null, limit: 25 }, expect.any(Object)),
+  );
 });

@@ -1,0 +1,1250 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Wishpool research services",
+    "version": "1.0.0",
+    "description": "Research archive, private Orchestra review dossiers, Lean source intake and independent verification. Authentication is NyxID; private resources return 404 to other users. This document covers the research-service surface; see docs/API.md for staff and contribution administration."
+  },
+  "servers": [
+    {
+      "url": "/"
+    }
+  ],
+  "paths": {
+    "/api/v1/papers": {
+      "get": {
+        "operationId": "search_papers",
+        "summary": "Search public research metadata; plain words match title, author or abstract; newest first.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaperListing"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid NyxID identity"
+          },
+          "404": {
+            "description": "Resource unavailable or not visible to the caller"
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 25
+            },
+            "description": ""
+          },
+          {
+            "name": "before",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Opaque next_before cursor from the previous response, using the same filters."
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 300
+            },
+            "description": ""
+          },
+          {
+            "name": "author",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 160
+            },
+            "description": ""
+          },
+          {
+            "name": "msc",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 5
+            },
+            "description": ""
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "paper",
+                "note",
+                "conjecture"
+              ]
+            },
+            "description": ""
+          }
+        ]
+      }
+    },
+    "/api/v1/papers/{record}": {
+      "get": {
+        "operationId": "read_paper",
+        "summary": "Read a published paper and its public mathematical statements.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicPaper"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid NyxID identity"
+          },
+          "404": {
+            "description": "Resource unavailable or not visible to the caller"
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "record",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": ""
+          }
+        ]
+      }
+    },
+    "/api/v1/submissions": {
+      "get": {
+        "operationId": "my_submissions",
+        "summary": "List your submissions; staff may request the review queue.",
+        "security": [
+          {
+            "nyxid": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid NyxID identity"
+          },
+          "404": {
+            "description": "Resource unavailable or not visible to the caller"
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 25
+            },
+            "description": ""
+          },
+          {
+            "name": "before",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Opaque next_before cursor from the previous response, using the same filters."
+          },
+          {
+            "name": "scope",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "mine",
+                "queue"
+              ]
+            },
+            "description": ""
+          }
+        ]
+      }
+    },
+    "/api/v1/submissions/{id}": {
+      "get": {
+        "operationId": "read_submission",
+        "summary": "Read a submission owned by you or available to your staff role.",
+        "security": [
+          {
+            "nyxid": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid NyxID identity"
+          },
+          "404": {
+            "description": "Resource unavailable or not visible to the caller"
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": ""
+          }
+        ]
+      }
+    },
+    "/api/v1/submissions/{id}/review": {
+      "get": {
+        "operationId": "download_review",
+        "summary": "Download an Orchestra review dossier with exact source/version binding. Always uses the author-safe projection.",
+        "security": [
+          {
+            "nyxid": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewReport"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid NyxID identity"
+          },
+          "404": {
+            "description": "Resource unavailable or not visible to the caller"
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": ""
+          }
+        ]
+      }
+    },
+    "/api/v1/formalizations": {
+      "get": {
+        "operationId": "my_formalizations",
+        "summary": "List your Lean source deposits. Receipt does not imply verification.",
+        "security": [
+          {
+            "nyxid": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FormalizationListing"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid NyxID identity"
+          },
+          "404": {
+            "description": "Resource unavailable or not visible to the caller"
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 25
+            },
+            "description": ""
+          },
+          {
+            "name": "before",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Opaque next_before cursor from the previous response, using the same filters."
+          }
+        ]
+      },
+      "post": {
+        "operationId": "submit_formalization",
+        "summary": "Store an existing Lean module with original authors and provenance. Identical requests replay to the same deposit.",
+        "security": [
+          {
+            "nyxid": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Formalization"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid NyxID identity"
+          },
+          "404": {
+            "description": "Resource unavailable or not visible to the caller"
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewFormalization"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/formalizations/{id}": {
+      "get": {
+        "operationId": "read_formalization",
+        "summary": "Read your stored formalization and linked attempt ids.",
+        "security": [
+          {
+            "nyxid": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Formalization"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid NyxID identity"
+          },
+          "404": {
+            "description": "Resource unavailable or not visible to the caller"
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": ""
+          }
+        ]
+      }
+    },
+    "/api/v1/formalizations/{id}/attempts": {
+      "post": {
+        "operationId": "verify_formalization",
+        "summary": "Queue this Lean module against an author-confirmed public target with matching toolchain.",
+        "security": [
+          {
+            "nyxid": []
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Attempt"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid NyxID identity"
+          },
+          "404": {
+            "description": "Resource unavailable or not visible to the caller"
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": ""
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerificationTarget"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/conjectures": {
+      "get": {
+        "operationId": "list_conjectures",
+        "summary": "List admitted public open problems and their solving status.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid NyxID identity"
+          },
+          "404": {
+            "description": "Resource unavailable or not visible to the caller"
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 25
+            },
+            "description": ""
+          },
+          {
+            "name": "before",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Opaque next_before cursor from the previous response, using the same filters."
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "open",
+                "solved",
+                "disproved"
+              ]
+            },
+            "description": ""
+          }
+        ]
+      }
+    },
+    "/api/v1/papers/{record}/statements/{claim}": {
+      "get": {
+        "operationId": "read_lean_target",
+        "summary": "Read the exact confirmed target, pinned toolchain and verified attempts.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid NyxID identity"
+          },
+          "404": {
+            "description": "Resource unavailable or not visible to the caller"
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "record",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": ""
+          },
+          {
+            "name": "claim",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": ""
+          }
+        ]
+      }
+    },
+    "/api/v1/papers/{record}/statements/{claim}/attempts": {
+      "post": {
+        "operationId": "submit_lean_attempt",
+        "summary": "Queue a proof or disproof for independent verification; never supplies a client receipt.",
+        "security": [
+          {
+            "nyxid": []
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Missing or invalid NyxID identity"
+          },
+          "404": {
+            "description": "Resource unavailable or not visible to the caller"
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Attempt"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "record",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": ""
+          },
+          {
+            "name": "claim",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": ""
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "solution": {
+                    "type": "string"
+                  },
+                  "as_agent": {
+                    "type": "string"
+                  },
+                  "note": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "solution"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/attempts/{id}": {
+      "get": {
+        "operationId": "read_verification",
+        "summary": "Read your pending attempt, or a public independent verifier receipt.",
+        "security": [
+          {
+            "nyxid": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Attempt"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid NyxID identity"
+          },
+          "404": {
+            "description": "Resource unavailable or not visible to the caller"
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": ""
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "nyxid": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "NyxID access JWT"
+      }
+    },
+    "schemas": {
+      "Problem": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "detail": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "detail"
+        ]
+      },
+      "Author": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "person": {
+            "type": "string"
+          },
+          "orcid": {
+            "type": "string"
+          },
+          "affiliation": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "Paper": {
+        "type": "object",
+        "properties": {
+          "record": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "authors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Author"
+            }
+          },
+          "kind": {
+            "enum": [
+              "paper",
+              "note",
+              "conjecture"
+            ]
+          },
+          "submission": {
+            "type": "string"
+          },
+          "abstract_text": {
+            "type": "string"
+          },
+          "msc": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "doi": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "accepted_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lean_verified": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "record",
+          "title",
+          "authors",
+          "kind"
+        ]
+      },
+      "PaperListing": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Paper"
+            }
+          },
+          "next_before": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "items",
+          "next_before"
+        ]
+      },
+      "PublicPaper": {
+        "type": "object",
+        "properties": {
+          "summary": {
+            "$ref": "#/components/schemas/Paper"
+          },
+          "versions": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "claims": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "lean_statements": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        },
+        "required": [
+          "summary"
+        ]
+      },
+      "Source": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "enum": [
+              "url",
+              "doi",
+              "arxiv",
+              "hexagon",
+              "zenodo",
+              "oeis",
+              "named_work",
+              "personal"
+            ]
+          },
+          "locator": {
+            "type": "string"
+          },
+          "year": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "kind",
+          "locator"
+        ]
+      },
+      "NewFormalization": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 1000
+          },
+          "authors": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 200
+            },
+            "minItems": 1,
+            "maxItems": 50
+          },
+          "statement": {
+            "type": "string",
+            "maxLength": 20000
+          },
+          "source_reference": {
+            "$ref": "#/components/schemas/Source"
+          },
+          "toolchain": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "license": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "solution": {
+            "type": "string",
+            "description": "UTF-8 Lean module, at most 1 MiB in bytes. A deposit is not verification."
+          }
+        },
+        "required": [
+          "title",
+          "authors",
+          "statement",
+          "source_reference",
+          "toolchain",
+          "license",
+          "solution"
+        ],
+        "additionalProperties": false
+      },
+      "Formalization": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "owner": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "authors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "statement": {
+            "type": "string"
+          },
+          "source_reference": {
+            "$ref": "#/components/schemas/Source"
+          },
+          "toolchain": {
+            "type": "string"
+          },
+          "license": {
+            "type": "string"
+          },
+          "source": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "sha256": {
+                "type": "string"
+              },
+              "bytes": {
+                "type": "integer"
+              }
+            }
+          },
+          "submitted_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "attempts": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "revision": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "owner",
+          "title",
+          "authors",
+          "source",
+          "attempts"
+        ]
+      },
+      "FormalizationListing": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Formalization"
+            }
+          },
+          "next_before": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "VerificationTarget": {
+        "type": "object",
+        "properties": {
+          "record": {
+            "type": "string"
+          },
+          "claim": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "record",
+          "claim"
+        ],
+        "additionalProperties": false
+      },
+      "Attempt": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "record": {
+            "type": "string"
+          },
+          "claim": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "receipt": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "solution": {
+            "type": "string"
+          },
+          "attribution": {
+            "type": "object",
+            "description": "Reported original authors, source reference, license and deposit id, fixed when the attempt is admitted."
+          }
+        },
+        "required": [
+          "id",
+          "state"
+        ]
+      },
+      "ReviewReport": {
+        "type": "object",
+        "properties": {
+          "schema_version": {
+            "const": 1
+          },
+          "service": {
+            "const": "Orchestra"
+          },
+          "submission": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "authors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Author"
+            }
+          },
+          "version": {
+            "type": "integer"
+          },
+          "claims_revision": {
+            "type": "integer"
+          },
+          "source_sha256": {
+            "type": "string"
+          },
+          "status": {
+            "type": "object"
+          },
+          "claims": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "review": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "rounds": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "description": "Version/claims-revision-bound report, audit and author-visible formalization outcomes. No provider identifiers, prompts, advice or private proof files."
+                }
+              },
+              "letters": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              },
+              "revision": {
+                "type": "integer"
+              }
+            }
+          }
+        },
+        "required": [
+          "schema_version",
+          "service",
+          "submission",
+          "version",
+          "claims_revision",
+          "source_sha256",
+          "review"
+        ]
+      }
+    }
+  }
+}

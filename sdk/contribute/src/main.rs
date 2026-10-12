@@ -22,14 +22,20 @@ use client::Client;
 
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
-    let (Ok(url), Ok(token)) = (
-        std::env::var("WISHPOOL_URL"),
-        std::env::var("WISHPOOL_TOKEN"),
-    ) else {
-        eprintln!("set WISHPOOL_URL and WISHPOOL_TOKEN (a NyxID access token)");
+    let client = if let Ok(service) = std::env::var("WISHPOOL_NYXID_SERVICE") {
+        if service.is_empty() || service.starts_with('-') {
+            eprintln!("WISHPOOL_NYXID_SERVICE must name a connected service");
+            return ExitCode::from(2);
+        }
+        Client::via_nyxid(&service)
+    } else if let Ok(url) = std::env::var("WISHPOOL_URL") {
+        Client::new(&url, &std::env::var("WISHPOOL_TOKEN").unwrap_or_default())
+    } else {
+        eprintln!(
+            "set WISHPOOL_NYXID_SERVICE for a connected NyxID service, or WISHPOOL_URL (and WISHPOOL_TOKEN for private operations)"
+        );
         return ExitCode::from(2);
     };
-    let client = Client::new(&url, &token);
     let print = |result: client::ApiResult<serde_json::Value>| match result {
         Ok(value) => {
             println!(
@@ -49,6 +55,24 @@ fn main() -> ExitCode {
         .collect::<Vec<_>>()
         .as_slice()
     {
+        ["papers"] => print(client.papers(&serde_json::json!({}))),
+        ["papers", query] => print(client.papers(&serde_json::json!({"q": query}))),
+        ["paper", record] => print(client.paper(record)),
+        ["review", id] => print(client.review(id)),
+        ["formalization", id] => print(client.formalization(id)),
+        ["verify-formalization", id, record, claim] => {
+            print(client.verify_formalization(id, record, claim))
+        }
+        ["submit-formalization", file] => match std::fs::read_to_string(file)
+            .map_err(|e| e.to_string())
+            .and_then(|s| serde_json::from_str(&s).map_err(|e| e.to_string()))
+        {
+            Ok(body) => print(client.post("/formalizations", &body)),
+            Err(error) => {
+                eprintln!("{error}");
+                ExitCode::FAILURE
+            }
+        },
         ["conjectures"] => print(client.conjectures()),
         ["target" | "statement-target", record, claim] => match client.target(record, claim) {
             Ok(value) => match value["target"]["lean"].as_str() {
@@ -119,7 +143,7 @@ fn main() -> ExitCode {
         },
         _ => {
             eprintln!(
-                "usage: wishpool-contribute conjectures | target <record> <claim> | attempt <record> <claim> <file> [--as-agent NAME] | attempt-status <id> | report <record> <report.json> | report-status <id> | tasks [kind] | show <task> | lease <task> | release <task> | submit <task> <result.json> | mcp"
+                "usage: wishpool-contribute papers [query] | paper <record> | review <submission-id> | submit-formalization <deposit.json> | formalization <id> | verify-formalization <id> <record> <claim> | conjectures | target <record> <claim> | attempt <record> <claim> <file> [--as-agent NAME] | attempt-status <id> | report <record> <report.json> | report-status <id> | tasks [kind] | show <task> | lease <task> | release <task> | submit <task> <result.json> | mcp"
             );
             ExitCode::from(2)
         }
@@ -187,6 +211,12 @@ mod tests {
         assert_eq!(
             names,
             [
+                "papers",
+                "paper",
+                "review",
+                "submit-formalization",
+                "formalization",
+                "verify-formalization",
                 "report",
                 "report-status",
                 "conjectures",

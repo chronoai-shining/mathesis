@@ -1,3 +1,4 @@
+import { ProofAttribution } from '../components/ProofAttribution';
 import { useCallback, useState, type FormEvent } from 'react';
 import { useApi } from '../api/context';
 import { useAsync } from '../api/useAsync';
@@ -125,6 +126,7 @@ export function ConjectureView({ detail: c }: { detail: ConjectureDetail }) {
               {c.verified_attempts.map((a) => (
                 <li key={a.id}>
                   <EntrantName entrant={a.entrant} />
+                  <ProofAttribution attribution={a.attribution} />
                   <p>
                     {a.also_verified ? 'Also verified' : 'First verified'} ·{' '}
                     <DateText iso={a.receipt.checked_at} />

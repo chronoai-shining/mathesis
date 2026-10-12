@@ -96,7 +96,16 @@ impl MongoStore {
             .create_index(unique(doc! { "submission": 1, "endorser": 1 }))
             .await?;
         self.raw(RECORDS)
-            .create_indexes([unique(doc! { "id": 1 }), unique(doc! { "submission": 1 })])
+            .create_indexes([
+                unique(doc! { "id": 1 }), unique(doc! { "submission": 1 }),
+                plain(doc! { "kind": 1, "id": -1 }),
+                plain(doc! { "publication.msc": 1, "id": -1 }),
+                IndexModel::builder().keys(doc! {"title": "text", "authors.name": "text", "publication.abstract_text": "text", "publication.doi": "text"})
+                    .options(IndexOptions::builder().name("archive_text_v1".to_owned()).default_language("none".to_owned()).build()).build(),
+            ])
+            .await?;
+        self.raw("lean_deposits")
+            .create_indexes([unique(doc! {"id": 1}), plain(doc! {"owner": 1, "id": -1})])
             .await?;
         self.raw(SESSIONS).create_index(ttl("expires_at")).await?;
         self.raw(LOGIN_ATTEMPTS)

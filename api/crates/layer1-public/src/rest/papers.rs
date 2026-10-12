@@ -18,7 +18,7 @@ use wishpool_core::{
     model::{ClaimConfirmation, NewPaper, Visibility},
 };
 
-use super::{ApiResult, AppState, Body, PageQuery, Path, Query};
+use super::{ApiResult, AppState, Body, Path, Query};
 use crate::{auth::AuthenticatedCaller, problems::Problem};
 
 pub(super) fn routes() -> Router<Arc<App>> {
@@ -29,6 +29,7 @@ pub(super) fn routes() -> Router<Arc<App>> {
             get(list_submissions).post(submit).layer(upload_limit),
         )
         .route("/submissions/{id}", get(get_submission))
+        .route("/submissions/{id}/review", get(review_report))
         .route("/submissions/{id}/claims", post(confirm_claims))
         .route(
             "/submissions/{id}/lean-statement/response",
@@ -153,6 +154,24 @@ async fn list_submissions(
         app.list_submissions(&caller, scope, q.limit, q.before)
             .await?,
     ))
+}
+
+async fn review_report(
+    State(app): AppState,
+    AuthenticatedCaller(caller): AuthenticatedCaller,
+    Path(id): Path<String>,
+) -> ApiResult<Response> {
+    let report = app.review_report(&caller, &SubmissionId(id)).await?;
+    let mut response = Json(report).into_response();
+    response.headers_mut().insert(
+        header::CACHE_CONTROL,
+        HeaderValue::from_static("private, no-store"),
+    );
+    response.headers_mut().insert(
+        header::CONTENT_DISPOSITION,
+        HeaderValue::from_static("attachment; filename=wishpool-review.json"),
+    );
+    Ok(response)
 }
 
 async fn get_submission(
@@ -298,11 +317,33 @@ fn file_response(file: PaperFile, inline: bool) -> Response {
     response
 }
 
+#[derive(Debug, Default, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct PaperQuery {
+    limit: Option<u32>,
+    before: Option<String>,
+    q: Option<String>,
+    author: Option<String>,
+    msc: Option<String>,
+    kind: Option<wishpool_core::model::SubmissionKind>,
+}
 async fn list_papers(
     State(app): AppState,
-    Query(q): Query<PageQuery>,
+    Query(q): Query<PaperQuery>,
 ) -> ApiResult<impl IntoResponse> {
-    Ok(Json(app.list_papers(q.limit, q.before).await?))
+    Ok(Json(
+        app.search_papers(
+            wishpool_core::model::PaperSearch {
+                q: q.q,
+                author: q.author,
+                msc: q.msc,
+                kind: q.kind,
+            },
+            q.limit,
+            q.before,
+        )
+        .await?,
+    ))
 }
 
 async fn paper(State(app): AppState, Path(id): Path<String>) -> ApiResult<impl IntoResponse> {

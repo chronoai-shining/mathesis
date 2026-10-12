@@ -418,3 +418,24 @@ funded; local elaboration and proof verification carry no CMA payer.
   venue token, retain attribution, and show zero until a NyxID usage receipt is
   available. CMA/model/client token estimates never become metered usage.
 - Public accepted items say “Reviewed by GPT Pro and audited by Codex”.
+
+## 13. Research service intake and discovery
+
+- The archive has MongoDB text/metadata indexes. Filtered search uses immutable
+  publication inputs and rechecks live visibility before returning results.
+  Search must never match private drafts or private review text.
+- `/submissions/{id}/review` exports a version/digest-bound Orchestra dossier
+  using the author-safe referee projection, even for staff. Authors can see
+  available progress, reports and audits before the delivered letter.
+- `/formalizations` receives existing Lean modules as private, attributed
+  deposits, with original authors, source reference, pinned toolchain and license.
+  Sources live in GridFS; metadata lives in `lean_deposits`; exact retries are
+  idempotent. Receiving a source is never proof verification or paper acceptance.
+- Deposit owners may explicitly request verification against an existing public,
+  author-confirmed target. Reuse the ordinary attempt and independent verifier;
+  link attempts under a revision fence. No separate acceptance route, arbitrary
+  project execution or editor verification is introduced.
+- User-facing services are Orchestra review, deep reasoning and formalization.
+  CMA account configuration belongs in advanced compute settings. NyxID remains
+  the identity and connection provider. API, OpenAPI, CLI and MCP project the
+  same Layer 2 services. See `docs/RESEARCH_SERVICES.md` for exact current scope.

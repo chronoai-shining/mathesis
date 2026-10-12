@@ -1,3 +1,4 @@
+import { ProofAttribution } from '../components/ProofAttribution';
 import { useCallback } from 'react';
 import { useApi } from '../api/context';
 import { useAsync } from '../api/useAsync';
@@ -117,6 +118,7 @@ export function StatementPage({ record, claim }: { record: string; claim: string
                     {s.verified_attempts.map((a) => (
                       <li key={a.id}>
                         <EntrantName entrant={a.entrant} />
+                        <ProofAttribution attribution={a.attribution} />
                         <p>
                           {a.receipt.verdict === 'proved' ? 'Proved' : 'Disproved'} the
                           author-confirmed Lean target.

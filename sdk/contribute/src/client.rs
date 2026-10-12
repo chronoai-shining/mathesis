@@ -6,6 +6,7 @@ pub struct Client {
     http: reqwest::blocking::Client,
     base: String,
     token: String,
+    nyxid_service: Option<String>,
 }
 
 #[derive(Debug)]
@@ -21,6 +22,18 @@ impl std::fmt::Display for ApiError {
 }
 
 pub type ApiResult<T> = Result<T, ApiError>;
+fn segment(value: &str) -> String {
+    value
+        .bytes()
+        .map(|b| {
+            if b.is_ascii_alphanumeric() || matches!(b, b'-' | b'_' | b'.' | b'~') {
+                (b as char).to_string()
+            } else {
+                format!("%{b:02X}")
+            }
+        })
+        .collect()
+}
 
 impl Client {
     /// `base` is the venue origin, e.g. `https://wishpool.example.org`;
@@ -35,17 +48,89 @@ impl Client {
             http,
             base: format!("{}/api/v1", base.trim_end_matches('/')),
             token: token.to_owned(),
+            nyxid_service: None,
         }
     }
 
+    pub fn via_nyxid(service: &str) -> Self {
+        let mut client = Self::new("https://wishpool.invalid", "");
+        client.nyxid_service = Some(service.to_owned());
+        client
+    }
+
     fn send(&self, request: reqwest::blocking::RequestBuilder) -> ApiResult<Value> {
-        let response = request
-            .bearer_auth(&self.token)
-            .send()
-            .map_err(|e| ApiError {
+        if let Some(service) = &self.nyxid_service {
+            use std::{
+                io::Write,
+                process::{Command, Stdio},
+            };
+            let request = request.build().map_err(|e| ApiError {
                 status: 0,
                 detail: e.to_string(),
             })?;
+            let url = request.url();
+            let path = match url.query() {
+                Some(q) => format!("{}?{q}", url.path()),
+                None => url.path().to_owned(),
+            };
+            let mut command = Command::new("nyxid");
+            command.args([
+                "proxy",
+                "request",
+                service,
+                &path,
+                "--method",
+                request.method().as_str(),
+            ]);
+            let body = request.body().and_then(|b| b.as_bytes());
+            if body.is_some() {
+                command.args(["--data", "-", "--header", "Content-Type:application/json"]);
+            }
+            // No shell, no token on argv, and request bodies travel through stdin.
+            let mut child = command
+                .stdin(Stdio::piped())
+                .stdout(Stdio::piped())
+                .stderr(Stdio::piped())
+                .spawn()
+                .map_err(|_| ApiError {
+                    status: 0,
+                    detail: "Unable to start nyxid. Install the CLI and sign in first.".into(),
+                })?;
+            if let Some(body) = body {
+                let write = child.stdin.take().unwrap().write_all(body);
+                if let Err(e) = write {
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    return Err(ApiError {
+                        status: 0,
+                        detail: e.to_string(),
+                    });
+                }
+            } else {
+                drop(child.stdin.take());
+            }
+            let output = child.wait_with_output().map_err(|e| ApiError {
+                status: 0,
+                detail: e.to_string(),
+            })?;
+            if !output.status.success() {
+                return Err(ApiError { status: 0, detail: "NyxID proxy request failed. Check your sign-in and connected Wishpool service with nyxid proxy discover.".into() });
+            }
+            return serde_json::from_slice(&output.stdout).map_err(|_| ApiError {
+                status: 0,
+                detail: "NyxID returned a non-JSON response".into(),
+            });
+        }
+
+        let request = if self.token.is_empty() {
+            request
+        } else {
+            request.bearer_auth(&self.token)
+        };
+        let response = request.send().map_err(|e| ApiError {
+            status: 0,
+            detail: e.to_string(),
+        })?;
         let status = response.status().as_u16();
         let text = response.text().unwrap_or_default();
         let body: Value = serde_json::from_str(&text).unwrap_or(Value::Null);
@@ -69,6 +154,38 @@ impl Client {
         self.send(self.http.delete(format!("{}{path}", self.base)))
     }
 
+    pub fn papers(&self, args: &Value) -> ApiResult<Value> {
+        let mut query = Vec::new();
+        for key in ["q", "author", "msc", "kind", "before"] {
+            if let Some(value) = args[key].as_str() {
+                query.push((key, value.to_owned()));
+            }
+        }
+        query.push((
+            "limit",
+            args["limit"]
+                .as_u64()
+                .unwrap_or(25)
+                .clamp(1, 100)
+                .to_string(),
+        ));
+        self.send(self.http.get(format!("{}/papers", self.base)).query(&query))
+    }
+    pub fn paper(&self, record: &str) -> ApiResult<Value> {
+        self.get(&format!("/papers/{}", segment(record)))
+    }
+    pub fn review(&self, id: &str) -> ApiResult<Value> {
+        self.get(&format!("/submissions/{}/review", segment(id)))
+    }
+    pub fn formalization(&self, id: &str) -> ApiResult<Value> {
+        self.get(&format!("/formalizations/{}", segment(id)))
+    }
+    pub fn verify_formalization(&self, id: &str, record: &str, claim: &str) -> ApiResult<Value> {
+        self.post(
+            &format!("/formalizations/{}/attempts", segment(id)),
+            &json!({"record": record, "claim": claim}),
+        )
+    }
     pub fn conjectures(&self) -> ApiResult<Value> {
         self.get("/conjectures?limit=100")
     }
@@ -153,6 +270,16 @@ mod solving_tests {
             for (method, path, body) in [
                 (
                     "GET",
+                    "/api/v1/papers?q=prime+%26+gaps&author=A.+Author&limit=25",
+                    json!({"items":[],"next_before":null}),
+                ),
+                (
+                    "GET",
+                    "/api/v1/submissions/sub1/review",
+                    json!({"schema_version":1,"source_sha256":"pinned-source","service":"Orchestra"}),
+                ),
+                (
+                    "GET",
                     "/api/v1/conjectures?limit=100",
                     json!({"items": [], "next_before": null}),
                 ),
@@ -220,6 +347,16 @@ mod solving_tests {
             }
         });
         let client = Client::new(&origin, "test-token");
+        assert_eq!(
+            client
+                .papers(&json!({"q":"prime & gaps","author":"A. Author"}))
+                .unwrap()["items"],
+            json!([])
+        );
+        assert_eq!(
+            client.review("sub1").unwrap()["source_sha256"],
+            "pinned-source"
+        );
         assert_eq!(client.conjectures().unwrap()["items"], json!([]));
         let target = client.target("WP-2026-0001", "C1").unwrap();
         assert_eq!(target["target"]["digest"], "exact-digest");

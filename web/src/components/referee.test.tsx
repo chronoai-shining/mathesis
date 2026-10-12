@@ -361,7 +361,7 @@ describe('referee workspace', () => {
     );
     const heading = await screen.findByRole('heading', { name: feedbackLetter.subject });
     const panel = heading.closest('section')!;
-    expect(panel).toHaveAccessibleName('Letter from the editors');
+    expect(panel).toHaveAccessibleName('Orchestra review');
     const letters = heading.closest('ul')!;
     expect(
       within(letters)
@@ -381,14 +381,14 @@ describe('referee workspace', () => {
     expect(screen.queryByRole('form', { name: 'Send feedback to the author' })).toBeNull();
   });
 
-  it('shows nothing for an author with no sent letters', async () => {
+  it('shows available review progress and report before the letter arrives', async () => {
     const referee = vi.fn(async () => refereeFile());
     workspace({ referee }, author);
     await waitFor(() => {
       expect(referee).toHaveBeenCalledOnce();
-      expect(screen.queryByRole('region', { name: 'Letter from the editors' })).toBeNull();
+      expect(screen.getByRole('region', { name: 'Orchestra review' })).toBeInTheDocument();
     });
-    expect(screen.queryByText('Full referee report', { selector: 'summary' })).toBeNull();
+    expect(screen.getByText('Full referee report', { selector: 'summary' })).toBeInTheDocument();
     expect(screen.queryByText('No feedback letters have been sent.')).toBeNull();
   });
 
@@ -789,8 +789,8 @@ describe('referee polling', () => {
         );
       const view = polling(referee, false, paper);
       await act(async () => {});
-      expect(view.container).toBeEmptyDOMElement();
-      expect(screen.queryByRole('region', { name: 'Letter from the editors' })).toBeNull();
+      expect(view.container).not.toBeEmptyDOMElement();
+      expect(screen.getByRole('region', { name: 'Orchestra review' })).toBeInTheDocument();
       await act(async () => {
         await vi.advanceTimersByTimeAsync(29_999);
       });
@@ -799,7 +799,7 @@ describe('referee polling', () => {
         await vi.advanceTimersByTimeAsync(1);
       });
       expect(referee).toHaveBeenCalledTimes(2);
-      expect(screen.getByRole('region', { name: 'Letter from the editors' })).toBeInTheDocument();
+      expect(screen.getByRole('region', { name: 'Orchestra review' })).toBeInTheDocument();
       expect(screen.getByRole('heading', { name: 'Sent editorial feedback' })).toBeInTheDocument();
       await act(async () => {
         fireEvent.focus(window);
@@ -827,7 +827,7 @@ describe('referee polling', () => {
       await vi.advanceTimersByTimeAsync(30_000);
     });
     expect(screen.queryByRole('alert')).toBeNull();
-    expect(screen.queryByRole('region', { name: 'Letter from the editors' })).toBeNull();
+    expect(screen.getByRole('region', { name: 'Orchestra review' })).toBeInTheDocument();
     await act(async () => {
       await vi.advanceTimersByTimeAsync(30_000);
     });
@@ -837,7 +837,7 @@ describe('referee polling', () => {
     });
     expect(referee).toHaveBeenCalledTimes(4);
     expect(screen.queryByRole('alert')).toBeNull();
-    expect(screen.getByRole('region', { name: 'Letter from the editors' })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Orchestra review' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Sent editorial feedback' })).toBeInTheDocument();
   });
 

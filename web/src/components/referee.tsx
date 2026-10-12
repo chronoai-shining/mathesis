@@ -58,11 +58,9 @@ export function RefereeWorkspace(props: WorkspaceProps & { resource: RefereeReso
   };
 
   if (!isStaff) {
-    // Nothing to show the author until the first letter arrives.
-    if (resource.state.status === 'ok' && resource.value?.letters.length === 0) return null;
     return (
       <section className="referee-panel" aria-labelledby="feedback-h">
-        <h2 id="feedback-h">Letter from the editors</h2>
+        <h2 id="feedback-h">Orchestra review</h2>
         <Async state={resource.state} onRetry={reload}>
           {(file) => {
             const current = [...file.rounds]
@@ -74,7 +72,31 @@ export function RefereeWorkspace(props: WorkspaceProps & { resource: RefereeReso
               );
             return (
               <>
-                <SentLetters letters={file.letters} authorView />
+                <p className="review-status" role="status">
+                  {current
+                    ? roundStatus(
+                        current,
+                        file.letters.filter((l) => l.round === current.number),
+                      )
+                    : 'Confirm your statements to start the review.'}
+                </p>
+                <p className="small muted">
+                  Your review checks the argument, examines prior work and identifies gaps. Deep
+                  reasoning and formalization follow the reviewed statements.
+                </p>
+                <a
+                  className="button button-quiet button-small"
+                  href={`/api/v1/submissions/${encodeURIComponent(submission.id)}/review`}
+                >
+                  Download review report
+                </a>
+                {file.letters.length > 0 ? <SentLetters letters={file.letters} authorView /> : null}
+                {current?.audit?.state.state === 'done' ? (
+                  <details className="history">
+                    <summary>Statement audit</summary>
+                    <AuditView audit={current.audit.state.result} />
+                  </details>
+                ) : null}
                 {current?.referee.state.state === 'done' ? (
                   <details className="history">
                     <summary>Full referee report</summary>

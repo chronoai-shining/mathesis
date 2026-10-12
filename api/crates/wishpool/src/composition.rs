@@ -55,6 +55,7 @@ impl Composition {
                 let store = MongoStore::connect(uri, database).await?;
                 let shared = Arc::new(store.clone());
                 let ports = Ports {
+                    deposits: shared.clone(),
                     cma_bindings: shared.clone(),
                     cma_setup: Arc::new(wishpool_core::ports::UnavailableCmaSetup),
                     solving: shared.clone(),

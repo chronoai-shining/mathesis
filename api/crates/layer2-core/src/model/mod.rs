@@ -6,14 +6,17 @@ pub(crate) mod claim;
 mod cma;
 mod common;
 mod conjecture;
+mod deposit;
 mod donation;
 mod endorsement;
 mod formalization;
 mod paper;
 mod person;
 mod record;
+pub use deposit::*;
 pub mod referee;
 mod review;
+mod search;
 mod solving;
 mod task;
 
@@ -36,6 +39,7 @@ pub use referee::{
     RefereeRoundView, RefereeView, RoundUpdate, Severity, Step, StepState,
 };
 pub use review::*;
+pub use search::*;
 pub use solving::*;
 pub use task::*;
 

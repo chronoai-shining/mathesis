@@ -157,7 +157,7 @@ describe('standing in the workspace', () => {
     const statements = screen.getByRole('region', { name: 'Statements' });
     expect(within(statements).getAllByRole('list')).toHaveLength(2);
     expect(within(statements).queryByRole('table')).toBeNull();
-    expect(statements.nextElementSibling).toHaveAccessibleName('Letter from the editors');
+    expect(statements.nextElementSibling).toHaveAccessibleName('Orchestra review');
     expect(
       screen.getByText('Full referee report', { selector: 'summary' }).closest('details'),
     ).not.toHaveAttribute('open');

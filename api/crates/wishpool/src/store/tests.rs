@@ -245,6 +245,7 @@ async fn paper_flow_against_mongo() {
     };
     let shared = Arc::new(db.store.clone());
     let ports = Ports {
+        deposits: Arc::new(db.store.clone()),
         cma_bindings: shared.clone(),
         cma_setup: Arc::new(wishpool_core::ports::UnavailableCmaSetup),
         solving: shared.clone(),
@@ -850,5 +851,152 @@ async fn error_reports_round_trip_with_atomic_per_entrant_revision() {
         stored[0].reports[0].resolution.as_ref().unwrap().verdict,
         ErrorVerdict::Confirmed
     );
+    db.drop().await;
+}
+
+#[tokio::test]
+async fn archive_text_search_and_formalization_receipts_survive_reconnect() {
+    let Some(db) = TestDb::open().await else {
+        return;
+    };
+    let mut s = submission("search-sub", "author", SubmissionStatus::Draft);
+    s.analysis_visibility = Visibility::Public;
+    s.title = "Prime gaps".into();
+    s.abstract_text = "spectral witnesses".into();
+    s.msc = vec!["11B83".into()];
+    s.authors = vec![Author {
+        name: "A. Author".into(),
+        person: None,
+        orcid: None,
+        affiliation: None,
+    }];
+    let record = Record {
+        id: "WP-2026-0001".into(),
+        kind: SubmissionKind::Paper,
+        title: s.title.clone(),
+        authors: s.authors.clone(),
+        submission: s.id.clone(),
+        publication: Some(Box::new(s)),
+        basis: wishpool_core::policy::AdmissionBasis::EscapeWitness,
+        accepted_by: "editor".into(),
+        accepted_at: Utc::now(),
+    };
+    SubmissionStore::insert(&db.store, record.publication.as_ref().unwrap())
+        .await
+        .unwrap();
+    RecordStore::insert(&db.store, &record).await.unwrap();
+    let q = PaperSearch {
+        q: Some("spectral".into()),
+        msc: Some("11".into()),
+        author: Some("A. Author".into()),
+        kind: Some(SubmissionKind::Paper),
+    };
+    assert_eq!(
+        RecordStore::search(&db.store, &q, 1, None)
+            .await
+            .unwrap()
+            .items
+            .len(),
+        1
+    );
+    let mut literal = q.clone();
+    literal.author = Some(".*".into());
+    assert!(
+        RecordStore::search(&db.store, &literal, 1, None)
+            .await
+            .unwrap()
+            .items
+            .is_empty()
+    );
+    let exact = PaperSearch {
+        q: Some("WP-2026-0001".into()),
+        ..Default::default()
+    };
+    assert_eq!(
+        RecordStore::search(&db.store, &exact, 1, None)
+            .await
+            .unwrap()
+            .items
+            .len(),
+        1
+    );
+    assert!(
+        RecordStore::search(&db.store, &exact, 1, Some("WP-2026-0001".into()))
+            .await
+            .unwrap()
+            .items
+            .is_empty()
+    );
+    // Revoking visibility must stop indexed discovery without changing the immutable record.
+    let mut current = SubmissionStore::get(&db.store, &record.submission)
+        .await
+        .unwrap()
+        .unwrap();
+    current.analysis_visibility = Visibility::Private;
+    SubmissionStore::replace(&db.store, &current, current.revision)
+        .await
+        .unwrap();
+    assert!(
+        RecordStore::search(&db.store, &q, 1, None)
+            .await
+            .unwrap()
+            .items
+            .is_empty()
+    );
+    let blob = BlobStore::put(&db.store, b"import Target", "text/plain")
+        .await
+        .unwrap();
+    let mut deposit = LeanDeposit {
+        id: "lean-test".into(),
+        owner: "author".into(),
+        title: "A formalization".into(),
+        authors: vec!["Original author".into()],
+        statement: "True".into(),
+        source_reference: Source {
+            kind: SourceKind::Url,
+            locator: "https://example.org/source".into(),
+            year: None,
+        },
+        toolchain: "test".into(),
+        license: "Apache-2.0".into(),
+        source: blob,
+        submitted_at: Utc::now(),
+        attempts: vec![],
+        revision: 0,
+    };
+    LeanDepositStore::insert(&db.store, &deposit).await.unwrap();
+    assert!(LeanDepositStore::insert(&db.store, &deposit).await.is_err());
+    deposit.revision = 1;
+    deposit.attempts.push("attempt".into());
+    LeanDepositStore::replace(&db.store, &deposit, 0)
+        .await
+        .unwrap();
+    assert!(matches!(
+        LeanDepositStore::replace(&db.store, &deposit, 0).await,
+        Err(CoreError::StaleRevision { .. })
+    ));
+    let uri = std::env::var("WISHPOOL_TEST_MONGODB_URI").unwrap();
+    let reopened = MongoStore::connect(&uri, &db.name).await.unwrap();
+    let saved = LeanDepositStore::get(&reopened, "lean-test")
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(saved.authors, vec!["Original author"]);
+    assert_eq!(saved.attempts, vec!["attempt"]);
+    assert_eq!(
+        BlobStore::get(&reopened, &saved.source.id)
+            .await
+            .unwrap()
+            .unwrap(),
+        b"import Target"
+    );
+    assert!(
+        LeanDepositStore::list(&reopened, &"other".into(), 25, None)
+            .await
+            .unwrap()
+            .items
+            .is_empty()
+    );
+    reopened.shutdown().await;
     db.drop().await;
 }

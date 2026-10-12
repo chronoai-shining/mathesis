@@ -51,6 +51,8 @@ pub struct VerificationRequest {
 }
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Attempt {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub attribution: Option<super::FormalizationAttribution>,
     pub id: String,
     pub owner: PersonId,
     pub entrant: Entrant,
@@ -112,6 +114,8 @@ impl SolveFile {
 }
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PublicAttempt {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub attribution: Option<super::FormalizationAttribution>,
     pub id: String,
     pub entrant: Entrant,
     pub receipt: VerificationReceipt,
@@ -120,6 +124,8 @@ pub struct PublicAttempt {
 }
 #[derive(Debug, Clone, Serialize)]
 pub struct AttemptView {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub attribution: Option<super::FormalizationAttribution>,
     pub id: String,
     pub record: RecordId,
     pub claim: ClaimId,

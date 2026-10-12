@@ -65,6 +65,7 @@ pub fn display_name(identity: &VerifiedIdentity) -> String {
 
 #[derive(Default)]
 pub struct MemoryStores {
+    deposits: Mutex<BTreeMap<String, LeanDeposit>>,
     cma_bindings: Mutex<BTreeMap<PersonId, CmaBinding>>,
     error_reports: Mutex<BTreeMap<String, ErrorReportFile>>,
     solving: Mutex<BTreeMap<String, SolveFile>>,
@@ -86,6 +87,7 @@ pub struct MemoryStores {
 impl MemoryStores {
     pub fn ports(self: &Arc<Self>, clock: Arc<dyn Clock>, reader: Arc<dyn PaperReader>) -> Ports {
         Ports {
+            deposits: self.clone(),
             cma_bindings: self.clone(),
             cma_setup: Arc::new(UnavailableCmaSetup),
             solving: self.clone(),
@@ -285,6 +287,16 @@ impl EndorsementStore for MemoryStores {
 
 #[async_trait]
 impl RecordStore for MemoryStores {
+    async fn search(
+        &self,
+        search: &PaperSearch,
+        limit: u32,
+        before: Option<String>,
+    ) -> CoreResult<Listing<Record>> {
+        Ok(page(&*self.records.lock().await, limit, before, |r| {
+            search.matches_record(r)
+        }))
+    }
     async fn for_submission(&self, id: &SubmissionId) -> CoreResult<Option<Record>> {
         Ok(self
             .records
@@ -690,5 +702,44 @@ impl CmaBindingStore for MemoryStores {
         }
         bindings.insert(binding.person.clone(), binding.clone());
         Ok(())
+    }
+}
+
+#[async_trait]
+impl LeanDepositStore for MemoryStores {
+    async fn get(&self, id: &str) -> CoreResult<Option<LeanDeposit>> {
+        Ok(self.deposits.lock().await.get(id).cloned())
+    }
+    async fn insert(&self, value: &LeanDeposit) -> CoreResult<()> {
+        let mut data = self.deposits.lock().await;
+        if data.contains_key(&value.id) {
+            return Err(CoreError::conflict("deposit exists"));
+        }
+        data.insert(value.id.clone(), value.clone());
+        Ok(())
+    }
+    async fn replace(&self, value: &LeanDeposit, expected: u64) -> CoreResult<()> {
+        let mut data = self.deposits.lock().await;
+        let previous = data
+            .get(&value.id)
+            .ok_or_else(|| CoreError::not_found("deposit", &value.id))?;
+        if previous.revision != expected {
+            return Err(CoreError::StaleRevision {
+                kind: "deposit",
+                id: value.id.clone(),
+            });
+        }
+        data.insert(value.id.clone(), value.clone());
+        Ok(())
+    }
+    async fn list(
+        &self,
+        owner: &PersonId,
+        limit: u32,
+        before: Option<String>,
+    ) -> CoreResult<Listing<LeanDeposit>> {
+        Ok(page(&*self.deposits.lock().await, limit, before, |d| {
+            &d.owner == owner
+        }))
     }
 }

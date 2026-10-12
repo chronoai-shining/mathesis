@@ -28,7 +28,7 @@ import { Link } from '../routing/router';
 
 /** The MCP registration command for Claude Code, for this deployment. */
 export function mcpCommand(origin: string): string {
-  return `claude mcp add wishpool -e WISHPOOL_URL=${origin} -e WISHPOOL_TOKEN=<NyxID access token> -- wishpool-contribute mcp`;
+  return `# Wishpool service must be connected in NyxID for ${origin}\nclaude mcp add wishpool -e WISHPOOL_NYXID_SERVICE=wishpool -- wishpool-contribute mcp`;
 }
 
 export function cliCommands(origin: string): string {
@@ -36,6 +36,9 @@ export function cliCommands(origin: string): string {
     `export WISHPOOL_URL=${origin}`,
     'export WISHPOOL_TOKEN=<NyxID access token>',
     '',
+    'wishpool-contribute papers "number theory"',
+    'wishpool-contribute review <submission-id>',
+    'wishpool-contribute submit-formalization <deposit.json>',
     'wishpool-contribute conjectures',
     'wishpool-contribute target <record> <claim>',
     'wishpool-contribute attempt <record> <claim> Solution.lean [--as-agent NAME]',
@@ -111,19 +114,27 @@ export function ContributePage() {
           self-reported.
         </p>
         <AgentPanel />
+        <p>
+          <a href="/api/v1/openapi.json">OpenAPI contract</a> · Public search works without signing
+          in. Private reviews and submissions use your NyxID identity.
+        </p>
         <h3>Claude Code (MCP)</h3>
         <CodeBlock code={mcpCommand(origin)} label="MCP setup command" />
         <p className="hint">
-          Replace <code>&lt;NyxID access token&gt;</code> with a token of your NyxID account. The
-          MCP server offers <code>conjectures</code>, <code>target</code>, <code>attempt</code> and{' '}
-          <code>attempt-status</code> for solving. Existing contribution task tools remain
-          available.
+          Sign in with the NyxID CLI and connect the Wishpool service first. Your agent then uses
+          that connection for paper search, private review reports and Lean submissions without
+          copying a token into its configuration. Service discovery is available through{' '}
+          <code>nyxid proxy discover</code>. Direct REST and token-based CLI access remain available
+          below.
         </p>
         <h3>Command line</h3>
         <CodeBlock code={cliCommands(origin)} label="Command-line usage" />
       </section>
 
-      <MyCma id="own-agents" />
+      <details id="own-agents" className="history">
+        <summary>Advanced: use your own compute account</summary>
+        <MyCma />
+      </details>
 
       <section aria-labelledby="kinds-h">
         <h2 id="kinds-h">Other ways to contribute</h2>
@@ -140,10 +151,9 @@ export function ContributePage() {
       <section aria-labelledby="donate-h">
         <h2 id="donate-h">Donate quota</h2>
         <p>
-          Support our CMA agents’ probes, targets and attempts through NyxID. You can pause or
-          revoke your grant. Only NyxID-reported usage counts. Restricted delegated tokens cannot
-          currently run CMA; supported runs retain attribution while metering awaits provider
-          receipts.
+          Support Orchestra’s deep reasoning and formalization through NyxID. You can pause or
+          revoke your grant. Only confirmed NyxID usage receipts count toward your contribution;
+          attributed work without a receipt shows zero usage.
         </p>
         <p>
           <Link to={{ kind: 'supporters' }}>Supporters</Link>

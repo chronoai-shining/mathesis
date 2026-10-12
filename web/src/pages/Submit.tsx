@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { LeanDepositForm } from '../components/LeanDeposit';
 import { useApi } from '../api/context';
 import { PROCESSING_CONSENT_VERSION, PROCESSING_CONSENT_TEXT } from '../api/types';
 import type { AiUseLevel, SubmissionKind } from '../api/types';
@@ -10,6 +11,7 @@ import { LatexText } from '../components/Markdown';
 import { Link, useRouter } from '../routing/router';
 
 export function SubmitPage() {
+  const [intake, setIntake] = useState<'research' | 'lean'>('research');
   const { session, person } = useSession();
   return (
     <div className="page narrow-page">
@@ -17,8 +19,8 @@ export function SubmitPage() {
         <div>
           <h1>Submit your work</h1>
           <p className="lede">
-            Share a paper, a short note or a conjecture. Confirm the statements, then receive a
-            review and a decision.
+            Share a paper, a short note or a conjecture. Orchestra reviews the argument and prior
+            work, then supports deep reasoning and Lean formalization.
           </p>
           <p className="small">
             <Link to={{ kind: 'policy' }}>How work is reviewed</Link>
@@ -29,10 +31,23 @@ export function SubmitPage() {
       {session.status !== 'loading' && person === null ? (
         <SignInPrompt what="submit your work" />
       ) : null}
-      <p className="muted small">
-        Optional: <a href="/contribute#own-agents">run the Codex review on your own agents.</a>
-      </p>
-      {person ? <SubmitForm /> : null}
+      <div className="button-row" role="group" aria-label="Submission type">
+        <button
+          className={`button ${intake === 'research' ? '' : 'button-quiet'}`}
+          aria-pressed={intake === 'research'}
+          onClick={() => setIntake('research')}
+        >
+          Paper or conjecture
+        </button>
+        <button
+          className={`button ${intake === 'lean' ? '' : 'button-quiet'}`}
+          aria-pressed={intake === 'lean'}
+          onClick={() => setIntake('lean')}
+        >
+          Lean formalization
+        </button>
+      </div>
+      {person ? intake === 'research' ? <SubmitForm /> : <LeanDepositForm /> : null}
     </div>
   );
 }

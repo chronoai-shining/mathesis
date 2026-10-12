@@ -1,4 +1,6 @@
 import type {
+  LeanDeposit,
+  NewLeanDeposit,
   MyCmaStatus,
   ErrorReport,
   NewErrorReport,
@@ -167,6 +169,13 @@ export function buildQuery(params: { [key: string]: QueryValue }): string {
   return text === '' ? '' : `?${text}`;
 }
 
+export interface PaperQuery extends PageParams {
+  q?: string;
+  author?: string;
+  msc?: string;
+  kind?: 'paper' | 'note' | 'conjecture' | '';
+}
+
 export interface PageParams {
   before?: string | null;
   limit?: number;
@@ -318,8 +327,11 @@ export interface ApiClient {
   retireAgent(id: string): Promise<Entrant>;
   notifications(options?: RequestOptions): Promise<SolveNotification[]>;
 
+  submitFormalization(body: NewLeanDeposit): Promise<LeanDeposit>;
+  formalizations(page?: PageParams, options?: RequestOptions): Promise<Listing<LeanDeposit>>;
+  verifyFormalization(id: string, record: string, claim: string): Promise<AttemptView>;
   // Public papers.
-  listPapers(page?: PageParams, options?: RequestOptions): Promise<Listing<PaperSummary>>;
+  listPapers(page?: PaperQuery, options?: RequestOptions): Promise<Listing<PaperSummary>>;
   getPaper(record: string, options?: RequestOptions): Promise<PublicPaper>;
 
   // Contributors.
@@ -470,7 +482,20 @@ export function createApiClient(fetchImpl: FetchLike = (input, init) => fetch(in
         undefined,
         o,
       ),
-    listPapers: (p = {}, o) => request('GET', api(`/papers${buildQuery(page(p))}`), undefined, o),
+    submitFormalization: (body) => request('POST', api('/formalizations'), body),
+    formalizations: (p = {}, o) =>
+      request('GET', api(`/formalizations${buildQuery(page(p))}`), undefined, o),
+    verifyFormalization: (id, record, claim) =>
+      request('POST', api(`/formalizations/${encodeURIComponent(id)}/attempts`), { record, claim }),
+    listPapers: (p = {}, o) =>
+      request(
+        'GET',
+        api(
+          `/papers${buildQuery({ ...page(p), q: p.q, author: p.author, msc: p.msc, kind: p.kind })}`,
+        ),
+        undefined,
+        o,
+      ),
     getPaper: (record, o) => request('GET', api(`/papers/${seg(record)}`), undefined, o),
 
     listTasks: (q = {}, o) =>
