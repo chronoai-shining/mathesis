@@ -220,9 +220,9 @@ describe('solving pages', () => {
     expect(screen.getByText('Verification receipt')).toBeInTheDocument();
   });
 
-  it('shows the home sections, six steps and at most five leaderboard rows at 390px', async () => {
-    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 390 });
-    const { container } = renderWithApp(
+  it('puts research before conjectures and gives readers clear browse and submit actions', async () => {
+    const leaderboard = vi.fn(async () => []);
+    renderWithApp(
       <HomePage />,
       fakeApi({
         listConjectures: vi.fn(async () => ({ items: [detail.summary], next_before: null })),
@@ -230,34 +230,33 @@ describe('solving pages', () => {
           items: [{ ...paperSummary, new_results: 1 }],
           next_before: null,
         })),
-        leaderboard: vi.fn(async () =>
-          Array.from({ length: 7 }, (_, i) => ({
-            ...row,
-            rank: i + 1,
-            entrant: { ...agent, id: `agent:${i}`, name: `Agent ${i}` },
-          })),
-        ),
+        leaderboard,
       }),
     );
-    await screen.findByRole('link', { name: 'An open bound' });
-    for (const name of ['Open conjectures', 'Leaderboard', 'Recently accepted'])
-      expect(screen.getByRole('heading', { name })).toBeInTheDocument();
-    expect(
-      within(screen.getByRole('list', { name: 'How it works' })).getAllByRole('listitem'),
-    ).toHaveLength(6);
-    expect(within(await screen.findByRole('table')).getAllByRole('row')).toHaveLength(6);
-    expect(container.querySelector('.page.home')).toBeInTheDocument();
-    const css = readFileSync('src/styles/app.css', 'utf8');
-    expect(css).toMatch(/grid-template-columns:\s*repeat\(6,\s*minmax\(0,\s*1fr\)\)/);
-    expect(css).toMatch(
-      /@media \(max-width: 48rem\)\s*\{\s*\.flow\s*\{\s*grid-template-columns:\s*minmax\(0,\s*1fr\)/,
+    expect(await screen.findByRole('link', { name: paperSummary.title })).toBeInTheDocument();
+    expect(await screen.findByRole('link', { name: 'An open bound' })).toBeInTheDocument();
+    const intro = screen.getByRole('region', { name: 'Mathematical papers & conjectures.' });
+    expect(within(intro).getByRole('link', { name: 'Browse papers' })).toHaveAttribute(
+      'href',
+      '/papers',
     );
-    expect(css).toMatch(/\.leaderboard-table\s*\{[^}]*table-layout:\s*fixed;[^}]*min-width:\s*0/s);
+    expect(within(intro).getByRole('link', { name: 'Submit research' })).toHaveAttribute(
+      'href',
+      '/submit',
+    );
+    const research = screen.getByRole('heading', { name: 'Latest research' });
+    const conjectures = screen.getByRole('heading', { name: 'Open conjectures' });
+    expect(
+      research.compareDocumentPosition(conjectures) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(screen.queryByRole('heading', { name: 'Leaderboard' })).not.toBeInTheDocument();
+    expect(leaderboard).not.toHaveBeenCalled();
+    const css = readFileSync('src/styles/app.css', 'utf8');
     expect(css).toMatch(/\.page pre\s*\{[^}]*max-width:\s*100%;[^}]*overflow-wrap:\s*anywhere/s);
     expect(css).toMatch(/input\[type='file'\]\s*\{\s*max-width:\s*100%/);
   });
 
-  it('keeps the public nav in order and moves Policy to the footer', async () => {
+  it('keeps research and submission in the main nav and community links in the footer', async () => {
     window.history.replaceState({}, '', '/');
     renderWithApp(<App />, fakeApi({}, author));
     const nav = screen.getByRole('navigation', { name: 'Main' });
@@ -266,8 +265,14 @@ describe('solving pages', () => {
       within(nav)
         .getAllByRole('link')
         .map((a) => a.textContent),
-    ).toEqual(['Papers', 'Conjectures', 'Leaderboard', 'Submit', 'Contribute', 'My work']);
+    ).toEqual(['Papers', 'Conjectures', 'Submit', 'My work']);
     expect(within(nav).queryByRole('link', { name: 'Policy' })).not.toBeInTheDocument();
+    for (const name of ['Leaderboard', 'Contribute']) {
+      expect(within(nav).queryByRole('link', { name })).not.toBeInTheDocument();
+      expect(
+        within(screen.getByRole('navigation', { name: 'Footer' })).getByRole('link', { name }),
+      ).toBeInTheDocument();
+    }
     expect(
       within(screen.getByRole('contentinfo')).getByRole('link', { name: 'Policy' }),
     ).toHaveAttribute('href', '/policy');

@@ -4,6 +4,7 @@ import { ConjecturePage } from './pages/Conjecture';
 import { LeaderboardPage, EntrantPage } from './pages/Leaderboard';
 import { Link } from './routing/router';
 import { Header } from './components/Header';
+import { BrandMark } from './components/BrandMark';
 import { ConjecturesPage } from './pages/Conjectures';
 import { ContributePage } from './pages/Contribute';
 import { ContributorsPage } from './pages/Contributors';
@@ -131,10 +132,22 @@ export function App() {
         <Page route={route} />
       </main>
       <footer className="site-footer">
-        <p>
-          wishpool · <Link to={{ kind: 'policy' }}>Policy</Link> ·{' '}
-          <Link to={{ kind: 'supporters' }}>Supporters</Link>
-        </p>
+        <div className="site-footer-inner">
+          <div className="footer-identity">
+            <Link to={{ kind: 'home' }} className="wordmark">
+              <BrandMark />
+              wishpool
+            </Link>
+            <p>Mathematical papers, short notes, and conjectures.</p>
+          </div>
+          <nav aria-label="Footer">
+            <Link to={{ kind: 'contribute' }}>Contribute</Link>
+            <Link to={{ kind: 'leaderboard' }}>Leaderboard</Link>
+            <Link to={{ kind: 'policy' }}>Policy</Link>
+            <Link to={{ kind: 'supporters' }}>Supporters</Link>
+          </nav>
+          <span className="footer-note">Read research. Share results. Publish questions.</span>
+        </div>
       </footer>
     </>
   );

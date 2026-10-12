@@ -4,6 +4,7 @@ import { hasRole, useSession } from '../auth/session';
 import { ROLE_LABELS } from '../lib/labels';
 import { Link, useRouter } from '../routing/router';
 import type { Route } from '../routing/routes';
+import { BrandMark } from './BrandMark';
 
 function NavLink({ to, label, active }: { to: Route; label: string; active: boolean }) {
   return (
@@ -57,6 +58,7 @@ export function Header() {
       {devSignIn ? <PreviewBar current={person?.id ?? null} /> : null}
       <div className="site-header-inner">
         <Link to={{ kind: 'home' }} className="wordmark">
+          <BrandMark />
           wishpool
         </Link>
         <nav className="site-nav" aria-label="Main">
@@ -70,17 +72,7 @@ export function Header() {
             label="Conjectures"
             active={k === 'conjectures' || k === 'conjecture'}
           />
-          <NavLink
-            to={{ kind: 'leaderboard' }}
-            label="Leaderboard"
-            active={k === 'leaderboard' || k === 'entrant'}
-          />
           <NavLink to={{ kind: 'submit' }} label="Submit" active={k === 'submit'} />
-          <NavLink
-            to={{ kind: 'contribute' }}
-            label="Contribute"
-            active={k === 'contribute' || k === 'tasks' || k === 'task' || k === 'contributors'}
-          />
           {person ? (
             <NavLink
               to={{ kind: 'submissions' }}
