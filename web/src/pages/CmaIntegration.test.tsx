@@ -1,4 +1,4 @@
-import { cleanup, screen, waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { ApiError } from '../api/client';
@@ -34,7 +34,7 @@ const attempts = [
   },
 ];
 
-describe('CMA funding in pages', () => {
+describe('Optional own agents in pages', () => {
   it.each(['submitter', 'coauthor', 'staff', 'public'] as const)(
     'shows pre-letter history to %s with submitter-only connection controls and safe fields',
     async (role) => {
@@ -83,18 +83,18 @@ describe('CMA funding in pages', () => {
       await screen.findByRole('heading', { name: paper.title });
       if (role === 'public') {
         expect(referee).not.toHaveBeenCalled();
-        expect(screen.queryByRole('region', { name: 'CMA review funding' })).toBeNull();
+        expect(screen.queryByRole('region', { name: 'Who ran each step' })).toBeNull();
       } else {
-        expect(await screen.findByRole('region', { name: 'CMA review funding' })).toHaveTextContent(
-          'Author account',
+        expect(await screen.findByRole('region', { name: 'Who ran each step' })).toHaveTextContent(
+          'Codex audit · Your agents · running',
         );
         expect(referee).toHaveBeenCalled();
       }
       if (role === 'submitter') {
-        expect(await screen.findByRole('link', { name: 'Connect CMA' })).toBeInTheDocument();
+        expect(await screen.findByRole('link', { name: 'Connect' })).toBeInTheDocument();
         expect(getCma).toHaveBeenCalled();
       } else {
-        expect(screen.queryByRole('link', { name: 'Connect CMA' })).toBeNull();
+        expect(screen.queryByRole('link', { name: 'Connect' })).toBeNull();
         expect(getCma).not.toHaveBeenCalled();
       }
       for (const sentinel of Object.values(privateFields)) {
@@ -103,27 +103,44 @@ describe('CMA funding in pages', () => {
     },
   );
 
-  it('encourages BYOK on Submit and Contribute', async () => {
-    for (const page of [<SubmitPage key="submit" />, <ContributePage key="contribute" />]) {
-      renderWithApp(page, fakeApi({}, author));
-      expect(await screen.findByText(CMA_COPY)).toBeInTheDocument();
-      cleanup();
-    }
+  it('places the optional connection panel at the Contribute link destination', async () => {
+    renderWithApp(<ContributePage />, fakeApi({}, author));
+    expect(await screen.findByText(CMA_COPY)).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Use your own agents (optional)' })).toHaveAttribute(
+      'id',
+      'own-agents',
+    );
   });
 
-  it('uploads while the CMA status request fails', async () => {
+  it('offers a muted optional link on Submit without loading CMA', async () => {
+    const api = fakeApi({}, author);
+    renderWithApp(<SubmitPage />, api);
+    await screen.findByLabelText('LaTeX source');
+    const link = screen.getByRole('link', { name: 'run the Codex review on your own agents.' });
+    expect(link).toHaveAttribute('href', '/contribute#own-agents');
+    expect(link.parentElement).toHaveClass('muted');
+    expect(link.parentElement).toHaveTextContent(
+      'Optional: run the Codex review on your own agents.',
+    );
+    expect(screen.queryByRole('region', { name: 'Use your own agents (optional)' })).toBeNull();
+    expect(screen.queryByText(CMA_COPY)).toBeNull();
+    expect(api.getCma).not.toHaveBeenCalled();
+  });
+
+  it('uploads without depending on CMA availability', async () => {
     const createSubmission = vi.fn(async () => draft);
     const getCma = vi.fn(async () => {
       throw new ApiError({ status: 503, code: 'unavailable', detail: 'CMA status unavailable' });
     });
     renderWithApp(<SubmitPage />, fakeApi({ getCma, createSubmission }, author));
     const user = userEvent.setup();
-    await screen.findByText('CMA status unavailable');
     const file = new File(['source'], 'paper.tex', { type: 'application/x-tex' });
     await user.upload(await screen.findByLabelText('LaTeX source'), file);
     await user.type(screen.getByLabelText('AI disclosure statement'), 'No AI used.');
     await user.click(screen.getByRole('checkbox', { name: /I agree that the source/ }));
     await user.click(screen.getByRole('button', { name: 'Upload and read statements' }));
     await waitFor(() => expect(createSubmission).toHaveBeenCalledWith(expect.any(Object), file));
+    expect(getCma).not.toHaveBeenCalled();
+    expect(screen.queryByText('CMA status unavailable')).toBeNull();
   });
 });

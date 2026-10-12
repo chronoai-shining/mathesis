@@ -279,8 +279,9 @@ To enable author CMA connections, set `WISHPOOL_CMA_BYOK_ENABLED=true` and
 CMA backend, an operator workspace/token source and `WISHPOOL_TOKEN_KEY` are
 required. Hosted donations may remain disabled. Authors consent through NyxID,
 open CMA setup, provision a Sandbox with `own_credentials`, and paste a ready
-workspace ID in My CMA account. Wishpool validates ownership, readiness and the
-exact Sandbox profile revision. Automatic provisioning is a follow-up.
+workspace ID in “Use your own agents (optional)” on Contribute. Wishpool validates
+ownership, readiness and the exact Sandbox profile revision. Automatic
+provisioning is a follow-up.
 
 Author CMA execution requires `WISHPOOL_CMA_AGENT_PROFILE` with an exact
 `{"id":"agp_…","revision":1}` pin to a published agent profile readable by

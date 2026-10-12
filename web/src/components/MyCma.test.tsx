@@ -1,10 +1,10 @@
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
-import type { MyCmaStatus } from '../api/types';
+import type { CmaAttemptView, MyCmaStatus } from '../api/types';
 import { donor } from '../test/fixtures';
 import { fakeApi, renderWithApp } from '../test/render';
-import { CmaHistory, MyCma } from './MyCma';
+import { CMA_COPY, CmaHistory, MyCma } from './MyCma';
 
 const binding: MyCmaStatus = {
   enabled: true,
@@ -24,16 +24,58 @@ const binding: MyCmaStatus = {
     updated_at: '2026-10-11T00:00:00Z',
   },
 };
-describe('My CMA account', () => {
-  it('encourages author funding and preserves the operator default without sign-in', async () => {
+describe('Use your own agents (optional)', () => {
+  it('explains the optional connection without loading CMA when signed out', async () => {
     const api = fakeApi();
     renderWithApp(<MyCma />, api);
-    expect(await screen.findByText('Sign in to connect your CMA account.')).toBeInTheDocument();
-    expect(screen.getByText(/The GPT Pro referee is paid by Wishpool/)).toBeInTheDocument();
-    expect(screen.getByText(/each step shows who paid/)).toBeInTheDocument();
+    expect(await screen.findByText('Sign in to use your own agents.')).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Use your own agents (optional)' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('region', { name: 'Use your own agents (optional)' }),
+    ).toHaveTextContent(CMA_COPY);
     expect(api.getCma).not.toHaveBeenCalled();
   });
-  it('validates a workspace with the binding revision, rechecks and disconnects', async () => {
+
+  it('shows only the copy, status and Connect before consent', async () => {
+    renderWithApp(
+      <MyCma />,
+      fakeApi(
+        {
+          getCma: vi.fn(async () => ({
+            ...binding,
+            binding: {
+              ...binding.binding,
+              status: 'disconnected' as const,
+              reason: 'consent_pending',
+            },
+          })),
+        },
+        donor,
+      ),
+    );
+    const panel = within(screen.getByRole('region', { name: 'Use your own agents (optional)' }));
+    expect(await panel.findByText('Not connected')).toHaveAttribute('role', 'status');
+    expect(panel.getAllByRole('link')).toHaveLength(1);
+    expect(panel.getByRole('link', { name: 'Connect' })).toHaveAttribute(
+      'href',
+      expect.stringContaining('/auth/cma/connect?return_to='),
+    );
+    expect(panel.queryByRole('button')).toBeNull();
+    expect(panel.queryByRole('form')).toBeNull();
+    expect(panel.getAllByRole('paragraph')).toHaveLength(1);
+    expect(panel.queryByText('Finish connecting through NyxID.')).toBeNull();
+  });
+
+  it('keeps disabled connections compact without offering a dead Connect link', async () => {
+    renderWithApp(<MyCma />, fakeApi({}, donor));
+    expect(await screen.findByText('Not available yet')).toHaveAttribute('role', 'status');
+    expect(screen.queryByRole('link', { name: 'Connect' })).toBeNull();
+    expect(screen.queryByLabelText('CMA workspace ID')).toBeNull();
+  });
+
+  it('validates setup with the binding revision, hides setup when ready and disconnects', async () => {
     const ready: MyCmaStatus = {
       ...binding,
       binding: {
@@ -64,7 +106,7 @@ describe('My CMA account', () => {
       'href',
       binding.setup_url,
     );
-    expect(screen.getByRole('link', { name: 'Connect CMA' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Connect' })).toHaveAttribute(
       'href',
       expect.stringContaining('/auth/cma/connect?return_to='),
     );
@@ -75,22 +117,65 @@ describe('My CMA account', () => {
       expected_revision: 2,
     });
     expect(await screen.findByText('Connected')).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: 'Save / recheck workspace' }));
-    expect(setCmaWorkspace).toHaveBeenLastCalledWith({
-      workspace_id: 'wks_mine',
-      expected_revision: 3,
-    });
-    await userEvent.click(screen.getByRole('button', { name: 'Disconnect CMA' }));
+    expect(screen.queryByRole('form', { name: 'CMA workspace' })).toBeNull();
+    expect(screen.queryByRole('link', { name: 'Open CMA setup' })).toBeNull();
+    expect(screen.queryByRole('link', { name: 'Connect' })).toBeNull();
+    expect(screen.queryByText('Create a CMA workspace, then paste its ID below.')).toBeNull();
+    await userEvent.click(screen.getByRole('button', { name: 'Disconnect' }));
+    expect(disconnectCma).toHaveBeenCalledOnce();
     expect(await screen.findByText('Not connected')).toBeInTheDocument();
     expect(screen.queryByLabelText('CMA workspace ID')).toBeNull();
   });
-  it('shows explicit payer successors before any letter', async () => {
+  it('rechecks an unusable connection using the saved workspace and current revision', async () => {
+    const unavailable: MyCmaStatus = {
+      ...binding,
+      binding: {
+        ...binding.binding,
+        status: 'unusable',
+        reason: 'author_quota_refused',
+        workspace_id: 'wks_existing',
+        revision: 5,
+      },
+    };
+    const setCmaWorkspace = vi.fn(async () => ({
+      ...unavailable,
+      binding: { ...unavailable.binding, status: 'ready' as const, reason: 'author_connected' },
+    }));
+    renderWithApp(
+      <MyCma />,
+      fakeApi({ getCma: vi.fn(async () => unavailable), setCmaWorkspace }, donor),
+    );
+    expect(await screen.findByText('Connection unavailable')).toBeInTheDocument();
+    expect(screen.getByText('Restore your model quota in CMA, then recheck.')).toBeInTheDocument();
+    expect(screen.getByRole('form', { name: 'CMA workspace' })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Save / recheck workspace' }));
+    expect(setCmaWorkspace).toHaveBeenCalledWith({
+      workspace_id: 'wks_existing',
+      expected_revision: 5,
+    });
+    expect(await screen.findByText('Connected')).toBeInTheDocument();
+    expect(screen.queryByLabelText('CMA workspace ID')).toBeNull();
+  });
+});
+
+const attempt: CmaAttemptView = {
+  kind: 'audit',
+  step: 'r1:audit',
+  attempt: 0,
+  payer: 'operator',
+  reason: 'not_connected',
+  status: 'running',
+  admitted_at: '2026-10-11T00:00:00Z',
+  finished_at: null,
+};
+
+describe('Who ran each step', () => {
+  it('shows compact rows and explains only the Wishpool fallback', async () => {
     renderWithApp(
       <CmaHistory
         attempts={[
           {
-            step: 'r1:audit',
-            attempt: 0,
+            ...attempt,
             payer: 'author',
             reason: 'author_connected',
             status: 'failed',
@@ -98,7 +183,7 @@ describe('My CMA account', () => {
             finished_at: '2026-10-11T00:01:00Z',
           },
           {
-            step: 'r1:audit',
+            ...attempt,
             attempt: 1,
             payer: 'operator',
             reason: 'cause_unknown',
@@ -110,15 +195,45 @@ describe('My CMA account', () => {
       />,
       fakeApi(),
     );
-    await screen.findByText(
-      'The GPT Pro referee is paid by Wishpool. Each CMA attempt below keeps its recorded payer.',
-    );
-    const list = within(screen.getByRole('region', { name: 'CMA review funding' })).getAllByRole(
-      'listitem',
-    );
-    expect(list[0]).toHaveTextContent('Author account');
-    expect(list[1]).toHaveTextContent('Wishpool');
-    expect(list[1]).toHaveTextContent('unknown cause; Wishpool fallback');
+    const history = screen.getByRole('region', { name: 'Who ran each step' });
+    expect(within(history).getByRole('heading', { name: 'Who ran each step' })).toBeInTheDocument();
+    expect(history.querySelector(':scope > p')).toBeNull();
+    const list = within(history).getAllByRole('listitem');
+    expect(list[0]).toHaveTextContent(/^Codex audit · Your agents · failed$/);
+    expect(list[0]?.querySelector('p')).toBeNull();
+    expect(list[1]).toHaveTextContent('Codex audit · Wishpool · running');
+    expect(list[1]).toHaveTextContent('Your agents failed for an unknown reason.');
     expect(document.body).not.toHaveTextContent('workspace');
+  });
+
+  it.each(['account', 'auth', 'setup', 'credential', 'quota', 'cause_unknown'])(
+    'explains a %s fallback',
+    (reason) => {
+      renderWithApp(<CmaHistory attempts={[{ ...attempt, reason }]} />, fakeApi());
+      expect(screen.getByRole('listitem').querySelector('p')).toHaveTextContent(/Your/);
+    },
+  );
+
+  it.each([
+    ['operator', 'not_connected'],
+    ['operator', 'byok_disabled'],
+    ['operator', 'operator_step'],
+    ['operator', 'legacy_unknown'],
+    ['operator', 'workspace_needed'],
+    ['operator', 'new_reason'],
+    ['author', 'quota'],
+  ] as const)('omits a reason for %s / %s without a fallback', (payer, reason) => {
+    renderWithApp(<CmaHistory attempts={[{ ...attempt, payer, reason }]} />, fakeApi());
+    expect(screen.getByRole('listitem').querySelector('p')).toBeNull();
+  });
+
+  it('keeps a step without a kind readable and hides an empty history', () => {
+    const { rerender } = renderWithApp(
+      <CmaHistory attempts={[{ ...attempt, kind: undefined }]} />,
+      fakeApi(),
+    );
+    expect(screen.getByRole('listitem')).toHaveTextContent(/^r1:audit · Wishpool · running$/);
+    rerender(<CmaHistory attempts={[]} />);
+    expect(screen.queryByRole('region', { name: 'Who ran each step' })).toBeNull();
   });
 });

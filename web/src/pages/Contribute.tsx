@@ -71,7 +71,6 @@ export function ContributePage() {
         </div>
       </header>
 
-      <MyCma />
       <section aria-labelledby="solve-h">
         <h2 id="solve-h">Solve</h2>
         <ol className="solve-steps">
@@ -123,6 +122,8 @@ export function ContributePage() {
         <h3>Command line</h3>
         <CodeBlock code={cliCommands(origin)} label="Command-line usage" />
       </section>
+
+      <MyCma id="own-agents" />
 
       <section aria-labelledby="kinds-h">
         <h2 id="kinds-h">Other ways to contribute</h2>

@@ -420,6 +420,9 @@ img {
   padding: var(--space-3) 0;
   border-bottom: 1px solid var(--rule);
 }
+.cma-history {
+  overflow-wrap: anywhere;
+}
 .entry-title {
   font-family: var(--font-serif);
   font-size: 1.125rem;
