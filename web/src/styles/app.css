@@ -2440,3 +2440,84 @@ input[type='file']::file-selector-button {
 .finding-card .form {
   margin-top: 1rem;
 }
+
+/* Source intake and long-manuscript confirmation. */
+.project-intake,
+.evidence-picker {
+  border: 1px solid var(--rule);
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  min-width: 0;
+}
+.evidence-card {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--rule);
+  display: grid;
+  gap: 0.75rem;
+}
+.evidence-hash {
+  overflow-wrap: anywhere;
+}
+.confirmation-navigation {
+  padding: 1rem;
+  border: 1px solid var(--rule);
+  border-radius: 0.75rem;
+  margin: 1.5rem 0;
+}
+.confirmation-progress {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+.confirmation-progress progress {
+  flex: 1;
+  min-width: 8rem;
+  accent-color: var(--accent);
+}
+.confirmation-controls {
+  display: grid;
+  grid-template-columns: 2fr 1fr 2fr;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+.confirmation-controls label {
+  display: grid;
+  gap: 0.4rem;
+  min-width: 0;
+}
+.confirmation-controls select,
+.confirmation-controls input {
+  min-width: 0;
+  width: 100%;
+}
+.confirmation-pages {
+  align-items: center;
+  justify-content: space-between;
+  margin: 1rem 0;
+}
+.statement-checked {
+  margin-top: 1rem;
+  font-weight: 600;
+}
+.inline-latex .katex {
+  font-size: 1em;
+}
+@media (max-width: 640px) {
+  .confirmation-controls {
+    grid-template-columns: 1fr;
+  }
+  .confirmation-pages {
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+}
+.project-intake code,
+.evidence-inventory,
+[aria-label='Compatibility preflight'] {
+  overflow-wrap: anywhere;
+}
+.confirmation-navigation {
+  scroll-margin-top: 1rem;
+}

@@ -76,6 +76,14 @@ pub fn unpack(bytes: &[u8], upload_name: &str, limits: Limits) -> LatexResult<Fi
                 limits.max_files
             )));
         }
+        if files
+            .keys()
+            .any(|existing| existing.eq_ignore_ascii_case(&path))
+        {
+            return Err(LatexError::Archive(format!(
+                "duplicate archive path: {path}"
+            )));
+        }
         files.insert(path, data);
         Ok(())
     };
@@ -86,6 +94,14 @@ pub fn unpack(bytes: &[u8], upload_name: &str, limits: Limits) -> LatexResult<Fi
             let mut entry = archive
                 .by_index(i)
                 .map_err(|e| LatexError::Archive(e.to_string()))?;
+            if entry
+                .unix_mode()
+                .is_some_and(|mode| mode & 0o170000 == 0o120000)
+            {
+                return Err(LatexError::Archive(
+                    "symbolic links are not accepted".into(),
+                ));
+            }
             if entry.is_dir() {
                 continue;
             }

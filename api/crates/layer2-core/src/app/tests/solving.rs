@@ -1376,6 +1376,7 @@ async fn deposited_sources_preserve_authorship_and_use_only_independent_verifica
     let solver = w.person("depositor", &[]).await;
     let (_, record) = target(&w, &a, &r).await;
     let new = NewLeanDeposit {
+        project_files: Default::default(),
         modules: Default::default(),
         formalizers: vec![],
         source_revision: None,
@@ -1495,6 +1496,7 @@ async fn project_deposits_bind_all_modules_and_public_directory_checks_current_v
     let (paper, record) = target(&w, &author, &reviewer).await;
     let confirmed = w.app.target(&record, &"C1".into()).await.unwrap();
     let body = NewLeanDeposit {
+        project_files: Default::default(),
         title: "Formalization project".into(), authors: vec!["Research author".into()], formalizers: vec!["Lean contributor".into()],
         source_revision: Some("a".repeat(40)), statement: "True".into(),
         source_reference: Source { kind: SourceKind::Url, locator: "https://example.org/commit/source".into(), year: None },
@@ -1643,10 +1645,10 @@ async fn project_deposits_bind_all_modules_and_public_directory_checks_current_v
         "../Escape",
         "Target",
         "Mathlib",
-        "A.B",
-        "a",
+        "A..B",
+        "9Bad",
         "/tmp/File",
-        "Helpers.lean",
+        "Helpers/lean.lean",
     ] {
         let mut invalid = body.clone();
         invalid.modules = std::collections::BTreeMap::from([(
@@ -1723,5 +1725,57 @@ async fn formalization_directory_pages_and_excludes_unconfirmed_or_stale_targets
             })
             .await
             .is_err()
+    );
+}
+
+#[tokio::test]
+async fn full_project_deposit_is_private_immutable_and_accepts_a_separate_adapter() {
+    let w = world(20).await;
+    let author = w.person("author", &[]).await;
+    let reviewer = w.person("reviewer", &[Role::Reviewer]).await;
+    let solver = w.person("formalizer", &[]).await;
+    let (_, record) = target(&w, &author, &reviewer).await;
+    let new: NewLeanDeposit = serde_json::from_value(serde_json::json!({
+        "title":"Research project", "authors":["Original author"], "statement":"True",
+        "source_reference":{"kind":"url","locator":"https://example.org/research"},
+        "toolchain":"test", "license":"Apache-2.0", "solution":"",
+        "modules":(0..80).map(|i| (format!("Research.Part{i}"), "namespace Research\ntheorem helper : True := True.intro\nend Research")).collect::<std::collections::BTreeMap<_,_>>(),
+        "project_files":{"lean-toolchain":"test", "README.md":"Original research project"}
+    })).unwrap();
+    let deposit = w
+        .app
+        .submit_lean_deposit(&solver, new.clone())
+        .await
+        .unwrap();
+    assert_eq!(deposit.modules.len(), 80);
+    assert_eq!(deposit.project_files, new.project_files);
+    assert_eq!(
+        w.app
+            .lean_deposit_modules(&solver, &deposit.id)
+            .await
+            .unwrap(),
+        new.modules
+    );
+    assert!(
+        w.app
+            .lean_deposit_modules(&author, &deposit.id)
+            .await
+            .is_err()
+    );
+    assert!(
+        w.app
+            .verify_lean_deposit(&solver, &deposit.id, &record, &"C1".into())
+            .await
+            .is_err()
+    );
+    let attempt = w.app.verify_lean_project(&solver, &deposit.id, &record, &"C1".into(), None, Some("import Target\nimport Research.Part0\ntheorem wishpool_solution : wishpool_target_prop := Research.helper".into())).await.unwrap();
+    assert_eq!(attempt.state, "queued");
+    assert!(attempt.receipt.is_none());
+    assert_eq!(
+        w.app
+            .lean_deposit_source(&solver, &deposit.id)
+            .await
+            .unwrap(),
+        ""
     );
 }

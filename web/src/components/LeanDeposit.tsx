@@ -1,9 +1,17 @@
+import { InlineLatex } from './Markdown';
+import { readLeanProject, type LeanProject } from '../lib/leanProject';
 import { useCallback, useState, type FormEvent } from 'react';
 import { useApi } from '../api/context';
 import { useAsync } from '../api/useAsync';
 import { Link } from '../routing/router';
 import { usePaged, type Paged } from '../api/usePaged';
-import type { LeanDeposit, AttemptView, StatementDetail } from '../api/types';
+import type {
+  LeanDeposit,
+  AttemptView,
+  StatementDetail,
+  LeanPreflight,
+  NewLeanDeposit,
+} from '../api/types';
 import { useSession } from '../auth/session';
 import { Async, Field, InlineError, DateText } from './ui';
 import { Pager } from './Pager';
@@ -63,6 +71,8 @@ function DepositForm({
   const [formalizers, setFormalizers] = useState(person?.display_name ?? '');
   const [sourceRevision, setSourceRevision] = useState('');
   const [supporting, setSupporting] = useState<File[]>([]);
+  const [project, setProject] = useState<LeanProject | null>(null);
+  const [preflight, setPreflight] = useState<LeanPreflight | null>(null);
   const [verification, setVerification] = useState<AttemptView | null>(null);
   const [license, setLicense] = useState('');
   const [file, setFile] = useState<File | null>(null);
@@ -75,57 +85,96 @@ function DepositForm({
     [api],
   );
   const deposits = usePaged(fetchPage);
+  const importProject = async (files: File[]) => {
+    setError(null);
+    setPreflight(null);
+    setBusy(true);
+    try {
+      const imported = await readLeanProject(files);
+      setProject(imported);
+      if (!target && imported.toolchain) setToolchain(imported.toolchain);
+    } catch (e) {
+      setError(e);
+    } finally {
+      setBusy(false);
+    }
+  };
+  const body = async (): Promise<NewLeanDeposit> => {
+    if (!project && (!file || !file.name.endsWith('.lean') || !file.size))
+      throw new Error('Choose a Lean source or complete project.');
+    if (file && (file.size > 1048576 || !file.name.endsWith('.lean')))
+      throw new Error('Solution.lean must be at most 1 MB.');
+    const modules: Record<string, string> = Object.assign(
+      Object.create(null) as Record<string, string>,
+      project?.modules,
+    );
+    if (supporting.length + Object.keys(modules).length > 512)
+      throw new Error('Use at most 512 supporting modules.');
+    const existingBytes = Object.values(modules).reduce(
+      (size, text) => size + new TextEncoder().encode(text).length,
+      0,
+    );
+    if (
+      supporting.reduce(
+        (size, f) => size + f.size,
+        existingBytes + (file?.size ?? new TextEncoder().encode(project?.solution ?? '').length),
+      ) >
+      8 * 1048576
+    )
+      throw new Error('Total Lean source must be at most 8 MB.');
+    for (const module of supporting) {
+      const name = module.name.replace(/\.lean$/, '');
+      if (
+        !module.name.endsWith('.lean') ||
+        Object.keys(modules).some((m) => m.toLowerCase() === name.toLowerCase())
+      )
+        throw new Error(`Duplicate or invalid supporting module: ${name}`);
+      modules[name] = await module.text();
+    }
+    return {
+      modules,
+      project_files: project?.project_files,
+      formalizers: formalizers
+        .split('\n')
+        .map((a) => a.trim())
+        .filter(Boolean),
+      ...(sourceRevision.trim() ? { source_revision: sourceRevision.trim() } : {}),
+      title,
+      authors: authors
+        .split('\n')
+        .map((a) => a.trim())
+        .filter(Boolean),
+      statement,
+      source_reference: { kind: 'url', locator: reference },
+      toolchain,
+      license,
+      solution: file ? await file.text() : (project?.solution ?? ''),
+    };
+  };
+  const check = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      setPreflight(await api.preflightFormalization(await body()));
+    } catch (e) {
+      setError(e);
+    } finally {
+      setBusy(false);
+    }
+  };
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     setError(null);
-    if (!file || !file.name.endsWith('.lean') || file.size > 1048576 || file.size === 0) {
-      setError('Choose a nonempty .lean file of at most 1 MB.');
-      return;
-    }
     setBusy(true);
+    setVerification(null);
     try {
-      const modules: Record<string, string> = {};
-      if (
-        supporting.length > 32 ||
-        supporting.reduce((size, f) => size + f.size, file.size) > 1048576
-      )
-        throw new Error('Use at most 32 supporting files and 1 MB of total Lean source.');
-      for (const module of supporting) {
-        const name = module.name.replace(/\.lean$/, '');
-        if (
-          !module.name.endsWith('.lean') ||
-          !/^[A-Z][A-Za-z0-9_]{0,63}$/.test(name) ||
-          ['target', 'solution', 'check', 'mathlib', 'init', 'lean', 'std', 'lake'].includes(
-            name.toLowerCase(),
-          ) ||
-          Object.keys(modules).some((m) => m.toLowerCase() === name.toLowerCase())
-        )
-          throw new Error(
-            'Supporting files need distinct capitalized module names, such as Lemmas.lean. Do not upload Target.lean as a supporting file.',
-          );
-        modules[name] = await module.text();
-      }
-      const result = await api.submitFormalization({
-        ...(supporting.length ? { modules } : {}),
-        formalizers: formalizers
-          .split('\n')
-          .map((a) => a.trim())
-          .filter(Boolean),
-        ...(sourceRevision.trim() ? { source_revision: sourceRevision.trim() } : {}),
-        title,
-        authors: authors
-          .split('\n')
-          .map((a) => a.trim())
-          .filter(Boolean),
-        statement,
-        source_reference: { kind: 'url', locator: reference },
-        toolchain,
-        license,
-        solution: await file.text(),
-      });
+      const input = await body();
+      const report = await api.preflightFormalization(input);
+      setPreflight(report);
+      const result = await api.submitFormalization(input);
       setReceived(result);
       deposits.reload();
-      if (target?.target) {
+      if (target?.target && report.errors.length === 0) {
         setVerification(
           await api.verifyFormalization(
             result.id,
@@ -150,7 +199,7 @@ function DepositForm({
       {target?.target ? (
         <div className="notice notice-info">
           <strong>
-            {target.claim.label} · {target.title}
+            {target.claim.label} · <InlineLatex source={target.title} />
           </strong>
           <p>
             The author confirmed this exact target. Your submission will request independent
@@ -174,6 +223,7 @@ function DepositForm({
       <form
         className="form lean-deposit-form"
         aria-label="Submit Lean formalization"
+        onChange={() => setPreflight(null)}
         onSubmit={(e) => {
           void submit(e);
         }}
@@ -256,19 +306,93 @@ function DepositForm({
             onChange={(e) => setLicense(e.target.value)}
           />
         </Field>
-        <Field label="Lean source (up to 1 MB)" htmlFor="lean-source">
+        <fieldset className="project-intake">
+          <legend>Complete Lean project</legend>
+          <p className="hint">
+            Upload a source ZIP / tar.gz or choose a project folder. Up to 512 modules and 8 MB of
+            Lean source; directory structure and pinned configuration are preserved. Build caches
+            and .git are excluded from folder intake.
+          </p>
+          <Field label="Project archive" htmlFor="lean-project-archive">
+            <input
+              id="lean-project-archive"
+              type="file"
+              accept=".zip,.tar.gz,.tgz"
+              disabled={busy}
+              onChange={(e) => {
+                if (e.target.files?.length) void importProject(Array.from(e.target.files));
+              }}
+            />
+          </Field>
+          <Field label="Project folder" htmlFor="lean-project-folder">
+            <input
+              id="lean-project-folder"
+              type="file"
+              multiple
+              ref={(node) => {
+                if (node) node.setAttribute('webkitdirectory', '');
+              }}
+              disabled={busy}
+              onChange={(e) => {
+                if (e.target.files?.length) void importProject(Array.from(e.target.files));
+              }}
+            />
+          </Field>
+          {project ? (
+            <div role="status">
+              <p>
+                {Object.keys(project.modules).length} modules ·{' '}
+                {Object.keys(project.project_files).length} configuration / documentation files
+              </p>
+              <details>
+                <summary>Project files</summary>
+                <ul>
+                  {Object.keys(project.project_files)
+                    .concat(
+                      Object.keys(project.modules).map(
+                        (name) => `${name.replaceAll('.', '/')}.lean`,
+                      ),
+                    )
+                    .map((path) => (
+                      <li key={path}>
+                        <code>{path}</code>
+                      </li>
+                    ))}
+                </ul>
+              </details>
+              <button
+                type="button"
+                className="button button-quiet button-small"
+                onClick={() => {
+                  setProject(null);
+                  setPreflight(null);
+                }}
+              >
+                Remove project
+              </button>
+            </div>
+          ) : null}
+        </fieldset>
+        <Field
+          label="Solution.lean / standalone source (up to 1 MB)"
+          htmlFor="lean-source"
+          hint="Optional for a source deposit. To verify a project, supply an adapter importing Target and your project modules, with theorem wishpool_solution : wishpool_target_prop. Original project modules remain intact."
+        >
           <input
             id="lean-source"
             type="file"
             accept=".lean"
-            required
-            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+            required={!project}
+            onChange={(e) => {
+              setPreflight(null);
+              setFile(e.target.files?.[0] ?? null);
+            }}
           />
         </Field>
         <Field
           label="Supporting Lean modules (optional)"
           htmlFor="lean-modules"
-          hint="Up to 32 flat .lean files, 1 MB total with the main file. Use imports such as import Lemmas. Mathlib comes from the confirmed toolchain; custom dependencies and Lake scripts are not executed."
+          hint="Up to 512 modules, 8 MB total. Choose a folder or archive above to preserve nested paths. Mathlib comes from the confirmed toolchain; custom dependencies and Lake scripts are not executed."
         >
           <input
             id="lean-modules"
@@ -278,6 +402,17 @@ function DepositForm({
             onChange={(e) => setSupporting(Array.from(e.target.files ?? []))}
           />
         </Field>
+        <button
+          type="button"
+          className="button button-quiet"
+          disabled={busy}
+          onClick={() => {
+            void check();
+          }}
+        >
+          Run compatibility preflight
+        </button>
+        {preflight ? <PreflightReport report={preflight} /> : null}
         <InlineError error={error} />
         <button className="button" type="submit" disabled={busy}>
           {busy
@@ -348,6 +483,7 @@ function DepositEntry({
   const api = useApi();
   const [record, setRecord] = useState(target?.record ?? '');
   const [claim, setClaim] = useState(target?.claim.id ?? '');
+  const [adapter, setAdapter] = useState<File | null>(null);
   const [result, setResult] = useState<AttemptView | null>(null);
   const [error, setError] = useState<unknown>(null);
   const [busy, setBusy] = useState(false);
@@ -366,6 +502,7 @@ function DepositEntry({
           record.trim(),
           claim.trim(),
           current.target.digest,
+          adapter ? await adapter.text() : undefined,
         ),
       );
       onChange();
@@ -384,7 +521,9 @@ function DepositEntry({
   };
   return (
     <article>
-      <h3>{deposit.title}</h3>
+      <h3>
+        <InlineLatex source={deposit.title} />
+      </h3>
       <p className="small muted">
         {deposit.authors.join(', ')} · received <DateText iso={deposit.submitted_at} />
       </p>
@@ -434,6 +573,18 @@ function DepositEntry({
               onChange={(e) => setClaim(e.target.value)}
             />
           </label>
+          <Field
+            label="Solution.lean adapter (optional replacement)"
+            htmlFor={`adapter-${deposit.id}`}
+            hint="Use the saved source, or attach a target adapter while preserving the deposited project."
+          >
+            <input
+              id={`adapter-${deposit.id}`}
+              type="file"
+              accept=".lean"
+              onChange={(e) => setAdapter(e.target.files?.[0] ?? null)}
+            />
+          </Field>
           <button className="button button-small" disabled={busy}>
             {busy ? 'Submitting…' : 'Request verification'}
           </button>
@@ -461,5 +612,57 @@ function DepositEntry({
       ) : null}
       <InlineError error={error} />
     </article>
+  );
+}
+
+function PreflightReport({ report }: { report: LeanPreflight }) {
+  return (
+    <section
+      className={`notice ${report.errors.length ? 'notice-error' : 'notice-info'}`}
+      aria-label="Compatibility preflight"
+    >
+      <h3>
+        {report.errors.length
+          ? 'Source can be saved · verification needs attention'
+          : 'Static checks passed · independent verification still required'}
+      </h3>
+      <p>
+        {report.modules} modules · {report.source_bytes.toLocaleString()} source bytes
+      </p>
+      {report.dependencies.length ? (
+        <details>
+          <summary>Dependency pins</summary>
+          <ul>
+            {report.dependencies.map((d) => (
+              <li key={d}>
+                <code>{d}</code>
+              </li>
+            ))}
+          </ul>
+        </details>
+      ) : null}
+      {report.errors.length ? (
+        <ul>
+          {report.errors.slice(0, 5).map((error, i) => (
+            <li key={i}>{error}</li>
+          ))}
+        </ul>
+      ) : null}
+      {report.errors.length > 5 ? (
+        <details>
+          <summary>Show {report.errors.length - 5} more compatibility findings</summary>
+          <ul>
+            {report.errors.slice(5).map((error, i) => (
+              <li key={i}>{error}</li>
+            ))}
+          </ul>
+        </details>
+      ) : null}
+      {report.warnings.map((warning, i) => (
+        <p className="small" key={i}>
+          {warning}
+        </p>
+      ))}
+    </section>
   );
 }

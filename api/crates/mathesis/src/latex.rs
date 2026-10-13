@@ -37,10 +37,19 @@ fn reason(error: LatexError) -> String {
 pub struct LatexReader;
 
 impl PaperReader for LatexReader {
+    fn files(
+        &self,
+        bytes: &[u8],
+        filename: &str,
+    ) -> Result<std::collections::BTreeMap<String, Vec<u8>>, String> {
+        unpack(bytes, filename, Limits::default()).map_err(reason)
+    }
     fn read(&self, bytes: &[u8], filename: &str) -> Result<ReadPaper, String> {
         let files = unpack(bytes, filename, Limits::default()).map_err(reason)?;
         let paper = parse::parse(&files).map_err(reason)?;
         Ok(ReadPaper {
+            evidence: mathesis_core::model::evidence_inventory(&files)
+                .map_err(|e| e.to_string())?,
             main_file: paper.main_file,
             title: paper.title,
             authors: paper.authors,

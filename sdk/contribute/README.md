@@ -51,7 +51,7 @@ mathesis-contribute submit-formalization project.json
 
 MCP also exposes `formalization-opportunities` with q/kind/status and cursor
 pagination, `formalizations`, and `formalization-project`. Intake JSON may carry
-`modules` (up to 32 flat supporting Lean modules, 1 MiB total), `formalizers`
+`modules` (up to 512 dotted module paths, 8 MiB total Lean source), `formalizers`
 and a full `source_revision`. Original research authors and Lean contributors
 remain distinct. Use `expected_target` on `verify-formalization` to bind the
 request to the target you inspected. Sources become public only through the
@@ -74,3 +74,18 @@ review; they do not mark findings resolved. The same `respond-review` MCP tool t
 `claim`, `attempt`. Bundles include all supporting sources, attribution and receipts;
 only current public verified attempts are available. Rechecking requires a prepared
 matching Lean/Mathlib workspace. The historical verifier binary revision is not recorded.
+
+
+Full projects preserve `Research.Lemmas` as `Research/Lemmas.lean`. Include the
+root `lean-toolchain`, `lake-manifest.json` and `lakefile.lean` / `lakefile.toml`
+in `project_files`; they are stored as inert text (1 MiB total), not executed.
+A source-only project can use an empty `solution`. Run
+`preflight-formalization deposit.json`, then `submit-formalization deposit.json`.
+To connect a saved project to an author-confirmed target, use
+`verify-formalization <id> <record> <claim> Solution.lean`.
+MCP exposes the same preflight as `{project: <deposit body>}` and accepts an optional
+`solution` adapter on `verify-formalization`. Always pass `expected_target` in MCP.
+
+Paper computational evidence is included in the same source ZIP/tar archive via
+`mathesis-evidence.json`; see [project and evidence intake](../../docs/PROJECT_AND_EVIDENCE_INTAKE.md).
+The private review dossier includes `evidence_by_version` with server-derived hashes.

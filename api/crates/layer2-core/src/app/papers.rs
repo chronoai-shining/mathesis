@@ -114,6 +114,7 @@ impl App {
             .put(&upload.bytes, "application/octet-stream")
             .await?;
         Ok(PaperVersion {
+            evidence: read.evidence.clone(),
             number,
             archive,
             filename: upload.filename.chars().take(200).collect(),
@@ -811,6 +812,39 @@ impl App {
             content_type,
             filename,
             bytes,
+        })
+    }
+}
+
+impl App {
+    pub async fn paper_evidence_file(
+        &self,
+        caller: &Caller,
+        id: &SubmissionId,
+        version: Option<u32>,
+        path: &str,
+    ) -> CoreResult<PaperFile> {
+        let source = self.paper_file(Some(caller), id, version, false).await?;
+        let files = self
+            .ports
+            .reader
+            .files(&source.bytes, &source.filename)
+            .map_err(CoreError::Invalid)?;
+        let inventory = evidence_inventory(&files)?;
+        let evidence = inventory
+            .iter()
+            .find(|e| e.descriptor.path == path)
+            .ok_or_else(|| CoreError::not_found("evidence", path))?;
+        Ok(PaperFile {
+            content_type: "application/octet-stream",
+            filename: evidence
+                .descriptor
+                .path
+                .rsplit('/')
+                .next()
+                .unwrap_or("evidence")
+                .into(),
+            bytes: files[path].clone(),
         })
     }
 }

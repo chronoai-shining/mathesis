@@ -230,6 +230,20 @@
             "description": ""
           }
         ]
+      },
+      "post": {
+        "summary": "Submit manuscript source and declared computational evidence",
+        "security": [
+          {
+            "nyxid": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Stored draft with version-bound source and evidence inventory"
+          }
+        },
+        "description": " Source ZIP/tar archives may include root mathesis-evidence.json (schema_version 1, files descriptors) and matching evidence files. Digests and byte counts are computed server-side and saved on PaperVersion.evidence. Revisions must carry their own evidence; no implicit carry-forward."
       }
     },
     "/api/v1/submissions/{id}": {
@@ -1162,6 +1176,82 @@
           }
         ]
       }
+    },
+    "/api/v1/formalizations/preflight": {
+      "post": {
+        "operationId": "preflightFormalization",
+        "summary": "Preflight a complete Lean project without storing it",
+        "security": [
+          {
+            "nyxid": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Compatibility diagnostics; independent verification still required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeanPreflight"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewFormalization"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/submissions/{id}/evidence": {
+      "get": {
+        "summary": "Download a declared evidence file from an authorized manuscript version",
+        "security": [
+          {
+            "nyxid": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "path",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "version",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Attachment bytes; private, no-store, nosniff"
+          },
+          "404": {
+            "description": "No authorized source or declared attachment"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1376,18 +1466,18 @@
           },
           "solution": {
             "type": "string",
-            "description": "UTF-8 Lean module, at most 1 MiB in bytes. A deposit is not verification."
+            "description": "Optional target adapter, at most 1 MiB. May be empty when depositing a complete source project; verification requires a root wishpool_solution or wishpool_disproof theorem importing Target."
           },
           "modules": {
             "type": "object",
-            "maxProperties": 32,
+            "maxProperties": 512,
             "propertyNames": {
-              "pattern": "^[A-Z][A-Za-z0-9_]{0,63}$"
+              "pattern": "^[A-Za-z_][A-Za-z0-9_]*(\\.[A-Za-z_][A-Za-z0-9_]*)*$"
             },
             "additionalProperties": {
               "type": "string"
             },
-            "description": "Flat supporting Lean module names (without .lean) to full sources. Main and supporting sources together are limited to 1 MiB. Reserved and case-colliding names are rejected. Imports may reference Mathlib, Target and these modules; no custom dependencies or build scripts."
+            "description": "Dotted module names preserve directory paths (Research.Lemmas = Research/Lemmas.lean). At most 512 modules and 8 MiB total Lean source, including the optional Solution adapter. Reserved roots and case collisions are rejected. Only the pinned prepared workspace supplies dependencies; user Lake scripts are never executed."
           },
           "formalizers": {
             "type": "array",
@@ -1404,6 +1494,14 @@
             ],
             "pattern": "^(?:[a-fA-F0-9]{40}|[a-fA-F0-9]{64})$",
             "description": "Reported full Git revision; not independently authenticated."
+          },
+          "project_files": {
+            "type": "object",
+            "maxProperties": 16,
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Inert UTF-8 project configuration, at most 1 MiB total. Allowed root files: lean-toolchain, lake-manifest.json, lakefile.lean, lakefile.toml, README.md, LICENSE, LICENSE.md, LICENSE.txt. Preserved and included in project export."
           }
         },
         "required": [
@@ -1412,8 +1510,7 @@
           "statement",
           "source_reference",
           "toolchain",
-          "license",
-          "solution"
+          "license"
         ],
         "additionalProperties": false
       },
@@ -1506,6 +1603,14 @@
             ],
             "pattern": "^(?:[a-fA-F0-9]{40}|[a-fA-F0-9]{64})$",
             "description": "Reported full Git revision; not independently authenticated."
+          },
+          "project_files": {
+            "type": "object",
+            "maxProperties": 16,
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Inert UTF-8 project configuration, at most 1 MiB total. Allowed root files: lean-toolchain, lake-manifest.json, lakefile.lean, lakefile.toml, README.md, LICENSE, LICENSE.md, LICENSE.txt. Preserved and included in project export."
           }
         },
         "required": [
@@ -1546,6 +1651,10 @@
           "expected_target": {
             "type": "string",
             "description": "SHA-256 of the target inspected by the caller. A mismatch returns 409."
+          },
+          "solution": {
+            "type": "string",
+            "description": "Optional complete Solution.lean adapter (up to 1 MiB) for this attempt. Deposited project modules remain unchanged; this exact adapter is bound into the attempt/receipt."
           }
         },
         "required": [
@@ -1584,14 +1693,14 @@
           },
           "modules": {
             "type": "object",
-            "maxProperties": 32,
+            "maxProperties": 512,
             "propertyNames": {
-              "pattern": "^[A-Z][A-Za-z0-9_]{0,63}$"
+              "pattern": "^[A-Za-z_][A-Za-z0-9_]*(\\.[A-Za-z_][A-Za-z0-9_]*)*$"
             },
             "additionalProperties": {
               "type": "string"
             },
-            "description": "Flat supporting Lean module names (without .lean) to full sources. Main and supporting sources together are limited to 1 MiB. Reserved and case-colliding names are rejected. Imports may reference Mathlib, Target and these modules; no custom dependencies or build scripts."
+            "description": "Dotted module names preserve directory paths (Research.Lemmas = Research/Lemmas.lean). At most 512 modules and 8 MiB total Lean source, including the optional Solution adapter. Reserved roots and case collisions are rejected. Only the pinned prepared workspace supplies dependencies; user Lake scripts are never executed."
           }
         },
         "required": [
@@ -1678,6 +1787,15 @@
           "review_scope": {
             "type": "string",
             "maxLength": 5000
+          },
+          "evidence_by_version": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/EvidenceAttachment"
+              }
+            }
           }
         },
         "required": [
@@ -1826,6 +1944,95 @@
           "version",
           "claims_revision",
           "body"
+        ]
+      },
+      "LeanPreflight": {
+        "type": "object",
+        "properties": {
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "dependencies": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "modules": {
+            "type": "integer"
+          },
+          "source_bytes": {
+            "type": "integer"
+          },
+          "requires_adapter": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "errors",
+          "warnings",
+          "dependencies",
+          "modules",
+          "source_bytes",
+          "requires_adapter"
+        ],
+        "description": "Static diagnostics only, never a verification receipt. Errors block verification but do not block immutable source deposit."
+      },
+      "EvidenceAttachment": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "certificate",
+              "computation",
+              "source",
+              "data",
+              "supplement"
+            ]
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 4000
+          },
+          "claims": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "source_url": {
+            "type": "string"
+          },
+          "source_revision": {
+            "type": "string",
+            "pattern": "^(?:[a-fA-F0-9]{40}|[a-fA-F0-9]{64})$"
+          },
+          "sha256": {
+            "type": "string"
+          },
+          "bytes": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "path",
+          "kind",
+          "description",
+          "claims",
+          "sha256",
+          "bytes"
         ]
       }
     }

@@ -45,6 +45,7 @@ pub(super) fn routes() -> Router<Arc<App>> {
         .route("/submissions/{id}/contributors", put(set_contributors))
         .route("/submissions/{id}/analysis", get(analysis))
         .route("/submissions/{id}/files/{kind}", get(file))
+        .route("/submissions/{id}/evidence", get(evidence_file))
         .route("/papers", get(list_papers))
         .route("/conjectures", get(list_conjectures))
         .route("/papers/{id}", get(paper))
@@ -413,4 +414,26 @@ async fn review_markdown(
         ],
         report.markdown(),
     ))
+}
+
+#[derive(Deserialize)]
+struct EvidenceQuery {
+    version: Option<u32>,
+    path: String,
+}
+async fn evidence_file(
+    State(app): AppState,
+    AuthenticatedCaller(caller): AuthenticatedCaller,
+    Path(id): Path<SubmissionId>,
+    Query(query): Query<EvidenceQuery>,
+) -> ApiResult<impl IntoResponse> {
+    let file = app
+        .paper_evidence_file(&caller, &id, query.version, &query.path)
+        .await?;
+    let mut response = file_response(file, false);
+    response.headers_mut().insert(
+        header::CACHE_CONTROL,
+        HeaderValue::from_static("private, no-store"),
+    );
+    Ok(response)
 }

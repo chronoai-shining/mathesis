@@ -1,3 +1,5 @@
+import { EvidencePicker } from '../EvidenceFiles';
+import { withEvidence, type EvidenceInput } from '../../lib/sourceBundle';
 import { PROCESSING_CONSENT_TEXT, PROCESSING_CONSENT_VERSION } from '../../api/types';
 import { useState, type FormEvent } from 'react';
 import { useApi } from '../../api/context';
@@ -129,6 +131,7 @@ export function NewVersionForm({
   const m = useMutation(onChange);
   const [consent, setConsent] = useState(false);
   const [file, setFile] = useState<File | null>(null);
+  const [evidence, setEvidence] = useState<EvidenceInput[]>([]);
   const [note, setNote] = useState('');
   const [key, setKey] = useState(0);
   const submit = (event: FormEvent) => {
@@ -151,9 +154,16 @@ export function NewVersionForm({
       return;
     }
     m.run(
-      () => api.uploadVersion(submission.id, file, note.trim(), PROCESSING_CONSENT_VERSION),
+      async () =>
+        api.uploadVersion(
+          submission.id,
+          await withEvidence(file, evidence),
+          note.trim(),
+          PROCESSING_CONSENT_VERSION,
+        ),
       () => {
         setFile(null);
+        setEvidence([]);
         setNote('');
         setKey((k) => k + 1);
       },
@@ -179,6 +189,7 @@ export function NewVersionForm({
           onChange={(e) => setFile(e.target.files?.[0] ?? null)}
         />
       </Field>
+      <EvidencePicker value={evidence} onChange={setEvidence} />
       <Field label="What changed" htmlFor="version-note">
         <textarea
           id="version-note"

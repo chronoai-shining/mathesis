@@ -116,6 +116,7 @@ pub struct ReadStatement {
 /// What reading an uploaded LaTeX source yields.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ReadPaper {
+    pub evidence: Vec<crate::model::EvidenceAttachment>,
     pub main_file: String,
     pub title: Option<String>,
     pub authors: Vec<String>,
@@ -128,6 +129,13 @@ pub struct ReadPaper {
 
 /// Reads LaTeX sources (a `.tex`, `.zip` or `.tar.gz`).
 pub trait PaperReader: Send + Sync {
+    fn files(
+        &self,
+        _bytes: &[u8],
+        _filename: &str,
+    ) -> Result<std::collections::BTreeMap<String, Vec<u8>>, String> {
+        Err("archive extraction is unavailable".into())
+    }
     /// Read the structure; `Err` carries the reason for the author.
     fn read(&self, bytes: &[u8], filename: &str) -> Result<ReadPaper, String>;
 }

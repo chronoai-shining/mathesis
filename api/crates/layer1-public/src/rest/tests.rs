@@ -60,6 +60,7 @@ impl PaperReader for OneTheorem {
             section: None,
         };
         Ok(ReadPaper {
+            evidence: vec![],
             main_file: "main.tex".into(),
             title: Some("On gaps".into()),
             authors: vec!["A. Author".into()],

@@ -130,9 +130,9 @@ standalone deposit does not create a paper, target or approval.
 
 ### Multi-file formalizations and provenance
 
-Optional `modules` maps flat capitalized names (e.g. `Helpers`) to complete Lean
-source. Up to 32 supporting modules are accepted; main plus supporting sources
-must total at most 1 MiB. Each file is stored in GridFS with its digest. Optional
+Optional `modules` maps dotted module names (e.g. `Research.Helpers`) to complete Lean
+source. Up to 512 supporting modules are accepted; adapter plus supporting sources
+must total at most 8 MiB. Inert project configuration is preserved in `project_files`. Each file is stored in GridFS with its digest. Optional
 `formalizers` separates Lean contributors from original research authors;
 `source_revision` records a full 40/64-digit Git commit. A reported repository
 or commit is provenance supplied by the uploader, not a fetched/authenticated
@@ -140,7 +140,7 @@ repository snapshot. `GET /formalizations/{id}/project` downloads all sources
 and attribution as reusable JSON; it is owner/staff-only and no-store.
 
 The independent verifier checks every supporting source, rejects cycles,
-path-like/reserved/case-colliding module names and trusted-library shadowing,
+traversing/reserved/case-colliding module names and trusted-library shadowing,
 and builds modules in dependency order between Target and Solution. It checks
 the final theorem's type and axiom closure in a separate Check module. The
 same conservative forbidden-construct rules apply to every file, including
@@ -249,3 +249,6 @@ This is a portable evidence package, not a dependency installer or permission to
 execute user Lake scripts. Independent external theorem admission still needs a
 separate target provenance/semantic-confirmation path; a private deposit alone
 never creates a public verified theorem.
+
+Complete project preflight, independent adapters, manuscript evidence manifests and
+review coverage limits are specified in [project and evidence intake](PROJECT_AND_EVIDENCE_INTAKE.md).

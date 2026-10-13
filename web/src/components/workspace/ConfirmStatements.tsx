@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useRef, useState, type FormEvent } from 'react';
 import { useApi } from '../../api/context';
 import type { Claim, ClaimKind, ClaimRole, Source, Submission } from '../../api/types';
 import {
@@ -31,6 +31,35 @@ export function ConfirmStatements({
   const [rows, setRows] = useState<ConfirmRow[]>(() =>
     initialRows(extracted, submission.claims, submission.conjecture_dependencies),
   );
+  const [reviewed, setReviewed] = useState<Set<string>>(() => new Set());
+  const [page, setPage] = useState(0);
+  const [query, setQuery] = useState('');
+  const [filter, setFilter] = useState('all');
+  const pageSize = 5;
+  const navigation = useRef<HTMLDivElement>(null);
+  const moveTo = (next: number) => {
+    setPage(next);
+    requestAnimationFrame(() => navigation.current?.scrollIntoView?.({ block: 'start' }));
+  };
+  const filtered = rows.filter((row) => {
+    const claim = extracted.find((c) => c.id === row.id);
+    return (
+      (filter !== 'remaining' || !reviewed.has(row.id)) &&
+      (filter !== 'main' || (!row.excluded && row.role === 'main')) &&
+      `${row.id} ${claim?.label ?? ''} ${claim?.section ?? ''} ${claim?.statement ?? ''}`
+        .toLowerCase()
+        .includes(query.toLowerCase())
+    );
+  });
+  const activePage = Math.min(page, Math.max(0, Math.ceil(filtered.length / pageSize) - 1));
+  const visibleRows = filtered.slice(activePage * pageSize, (activePage + 1) * pageSize);
+  const mark = (id: string, checked: boolean) =>
+    setReviewed((old) => {
+      const next = new Set(old);
+      if (checked) next.add(id);
+      else next.delete(id);
+      return next;
+    });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
 
@@ -55,6 +84,10 @@ export function ConfirmStatements({
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
+    if (rows.length > 10 && reviewed.size !== rows.length) {
+      setError('Mark every statement as checked before starting review.');
+      return;
+    }
     const built = buildConfirmations(rows, submission.kind === 'conjecture');
     if (!built.ok) {
       setError(built.error);
@@ -79,11 +112,79 @@ export function ConfirmStatements({
       <p>
         The server read {extracted.length} statement{extracted.length === 1 ? '' : 's'} from the
         source. For each, check the kind, mark whether it is a main result of the paper or
-        supporting, and select the statements its proof uses. Exclude anything that was misparsed.
+        supporting, and select the statements its proof uses. Exclude anything that was misparsed.{' '}
         {submission.kind === 'conjecture'
           ? 'Mark at least one conjecture or question as main.'
           : 'Mark at least one proved statement as a main result.'}
       </p>
+      <div className="confirmation-navigation" ref={navigation}>
+        <div className="confirmation-progress" role="status">
+          <strong>
+            {reviewed.size} / {rows.length} checked
+          </strong>
+          <span>{rows.length - reviewed.size} remaining</span>
+          <progress
+            value={reviewed.size}
+            max={rows.length}
+            aria-label="Statement confirmation progress"
+          />
+        </div>
+        <div className="confirmation-controls">
+          <label>
+            Find a statement
+            <input
+              type="search"
+              value={query}
+              placeholder="Label, section or mathematical text"
+              onChange={(e) => {
+                setQuery(e.target.value);
+                setPage(0);
+              }}
+            />
+          </label>
+          <label>
+            Show
+            <select
+              value={filter}
+              onChange={(e) => {
+                setFilter(e.target.value);
+                setPage(0);
+              }}
+            >
+              <option value="all">All statements</option>
+              <option value="remaining">Not yet checked</option>
+              <option value="main">Main results</option>
+            </select>
+          </label>
+          <label>
+            Jump to statement
+            <select
+              value=""
+              onChange={(e) => {
+                const index = rows.findIndex((r) => r.id === e.target.value);
+                setFilter('all');
+                setQuery('');
+                moveTo(Math.floor(index / pageSize));
+              }}
+            >
+              <option value="" disabled>
+                Choose statement…
+              </option>
+              {extracted.map((claim) => (
+                <option key={claim.id} value={claim.id}>
+                  {reviewed.has(claim.id) ? '✓ ' : ''}
+                  {claim.id} · {claim.label}
+                  {claim.section ? ` · ${claim.section}` : ''}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+        <p className="hint">
+          Check each statement after reviewing its kind, role and dependencies. Edits stay in this
+          page while you navigate. Changing a statement clears its check.
+        </p>
+      </div>
       <div className="table-wrap">
         <table className="data-table confirm-table">
           <caption className="visually-hidden">Extracted statements</caption>
@@ -105,7 +206,7 @@ export function ConfirmStatements({
             </tr>
           </thead>
           <tbody>
-            {rows.map((row) => {
+            {visibleRows.map((row) => {
               const claim = extracted.find((c) => c.id === row.id) as Claim;
               return (
                 <ConfirmRowView
@@ -114,20 +215,55 @@ export function ConfirmStatements({
                   claim={claim}
                   rows={rows}
                   extracted={extracted}
-                  onPatch={(patch) => setRows((rs) => updateRow(rs, row.id, patch))}
-                  onDependency={(dep, on) => setRows((rs) => toggleDependency(rs, row.id, dep, on))}
+                  checked={reviewed.has(row.id)}
+                  onCheck={(checked) => mark(row.id, checked)}
+                  onPatch={(patch) => {
+                    mark(row.id, false);
+                    setRows((rs) => updateRow(rs, row.id, patch));
+                  }}
+                  onDependency={(dep, on) => {
+                    mark(row.id, false);
+                    setRows((rs) => toggleDependency(rs, row.id, dep, on));
+                  }}
                 />
               );
             })}
           </tbody>
         </table>
       </div>
+      {!filtered.length ? <p role="status">No statements match this view.</p> : null}
+      <nav className="button-row confirmation-pages" aria-label="Statement pages">
+        <button
+          type="button"
+          className="button button-quiet"
+          disabled={activePage === 0}
+          onClick={() => moveTo(activePage - 1)}
+        >
+          Previous statements
+        </button>
+        <span aria-live="polite">
+          Page {activePage + 1} of {Math.max(1, Math.ceil(filtered.length / pageSize))} ·{' '}
+          {filtered.length} matching
+        </span>
+        <button
+          type="button"
+          className="button button-quiet"
+          disabled={(activePage + 1) * pageSize >= filtered.length}
+          onClick={() => moveTo(activePage + 1)}
+        >
+          Next statements
+        </button>
+      </nav>
       <p className="small" aria-live="polite">
         {mainCount} main result{mainCount === 1 ? '' : 's'} · {excludedCount} excluded ·{' '}
-        {rows.length - excludedCount} to review
+        {rows.length - excludedCount} included in review
       </p>
       <div className="button-row">
-        <button type="submit" className="button" disabled={busy}>
+        <button
+          type="submit"
+          className="button"
+          disabled={busy || (rows.length > 10 && reviewed.size !== rows.length)}
+        >
           {busy ? 'Confirming…' : 'Confirm statements and start review'}
         </button>
       </div>
@@ -143,6 +279,8 @@ function ConfirmRowView({
   extracted,
   onPatch,
   onDependency,
+  checked,
+  onCheck,
 }: {
   row: ConfirmRow;
   claim: Claim;
@@ -150,7 +288,10 @@ function ConfirmRowView({
   extracted: readonly Claim[];
   onPatch: (patch: Partial<Omit<ConfirmRow, 'id'>>) => void;
   onDependency: (dep: string, on: boolean) => void;
+  checked: boolean;
+  onCheck: (checked: boolean) => void;
 }) {
+  const [dependenciesOpen, setDependenciesOpen] = useState(false);
   const others = extracted.filter((c) => c.id !== row.id);
   const id = (part: string) => `confirm-${row.id}-${part}`;
   return (
@@ -169,6 +310,10 @@ function ConfirmRowView({
         {claim.section ? <p className="muted small">§ {claim.section}</p> : null}
         <LatexText source={claim.statement} className="statement" />
         <SettlesEditor row={row} onPatch={onPatch} />
+        <label className="checkbox statement-checked">
+          <input type="checkbox" checked={checked} onChange={(e) => onCheck(e.target.checked)} />
+          <span>Checked {row.id}</span>
+        </label>
       </td>
       <td className="confirm-kind" data-label="Kind">
         <label className="visually-hidden" htmlFor={id('kind')}>
@@ -216,31 +361,36 @@ function ConfirmRowView({
         {others.length === 0 ? (
           <span className="muted small">—</span>
         ) : (
-          <details className="dep-picker">
+          <details
+            className="dep-picker"
+            onToggle={(event) => setDependenciesOpen(event.currentTarget.open)}
+          >
             <summary>
               {row.dependsOn.length === 0 ? 'None' : row.dependsOn.join(', ')}
               <span className="visually-hidden"> — statements {row.id} uses</span>
             </summary>
-            <fieldset disabled={row.excluded}>
-              <legend className="visually-hidden">Statements {row.id} uses</legend>
-              {others.map((c) => {
-                const excluded = rows.find((r) => r.id === c.id)?.excluded ?? false;
-                return (
-                  <label key={c.id} className="checkbox">
-                    <input
-                      type="checkbox"
-                      aria-label={`${row.id} uses ${c.id}`}
-                      checked={row.dependsOn.includes(c.id)}
-                      onChange={(e) => onDependency(c.id, e.target.checked)}
-                    />
-                    <span className={excluded ? 'muted' : undefined}>
-                      {c.id} · {statementTitle(c)}
-                      {excluded ? ' (excluded)' : ''}
-                    </span>
-                  </label>
-                );
-              })}
-            </fieldset>
+            {dependenciesOpen ? (
+              <fieldset disabled={row.excluded}>
+                <legend className="visually-hidden">Statements {row.id} uses</legend>
+                {others.map((c) => {
+                  const excluded = rows.find((r) => r.id === c.id)?.excluded ?? false;
+                  return (
+                    <label key={c.id} className="checkbox">
+                      <input
+                        type="checkbox"
+                        aria-label={`${row.id} uses ${c.id}`}
+                        checked={row.dependsOn.includes(c.id)}
+                        onChange={(e) => onDependency(c.id, e.target.checked)}
+                      />
+                      <span className={excluded ? 'muted' : undefined}>
+                        {c.id} · {statementTitle(c)}
+                        {excluded ? ' (excluded)' : ''}
+                      </span>
+                    </label>
+                  );
+                })}
+              </fieldset>
+            ) : null}
           </details>
         )}
       </td>

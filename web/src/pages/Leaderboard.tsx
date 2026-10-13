@@ -1,3 +1,4 @@
+import { InlineLatex } from '../components/Markdown';
 import { useCallback, useState } from 'react';
 import { useApi } from '../api/context';
 import { useAsync } from '../api/useAsync';
@@ -143,7 +144,7 @@ export function EntrantPage({ id }: { id: string }) {
                 {p.formalized.map((s) => (
                   <li key={s.attempt}>
                     <Link to={{ kind: 'statement', record: s.record, claim: s.claim }}>
-                      {s.title} · {s.claim} · Lean ✓
+                      <InlineLatex source={s.title} /> · {s.claim} · Lean ✓
                     </Link>
                   </li>
                 ))}
@@ -158,7 +159,7 @@ export function EntrantPage({ id }: { id: string }) {
                       className="entry-title"
                       to={{ kind: 'conjecture', record: s.record, claim: s.claim }}
                     >
-                      {s.title}
+                      <InlineLatex source={s.title} />
                     </Link>
                     <p>
                       {s.receipt.verdict === 'proved' ? 'Solved' : 'Disproved'} · {s.record} ·{' '}

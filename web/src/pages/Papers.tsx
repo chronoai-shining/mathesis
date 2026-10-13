@@ -1,3 +1,4 @@
+import { InlineLatex } from '../components/Markdown';
 import { ProofAttribution } from '../components/ProofAttribution';
 import { ReportError, ErrorReports } from '../components/ErrorReports';
 import { EntrantName } from './Leaderboard';
@@ -26,7 +27,9 @@ export function PaperEntry({ paper }: { paper: PaperSummary }) {
   return (
     <article className="paper-entry">
       <p className="entry-title">
-        <Link to={{ kind: 'paper', record: paper.record }}>{paper.title}</Link>
+        <Link to={{ kind: 'paper', record: paper.record }}>
+          <InlineLatex source={paper.title} />
+        </Link>
       </p>
       <p className="entry-meta">
         <span>{formatAuthors(paper.authors)}</span>
@@ -193,7 +196,9 @@ export function PaperView({ paper }: { paper: PublicPaper }) {
           <p className="eyebrow">
             Record <code className="record-id">{s.record}</code> · {SUBMISSION_KIND_LABELS[s.kind]}
           </p>
-          <h1>{s.title}</h1>
+          <h1>
+            <InlineLatex source={s.title} />
+          </h1>
           <AuthorLine authors={s.authors} />
           <p className="small muted">Reviewed by GPT Pro and audited by Codex</p>
           {claims.length ? <ReportError record={s.record} subject={{ kind: 'review' }} /> : null}

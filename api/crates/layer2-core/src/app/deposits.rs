@@ -41,6 +41,7 @@ impl App {
         }
         let deposit = LeanDeposit {
             modules,
+            project_files: new.project_files,
             formalizers: new.formalizers,
             source_revision: new.source_revision,
             id: id.clone(),
@@ -159,6 +160,19 @@ impl App {
         claim: &ClaimId,
         expected_target: Option<&str>,
     ) -> CoreResult<AttemptView> {
+        self.verify_lean_project(caller, id, record, claim, expected_target, None)
+            .await
+    }
+    #[allow(clippy::too_many_arguments)]
+    pub async fn verify_lean_project(
+        &self,
+        caller: &Caller,
+        id: &str,
+        record: &RecordId,
+        claim: &ClaimId,
+        expected_target: Option<&str>,
+        adapter: Option<String>,
+    ) -> CoreResult<AttemptView> {
         let deposit = self.lean_deposit(caller, id).await?;
         if deposit.owner != caller.person {
             return Err(CoreError::forbidden(
@@ -176,8 +190,16 @@ impl App {
                 "deposit toolchain must match the confirmed target toolchain",
             ));
         }
-        let source = self.lean_deposit_source(caller, id).await?;
+        let source = match adapter {
+            Some(source) => source,
+            None => self.lean_deposit_source(caller, id).await?,
+        };
         let modules = self.lean_deposit_modules(caller, id).await?;
+        let report =
+            lean_project_preflight(&source, &modules, &deposit.project_files, &target.toolchain);
+        if !report.errors.is_empty() {
+            return Err(CoreError::invalid(report.errors.join("; ")));
+        }
         let attribution = FormalizationAttribution {
             formalizers: deposit.formalizers.clone(),
             source_revision: deposit.source_revision.clone(),

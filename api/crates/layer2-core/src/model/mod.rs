@@ -46,3 +46,9 @@ pub use task::*;
 
 mod error_report;
 pub use error_report::*;
+
+mod project;
+pub use project::*;
+
+mod attachment;
+pub use attachment::*;

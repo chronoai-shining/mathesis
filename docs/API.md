@@ -873,14 +873,14 @@ before pagination. No private source deposits or unverified attempts appear.
 Lean intake also accepts optional `formalizers: string[]`,
 `source_revision: string` (full 40/64-digit Git commit), and
 `modules: { "Helpers": "import Mathlib\ntheorem helper : True := True.intro\n" }`.
-Use `import Helpers` in the main `solution`. At most 32 flat modules and 1 MiB
-total source; reserved and case-colliding names are rejected. No arbitrary Lake
+Use `import Helpers` in the main `solution`. At most 512 dotted-path modules and 8 MiB
+total Lean source; reserved and case-colliding names are rejected. No arbitrary Lake
 build or custom dependency execution is supported. These fields are carried
 with immutable source identity; only independent verification creates a receipt.
 
 `GET /api/v1/formalizations/{id}/project` downloads reusable intake JSON with
 all sources and attribution; owner/staff only, private/no-store. Verify requests
-may include `expected_target`; stale digests return 409. Public verified attempts
+may include `expected_target` and an optional separate `solution` adapter; stale digests return 409. Public verified attempts
 include a `modules` source map so multi-file proofs remain reproducible.
 
 ## Independent private review and portable evidence
@@ -907,3 +907,13 @@ are idempotent. Responses and trigger intent are committed together and queue
 reconciliation recovers enqueue failure. Inclusion in a later audit means re-reviewed,
 not automatically resolved. JSON and Markdown exports omit staff-only advice, drafts
 and private Lean sources. Publication policy remains unchanged.
+
+
+Complete Lean projects add optional `project_files` for inert root configuration
+(1 MiB total) and permit an empty `solution` when modules are present.
+`POST /api/v1/formalizations/preflight` accepts the same deposit JSON and returns
+static errors, warnings, dependency pins and adapter requirements. Evidence is
+submitted in source archives with a root `mathesis-evidence.json` manifest, appears
+in `PaperVersion.evidence`, and is downloadable through
+`GET /api/v1/submissions/{id}/evidence?version=<n>&path=<relative path>` under the
+existing source authorization. See [full contracts and examples](PROJECT_AND_EVIDENCE_INTAKE.md).

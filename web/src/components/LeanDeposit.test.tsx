@@ -34,7 +34,7 @@ it('deposits source and original attribution without presenting it as verified',
   await user.type(screen.getByLabelText('Source license'), 'Apache-2.0');
   const file = new File(['import Target'], 'Solution.lean', { type: 'text/plain' });
   Object.defineProperty(file, 'text', { value: async () => 'import Target' });
-  await user.upload(screen.getByLabelText('Lean source (up to 1 MB)'), file);
+  await user.upload(screen.getByLabelText('Solution.lean / standalone source (up to 1 MB)'), file);
   // jsdom does not validate userEvent's synthetic FileList correctly; native submission is covered by browser QA.
   fireEvent.submit(screen.getByRole('form', { name: 'Submit Lean formalization' }));
   await waitFor(() =>
@@ -128,7 +128,7 @@ it('prefills the confirmed statement and binds a multi-file verification request
   Object.defineProperty(helper, 'text', {
     value: async () => 'theorem helper : True := True.intro',
   });
-  await user.upload(screen.getByLabelText('Lean source (up to 1 MB)'), main);
+  await user.upload(screen.getByLabelText('Solution.lean / standalone source (up to 1 MB)'), main);
   await user.upload(screen.getByLabelText('Supporting Lean modules (optional)'), helper);
   fireEvent.submit(screen.getByRole('form', { name: 'Submit Lean formalization' }));
   await waitFor(() =>

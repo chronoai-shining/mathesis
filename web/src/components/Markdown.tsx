@@ -77,3 +77,37 @@ export function hardBreaks(text: string): string {
 export function LatexText({ source, className }: { source: string; className?: string }) {
   return <Markdown text={latexToMarkdown(source)} className={className} />;
 }
+
+/** Inline paper titles: math is rendered without introducing nested links or block markup. */
+export function InlineLatex({ source }: { source: string }) {
+  const macros = useContext(MacrosContext);
+  const span = ({ children }: { children?: ReactNode }) => <span>{children}</span>;
+  return (
+    <span className="inline-latex">
+      <ReactMarkdown
+        remarkPlugins={[remarkMath]}
+        rehypePlugins={rehypePlugins(macros)}
+        skipHtml
+        components={{
+          p: span,
+          a: span,
+          h1: span,
+          h2: span,
+          h3: span,
+          h4: span,
+          h5: span,
+          h6: span,
+          ul: span,
+          ol: span,
+          li: span,
+          blockquote: span,
+          pre: span,
+        }}
+        disallowedElements={['img', 'hr']}
+        unwrapDisallowed
+      >
+        {latexToMarkdown(source).replace(/\n/g, ' ')}
+      </ReactMarkdown>
+    </span>
+  );
+}

@@ -285,6 +285,7 @@ export type ClaimConfirmation = {
 
 export type Blob = { id: string; bytes: number; sha256: string };
 export type PaperVersion = {
+  evidence?: EvidenceAttachment[];
   number: number;
   archive: Blob;
   filename: string;
@@ -831,6 +832,7 @@ export type StatementDetail = {
 };
 
 export interface NewLeanDeposit {
+  project_files?: Record<string, string>;
   modules?: Record<string, string>;
   formalizers?: string[];
   source_revision?: string;
@@ -876,4 +878,23 @@ export interface FormalizationOpportunity {
   contributor: Entrant | null;
   attribution: FormalizationAttribution | null;
   receipt: VerificationReceipt | null;
+}
+
+export interface LeanPreflight {
+  modules: number;
+  source_bytes: number;
+  errors: string[];
+  warnings: string[];
+  dependencies: string[];
+  requires_adapter: boolean;
+}
+export interface EvidenceAttachment {
+  path: string;
+  kind: 'certificate' | 'computation' | 'source' | 'data' | 'supplement';
+  description: string;
+  claims: string[];
+  source_url?: string;
+  source_revision?: string;
+  bytes: number;
+  sha256: string;
 }

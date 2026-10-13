@@ -1,3 +1,4 @@
+import { InlineLatex } from '../components/Markdown';
 import { LeanWorkspace } from '../components/LeanDeposit';
 import { useCallback } from 'react';
 import type { SubmissionScope } from '../api/client';
@@ -142,7 +143,7 @@ export function SubmissionsPage({ scope }: { scope: SubmissionScope }) {
               {listing.items.map((s) => (
                 <li key={s.id}>
                   <Link to={{ kind: 'submission', id: s.id }} className="entry-title">
-                    {s.title}
+                    <InlineLatex source={s.title} />
                   </Link>
                   <p className="entry-meta">
                     <span>

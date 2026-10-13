@@ -953,6 +953,7 @@ async fn archive_text_search_and_formalization_receipts_survive_reconnect() {
         .await
         .unwrap();
     let mut deposit = LeanDeposit {
+        project_files: Default::default(),
         modules: std::collections::BTreeMap::from([("Helpers".into(), blob.clone())]),
         formalizers: vec!["Formalizer".into()],
         source_revision: Some("a".repeat(40)),

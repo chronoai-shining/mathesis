@@ -89,6 +89,31 @@ fn main() -> ExitCode {
         ["verify-formalization", id, record, claim] => {
             print(client.verify_formalization(id, record, claim))
         }
+        ["preflight-formalization", file] => match std::fs::read_to_string(file)
+            .map_err(|e| e.to_string())
+            .and_then(|text| serde_json::from_str(&text).map_err(|e| e.to_string()))
+        {
+            Ok(body) => print(client.post("/formalizations/preflight", &body)),
+            Err(error) => {
+                eprintln!("{error}");
+                ExitCode::FAILURE
+            }
+        },
+        ["verify-formalization", id, record, claim, adapter] => {
+            match std::fs::read_to_string(adapter) {
+                Ok(source) => print(client.verify_formalization_project(
+                    id,
+                    record,
+                    claim,
+                    None,
+                    Some(&source),
+                )),
+                Err(error) => {
+                    eprintln!("{error}");
+                    ExitCode::FAILURE
+                }
+            }
+        }
         ["submit-formalization", file] => match std::fs::read_to_string(file)
             .map_err(|e| e.to_string())
             .and_then(|s| serde_json::from_str(&s).map_err(|e| e.to_string()))
@@ -169,7 +194,7 @@ fn main() -> ExitCode {
         },
         _ => {
             eprintln!(
-                "usage: mathesis-contribute formalization-opportunities [query] | formalizations | formalization-project <id> | papers [query] | paper <record> | review <submission-id> | respond-review <submission-id> <response.json> | verification-bundle <record> <claim> <attempt> | submit-formalization <deposit.json> | formalization <id> | verify-formalization <id> <record> <claim> | conjectures | target <record> <claim> | attempt <record> <claim> <file> [--as-agent NAME] | attempt-status <id> | report <record> <report.json> | report-status <id> | tasks [kind] | show <task> | lease <task> | release <task> | submit <task> <result.json> | mcp"
+                "usage: mathesis-contribute formalization-opportunities [query] | formalizations | formalization-project <id> | papers [query] | paper <record> | review <submission-id> | respond-review <submission-id> <response.json> | verification-bundle <record> <claim> <attempt> | preflight-formalization <deposit.json> | submit-formalization <deposit.json> | formalization <id> | verify-formalization <id> <record> <claim> [Solution.lean] | conjectures | target <record> <claim> | attempt <record> <claim> <file> [--as-agent NAME] | attempt-status <id> | report <record> <report.json> | report-status <id> | tasks [kind] | show <task> | lease <task> | release <task> | submit <task> <result.json> | mcp"
             );
             ExitCode::from(2)
         }
@@ -246,6 +271,7 @@ mod tests {
                 "respond-review",
                 "verification-bundle",
                 "submit-formalization",
+                "preflight-formalization",
                 "formalization",
                 "verify-formalization",
                 "report",

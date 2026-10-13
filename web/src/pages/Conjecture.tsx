@@ -1,3 +1,4 @@
+import { InlineLatex } from '../components/Markdown';
 import { Link } from '../routing/router';
 import { ProofAttribution } from '../components/ProofAttribution';
 import { useCallback, useState, type FormEvent } from 'react';
@@ -35,7 +36,9 @@ export function ConjectureView({ detail: c }: { detail: ConjectureDetail }) {
         <p className="eyebrow">
           {s.record} · {s.claim} · {s.source}
         </p>
-        <h1>{s.title}</h1>
+        <h1>
+          <InlineLatex source={s.title} />
+        </h1>
         <p className="small muted">Reviewed by GPT Pro and audited by Codex</p>
         <ReportError record={s.record} subject={{ kind: 'statement', claim: s.claim }} />
         <div className="status-card">

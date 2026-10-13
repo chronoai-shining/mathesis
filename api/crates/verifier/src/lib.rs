@@ -48,6 +48,9 @@ pub fn digest(text: &str) -> String {
 /// Conservative shared scan. Scanning comments as well is intentional: nothing
 /// hidden in comments, strings, or quoted identifiers can stand in for a declaration.
 pub fn forbidden(text: &str) -> Option<String> {
+    forbidden_in(text, false)
+}
+fn forbidden_in(text: &str, library: bool) -> Option<String> {
     for token in text.split(|c: char| !c.is_alphanumeric() && c != '_') {
         if matches!(
             token,
@@ -77,11 +80,9 @@ pub fn forbidden(text: &str) -> Option<String> {
                 | "run_meta"
                 | "attribute"
                 | "declare_syntax_cat"
-                | "namespace"
-                | "section"
-                | "end"
                 | "export"
         ) || token.contains("skipKernelTC")
+            || (!library && matches!(token, "namespace" | "section" | "end"))
         {
             return Some(format!("forbidden construct: {token}"));
         }
@@ -92,18 +93,25 @@ pub fn forbidden(text: &str) -> Option<String> {
     }
     None
 }
+fn allowed_import(name: &str, allowed: &[&str]) -> bool {
+    allowed.contains(&name)
+        || (name.starts_with("Mathlib.")
+            && name.split('.').all(|p| {
+                !p.is_empty() && p.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
+            }))
+}
 fn imports(text: &str, allowed: &[&str]) -> Result<(), String> {
     let words: Vec<_> = text.split_whitespace().collect();
     for (i, word) in words.iter().enumerate() {
-        if *word == "import" && words.get(i + 1).is_none_or(|m| !allowed.contains(m)) {
-            return Err("only Mathlib and Target may be imported".into());
+        if *word == "import" && words.get(i + 1).is_none_or(|m| !allowed_import(m, allowed)) {
+            return Err("import must resolve to Mathlib, Target or a submitted module".into());
         }
     }
     // Imports must occupy their own line, one module per command. Reject
     // comment tricks and multi-module imports before invoking any compiler.
     for line in text.lines().filter(|l| l.contains("import")) {
         let parts: Vec<_> = line.split_whitespace().collect();
-        if parts.len() != 2 || parts[0] != "import" || !allowed.contains(&parts[1]) {
+        if parts.len() != 2 || parts[0] != "import" || !allowed_import(parts[1], allowed) {
             return Err("imports must be a single allowed module per line".into());
         }
     }
@@ -354,13 +362,16 @@ impl Checker {
                 "ir",
                 "ir.sig",
             ] {
-                let _ = std::fs::remove_file(work.join(format!("{name}.{suffix}")));
+                let _ =
+                    std::fs::remove_file(work.join(format!("{}.{suffix}", name.replace('.', "/"))));
             }
         }
         std::fs::write(work.join("Target.lean"), &request.target).map_err(|e| e.to_string())?;
         std::fs::write(work.join("Solution.lean"), &request.solution).map_err(|e| e.to_string())?;
         for (name, source) in &request.modules {
-            std::fs::write(work.join(format!("{name}.lean")), source).map_err(|e| e.to_string())?;
+            let path = work.join(format!("{}.lean", name.replace('.', "/")));
+            std::fs::create_dir_all(path.parent().unwrap()).map_err(|e| e.to_string())?;
+            std::fs::write(path, source).map_err(|e| e.to_string())?;
         }
         let home = std::env::var_os("HOME").ok_or("operator HOME is unavailable")?;
         let lean = PathBuf::from(home)
@@ -412,6 +423,17 @@ impl Checker {
         }) {
             return Err("project modules cannot shadow trusted library modules".into());
         }
+        for text in std::iter::once(&request.solution).chain(request.modules.values()) {
+            for line in text
+                .lines()
+                .filter(|l| l.trim_start().starts_with("import "))
+            {
+                let imported = line.split_whitespace().nth(1).unwrap_or_default();
+                if imported.starts_with("Mathlib.") && !artifacts.contains_key(imported) {
+                    return Err(format!("missing prepared dependency: {imported}"));
+                }
+            }
+        }
         for name in build_order {
             let setup = work.join(format!("{name}.setup.json"));
             std::fs::write(
@@ -442,8 +464,8 @@ impl Checker {
             cmd.args(["-j", "2", "--setup"])
                 .arg(&setup)
                 .arg("-o")
-                .arg(format!("{name}.olean"))
-                .arg(format!("{name}.lean"));
+                .arg(format!("{}.olean", name.replace('.', "/")))
+                .arg(format!("{}.lean", name.replace('.', "/")));
             let text = capture(cmd).await?;
             if name == "Check" {
                 let constant = if verdict == Verdict::Proved {
@@ -463,7 +485,7 @@ impl Checker {
             }
             artifacts.insert(
                 name.into(),
-                import_artifacts(&work.join(format!("{name}.olean"))),
+                import_artifacts(&work.join(format!("{}.olean", name.replace('.', "/")))),
             );
         }
         unreachable!()
@@ -490,26 +512,37 @@ fn validate_project(
     solution: &str,
     modules: &BTreeMap<String, String>,
 ) -> Result<(Verdict, Vec<String>), String> {
-    if modules.len() > 32
-        || solution.len() + modules.values().map(String::len).sum::<usize>() > 1_048_576
+    if modules.len() > 512
+        || solution.len() + modules.values().map(String::len).sum::<usize>() > 8 * 1_048_576
     {
-        return Err("project exceeds 32 supporting modules or 1 MB total source".into());
+        return Err("project exceeds 512 supporting modules or 8 MB total source".into());
     }
     let mut seen = BTreeSet::new();
     for (name, text) in modules {
-        if name.len() > 64
-            || !name.starts_with(|c: char| c.is_ascii_uppercase())
-            || !name.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
+        if name.len() > 240
+            || !name.split('.').all(|part| {
+                !part.is_empty()
+                    && part.len() <= 64
+                    && part.starts_with(|c: char| c.is_ascii_alphabetic() || c == '_')
+                    && part.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
+            })
             || [
                 "target", "solution", "check", "mathlib", "init", "lean", "std", "lake",
             ]
-            .contains(&name.to_ascii_lowercase().as_str())
+            .contains(
+                &name
+                    .split('.')
+                    .next()
+                    .unwrap_or_default()
+                    .to_ascii_lowercase()
+                    .as_str(),
+            )
             || !seen.insert(name.to_ascii_lowercase())
             || text.trim().is_empty()
         {
             return Err("invalid or reserved project module name".into());
         }
-        if let Some(reason) = forbidden(text) {
+        if let Some(reason) = forbidden_in(text, true) {
             return Err(format!("{name}: {reason}"));
         }
         if [

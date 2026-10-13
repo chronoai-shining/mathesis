@@ -87,7 +87,8 @@ describe('paper workspace', () => {
     // The statement is rendered with KaTeX.
     expect(form.querySelector('.katex')).not.toBeNull();
 
-    await user.click(within(form).getByRole('checkbox', { name: 'C1 uses C2' }));
+    await user.click(within(form).getByText(/statements C1 uses/));
+    await user.click(await within(form).findByRole('checkbox', { name: 'C1 uses C2' }));
     await user.selectOptions(within(form).getByLabelText('Kind of C2'), 'proposition');
     await user.selectOptions(within(form).getByLabelText('Role of C3'), 'main');
     await user.click(within(form).getByRole('checkbox', { name: 'Exclude C4' }));

@@ -15,6 +15,7 @@ pub struct ReviewReport {
     pub version: u32,
     pub claims_revision: u64,
     pub source_sha256: String,
+    pub evidence_by_version: std::collections::BTreeMap<u32, Vec<EvidenceAttachment>>,
     pub status: SubmissionStatus,
     pub claims: Vec<Claim>,
     pub review: RefereeView,
@@ -45,6 +46,11 @@ impl App {
         let version = submission.current_version();
         Ok(ReviewReport {
             schema_version: 2,
+            evidence_by_version: submission
+                .versions
+                .iter()
+                .map(|v| (v.number, v.evidence.clone()))
+                .collect(),
             purpose: submission.purpose,
             review_scope: submission.review_scope.clone(),
             service: "Orchestra",
@@ -69,6 +75,22 @@ impl ReviewReport {
             "# Orchestra review — {}\n\nSubmission: {} · Current version: {}\n\nSource SHA-256: {}\n\nReview focus: {}\n\nModel review is research feedback, not a Lean proof certificate. Each round below identifies its own source.\n",
             self.title, self.submission, self.version, self.source_sha256, self.review_scope
         );
+        for (version, files) in &self.evidence_by_version {
+            if files.is_empty() {
+                continue;
+            }
+            let _ = writeln!(
+                out,
+                "\n## Evidence — source version {version}\n\nAuthor-supplied files; availability is not an independent validation receipt.\n"
+            );
+            for file in files {
+                let _ = writeln!(
+                    out,
+                    "- {} · {} bytes · SHA-256 {} — {}",
+                    file.descriptor.path, file.bytes, file.sha256, file.descriptor.description
+                );
+            }
+        }
         for round in &self.review.rounds {
             let _ = writeln!(
                 out,

@@ -1,3 +1,5 @@
+import { EvidencePicker } from '../components/EvidenceFiles';
+import { withEvidence, type EvidenceInput } from '../lib/sourceBundle';
 import { useState, type FormEvent } from 'react';
 import { LeanDepositForm } from '../components/LeanDeposit';
 import { useApi } from '../api/context';
@@ -93,6 +95,7 @@ export function SubmitForm({ reviewOnly = false }: { reviewOnly?: boolean } = {}
   const typed = kind === 'conjecture' && mode === 'type';
   const { navigate } = useRouter();
   const [file, setFile] = useState<File | null>(null);
+  const [evidence, setEvidence] = useState<EvidenceInput[]>([]);
   const [aiLevel, setAiLevel] = useState<AiUseLevel>('none');
   const [aiStatement, setAiStatement] = useState('');
   const [msc, setMsc] = useState('');
@@ -147,16 +150,18 @@ export function SubmitForm({ reviewOnly = false }: { reviewOnly?: boolean } = {}
         .map((name) => ({ name }));
     }
     setBusy(true);
-    api.createSubmission(metadata.value, typed ? undefined : (file ?? undefined)).then(
-      (s) => {
-        setBusy(false);
-        navigate({ kind: 'submission', id: s.id });
-      },
-      (e: unknown) => {
-        setBusy(false);
-        setError(e);
-      },
-    );
+    (typed ? Promise.resolve(undefined) : withEvidence(file as File, evidence))
+      .then((source) => api.createSubmission(metadata.value, source))
+      .then(
+        (s) => {
+          setBusy(false);
+          navigate({ kind: 'submission', id: s.id });
+        },
+        (e: unknown) => {
+          setBusy(false);
+          setError(e);
+        },
+      );
   };
 
   return (
@@ -294,6 +299,7 @@ export function SubmitForm({ reviewOnly = false }: { reviewOnly?: boolean } = {}
               onChange={(e) => setFile(e.target.files?.[0] ?? null)}
             />
           </Field>
+          <EvidencePicker value={evidence} onChange={setEvidence} />
           {file ? (
             <p className="small" aria-live="polite">
               {file.name} · {formatBytes(file.size)}

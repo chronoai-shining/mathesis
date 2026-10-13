@@ -1,3 +1,4 @@
+import { InlineLatex } from '../components/Markdown';
 import { useCallback, useState, type FormEvent } from 'react';
 import { useApi } from '../api/context';
 import { usePaged } from '../api/usePaged';
@@ -118,7 +119,7 @@ export function FormalizationsPage() {
                       className="entry-title"
                       to={{ kind: 'statement', record: item.record, claim: item.claim }}
                     >
-                      {item.title}
+                      <InlineLatex source={item.title} />
                     </Link>
                     <p className="small muted">{formatAuthors(item.authors)}</p>
                     <LatexText source={item.statement} />

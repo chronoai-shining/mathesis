@@ -14,6 +14,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "fflate": "^0.8.3",
     "katex": "^0.16.22",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",

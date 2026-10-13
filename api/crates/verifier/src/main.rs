@@ -34,17 +34,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         let router = Router::new()
             .route("/verify", post(verify))
-            .layer(DefaultBodyLimit::max(12 * 1024 * 1024))
+            .layer(DefaultBodyLimit::max(64 * 1024 * 1024))
             .with_state((checker, Arc::new(tokio::sync::Semaphore::new(1))));
         axum::serve(tokio::net::TcpListener::bind(bind).await?, router).await?;
     } else {
         let mut bytes = vec![];
         tokio::io::stdin()
-            .take(12 * 1024 * 1024 + 1)
+            .take(64 * 1024 * 1024 + 1)
             .read_to_end(&mut bytes)
             .await?;
-        if bytes.len() > 12 * 1024 * 1024 {
-            return Err("input exceeds 12 MB".into());
+        if bytes.len() > 64 * 1024 * 1024 {
+            return Err("input exceeds 64 MB".into());
         }
         let receipt = checker.verify(&serde_json::from_slice(&bytes)?).await;
         tokio::io::stdout()

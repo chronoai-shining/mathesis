@@ -4,8 +4,10 @@ An open mathematical research platform for papers, conjectures, deep review,
 and independently verified Lean contributions. Formerly Wishpool.
 
 Start with **Papers** to discover research or **Formalizations** to contribute a
-proof. Lean projects can carry up to 32 supporting modules, original authors,
-formalization contributors, source references and a Git revision.
+proof. Lean projects can carry up to 512 modules with nested paths, original authors,
+formalization contributors, source references and a Git revision. Upload a project
+folder or archive, preserve dependency pins, and run compatibility preflight.
+Manuscript uploads accept version-bound computational evidence and certificates.
 
 Choose **Private review** to receive Orchestra feedback without applying for
 publication. Evidence, author responses and successive reviews remain bound to

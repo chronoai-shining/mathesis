@@ -318,7 +318,7 @@ async fn real_lean_multimodule_proof_checks_helpers_and_wrong_type() {
     let checker = Checker {
         workspace: workspace.into(),
         scratch: dir.path().into(),
-        timeout: Duration::from_secs(300),
+        timeout: Duration::from_secs(600),
     };
     let toolchain = std::fs::read_to_string(checker.workspace.join("lean-toolchain"))
         .unwrap()
@@ -328,8 +328,8 @@ async fn real_lean_multimodule_proof_checks_helpers_and_wrong_type() {
         let target = format!("import Mathlib\ndef wishpool_target_prop : Prop := {prop}\n");
         let request = Request {
             target_digest: digest(&target), target, toolchain: toolchain.clone(),
-            solution: "import Target\nimport Helpers\ntheorem wishpool_solution : wishpool_target_prop := helper\n".into(),
-            modules: BTreeMap::from([("Helpers".into(), "import Mathlib\ntheorem helper : True := True.intro\n".into())]),
+            solution: "import Target\nimport Research.Helpers\ntheorem wishpool_solution : wishpool_target_prop := Research.helper\n".into(),
+            modules: BTreeMap::from([("Research.Helpers".into(), "import Mathlib.Data.Nat.Basic\nnamespace Research\ntheorem helper : True := True.intro\nend Research\n".into())]),
         };
         let receipt = checker.verify(&request).await;
         assert_eq!(receipt.verdict, expected, "{}", receipt.reason);
@@ -338,4 +338,22 @@ async fn real_lean_multimodule_proof_checks_helpers_and_wrong_type() {
             solution_digest(&request.solution, &request.modules)
         );
     }
+}
+
+#[test]
+fn nested_modules_support_namespaces_but_cannot_shadow_root_targets() {
+    let source = "import Target\nimport Research.Helpers\ntheorem wishpool_solution : wishpool_target_prop := Research.helper";
+    let mut modules = BTreeMap::from([("Research.Helpers".into(), "import Mathlib.Data.Nat.Basic\nnamespace Research\ntheorem helper : True := True.intro\nend Research".into())]);
+    assert!(validate_project(source, &modules).is_ok());
+    modules.insert(
+        "Research.Unused".into(),
+        "namespace Hidden\naxiom unsound : False\nend Hidden".into(),
+    );
+    assert!(validate_project(source, &modules).is_err());
+    modules.remove("Research.Unused");
+    modules.insert(
+        "Target.Fake".into(),
+        "theorem helper : True := True.intro".into(),
+    );
+    assert!(validate_project(source, &modules).is_err());
 }

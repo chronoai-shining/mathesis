@@ -43,6 +43,7 @@ impl PaperReader for FakeReader {
             })
             .collect::<Result<Vec<_>, _>>()?;
         Ok(ReadPaper {
+            evidence: vec![],
             main_file: "main.tex".into(),
             title: Some("Gaps in zero runs".into()),
             authors: vec!["A. Author".into()],

@@ -2,7 +2,7 @@ use super::{ApiResult, AppState, Body, Path, Query};
 use crate::auth::AuthenticatedCaller;
 use axum::{
     Json, Router,
-    extract::State,
+    extract::{DefaultBodyLimit, State},
     http::{StatusCode, header},
     response::IntoResponse,
     routing::{get, patch, post},
@@ -20,7 +20,9 @@ pub(super) fn routes() -> Router<Arc<App>> {
         .route("/papers/{record}/statements/{claim}/target", get(target))
         .route(
             "/papers/{record}/statements/{claim}/attempts",
-            get(verified).post(attempt),
+            get(verified)
+                .post(attempt)
+                .layer(DefaultBodyLimit::max(64 * 1024 * 1024)),
         )
         .route(
             "/papers/{record}/statements/{claim}/attempts/mine",
@@ -41,7 +43,9 @@ pub(super) fn routes() -> Router<Arc<App>> {
         .route("/conjectures/{record}/{claim}/target", get(target))
         .route(
             "/conjectures/{record}/{claim}/attempts",
-            get(verified).post(attempt),
+            get(verified)
+                .post(attempt)
+                .layer(DefaultBodyLimit::max(64 * 1024 * 1024)),
         )
         .route("/conjectures/{record}/{claim}/attempts/mine", get(mine))
         .route("/attempts/{id}", get(status))

@@ -227,9 +227,19 @@ impl Client {
         claim: &str,
         digest: Option<&str>,
     ) -> ApiResult<Value> {
+        self.verify_formalization_project(id, record, claim, digest, None)
+    }
+    pub fn verify_formalization_project(
+        &self,
+        id: &str,
+        record: &str,
+        claim: &str,
+        digest: Option<&str>,
+        solution: Option<&str>,
+    ) -> ApiResult<Value> {
         self.post(
             &format!("/formalizations/{}/attempts", segment(id)),
-            &json!({"record": record, "claim": claim, "expected_target": digest}),
+            &json!({"record":record,"claim":claim,"expected_target":digest,"solution":solution}),
         )
     }
     pub fn conjectures(&self) -> ApiResult<Value> {

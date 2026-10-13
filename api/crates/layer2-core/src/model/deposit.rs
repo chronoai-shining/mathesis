@@ -9,9 +9,12 @@ use std::collections::BTreeMap;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct NewLeanDeposit {
-    /// Additional flat Lean modules, keyed by module name without .lean.
+    /// Lean modules keyed by dotted module name (Research.Lemmas → Research/Lemmas.lean).
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub modules: BTreeMap<String, String>,
+    /// Inert project configuration and documentation, never executed.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub project_files: BTreeMap<String, String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub formalizers: Vec<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -22,6 +25,7 @@ pub struct NewLeanDeposit {
     pub source_reference: Source,
     pub toolchain: String,
     pub license: String,
+    #[serde(default)]
     pub solution: String,
 }
 impl NewLeanDeposit {
@@ -38,10 +42,13 @@ impl NewLeanDeposit {
         }
         require_text("source locator", &self.source_reference.locator, 2000)?;
         self.source_reference.validate()?;
-        if self.solution.trim().is_empty() || self.solution.len() > 1_048_576 {
+        if (self.solution.trim().is_empty() && self.modules.is_empty())
+            || self.solution.len() > 1_048_576
+        {
             return Err(CoreError::invalid("Lean source must be 1 byte to 1 MB"));
         }
         validate_lean_modules(&self.solution, &self.modules)?;
+        validate_project_files(&self.project_files)?;
         if self.formalizers.len() > 50 {
             return Err(CoreError::invalid("supply at most 50 formalizers"));
         }
@@ -60,9 +67,11 @@ impl NewLeanDeposit {
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LeanDeposit {
-    /// Additional flat Lean modules, keyed by module name without .lean.
+    /// Lean modules keyed by dotted module name (Research.Lemmas → Research/Lemmas.lean).
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub modules: BTreeMap<String, BlobRef>,
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub project_files: BTreeMap<String, String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub formalizers: Vec<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -95,29 +104,23 @@ pub struct FormalizationAttribution {
     pub license: String,
 }
 
-/// Flat module names cannot traverse paths or shadow trusted root modules.
+/// Dotted module names preserve directories without allowing traversal or trusted roots.
 pub fn validate_lean_modules(solution: &str, modules: &BTreeMap<String, String>) -> CoreResult<()> {
-    if modules.len() > 32
-        || solution.len() + modules.values().map(String::len).sum::<usize>() > 1_048_576
+    if modules.len() > 512
+        || solution.len() + modules.values().map(String::len).sum::<usize>() > 8 * 1_048_576
     {
         return Err(CoreError::invalid(
-            "at most 32 supporting modules and 1 MB total Lean source",
+            "at most 512 supporting modules and 8 MB total Lean source",
         ));
     }
     let mut seen = std::collections::BTreeSet::new();
     for (name, source) in modules {
-        if name.len() > 64
-            || !name.starts_with(|c: char| c.is_ascii_uppercase())
-            || !name.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
-            || [
-                "target", "solution", "check", "mathlib", "init", "lean", "std", "lake",
-            ]
-            .contains(&name.to_ascii_lowercase().as_str())
+        if !valid_module_name(name)
             || !seen.insert(name.to_ascii_lowercase())
             || source.trim().is_empty()
         {
             return Err(CoreError::invalid(
-                "supporting modules need distinct capitalized Lean names, nonempty sources, and cannot replace trusted modules",
+                "supporting modules need distinct dotted Lean module names, nonempty sources, and cannot replace trusted modules",
             ));
         }
     }
@@ -132,4 +135,52 @@ pub fn lean_solution_digest(solution: &str, modules: &BTreeMap<String, String>) 
             .expect("source serialization")
     };
     format!("{:x}", Sha256::digest(bytes))
+}
+
+/// Case-insensitive roots are reserved on every host, including macOS.
+pub fn valid_module_name(name: &str) -> bool {
+    name.len() <= 240
+        && name.split('.').all(|part| {
+            !part.is_empty()
+                && part.len() <= 64
+                && part.starts_with(|c: char| c.is_ascii_alphabetic() || c == '_')
+                && part.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
+        })
+        && ![
+            "target", "solution", "check", "mathlib", "init", "lean", "std", "lake",
+        ]
+        .contains(
+            &name
+                .split('.')
+                .next()
+                .unwrap_or_default()
+                .to_ascii_lowercase()
+                .as_str(),
+        )
+}
+fn validate_project_files(files: &BTreeMap<String, String>) -> CoreResult<()> {
+    if files.len() > 16 || files.values().map(String::len).sum::<usize>() > 1_048_576 {
+        return Err(CoreError::invalid(
+            "project configuration exceeds 16 files or 1 MB",
+        ));
+    }
+    for name in files.keys() {
+        if ![
+            "lean-toolchain",
+            "lake-manifest.json",
+            "lakefile.lean",
+            "lakefile.toml",
+            "README.md",
+            "LICENSE",
+            "LICENSE.md",
+            "LICENSE.txt",
+        ]
+        .contains(&name.as_str())
+        {
+            return Err(CoreError::invalid(format!(
+                "unsupported project configuration: {name}"
+            )));
+        }
+    }
+    Ok(())
 }

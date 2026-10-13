@@ -20,13 +20,20 @@ pub(super) fn routes() -> Router<Arc<App>> {
             "/formalizations",
             get(list)
                 .post(submit)
-                .layer(DefaultBodyLimit::max(8 * 1024 * 1024)),
+                .layer(DefaultBodyLimit::max(64 * 1024 * 1024)),
         )
         .route("/formalizations/opportunities", get(opportunities))
+        .route(
+            "/formalizations/preflight",
+            post(preflight).layer(DefaultBodyLimit::max(64 * 1024 * 1024)),
+        )
         .route("/formalizations/{id}", get(detail))
         .route("/formalizations/{id}/project", get(project))
         .route("/formalizations/{id}/source", get(source))
-        .route("/formalizations/{id}/attempts", post(verify))
+        .route(
+            "/formalizations/{id}/attempts",
+            post(verify).layer(DefaultBodyLimit::max(8 * 1024 * 1024)),
+        )
 }
 async fn list(
     State(app): AppState,
@@ -76,6 +83,7 @@ struct Target {
     record: RecordId,
     claim: ClaimId,
     expected_target: Option<String>,
+    solution: Option<String>,
 }
 async fn verify(
     State(app): AppState,
@@ -86,12 +94,13 @@ async fn verify(
     Ok((
         StatusCode::ACCEPTED,
         Json(
-            app.verify_lean_deposit_against(
+            app.verify_lean_project(
                 &c,
                 &id,
                 &target.record,
                 &target.claim,
                 target.expected_target.as_deref(),
+                target.solution,
             )
             .await?,
         ),
@@ -124,7 +133,20 @@ async fn project(
             "title": deposit.title, "authors": deposit.authors, "formalizers": deposit.formalizers,
             "statement": deposit.statement, "source_reference": deposit.source_reference,
             "source_revision": deposit.source_revision, "toolchain": deposit.toolchain, "license": deposit.license,
-            "solution": solution, "modules": modules
+            "solution": solution, "modules": modules, "project_files": deposit.project_files
         })),
     ))
+}
+
+async fn preflight(
+    AuthenticatedCaller(_): AuthenticatedCaller,
+    Body(body): Body<NewLeanDeposit>,
+) -> ApiResult<impl IntoResponse> {
+    body.validate()?;
+    Ok(Json(mathesis_core::model::lean_project_preflight(
+        &body.solution,
+        &body.modules,
+        &body.project_files,
+        &body.toolchain,
+    )))
 }

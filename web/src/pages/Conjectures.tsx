@@ -1,3 +1,4 @@
+import { InlineLatex } from '../components/Markdown';
 import { useCallback, useState } from 'react';
 import { useApi } from '../api/context';
 import { usePaged } from '../api/usePaged';
@@ -12,7 +13,7 @@ export function ConjectureEntry({ conjecture: c }: { conjecture: ConjectureSumma
   return (
     <article>
       <Link className="entry-title" to={{ kind: 'conjecture', record: c.record, claim: c.claim }}>
-        {c.title}
+        <InlineLatex source={c.title} />
       </Link>
       <p className="entry-meta">
         <code>{c.record}</code>

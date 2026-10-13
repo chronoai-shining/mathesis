@@ -1,3 +1,5 @@
+import { InlineLatex } from '../components/Markdown';
+import { EvidenceInventory } from '../components/EvidenceFiles';
 import { MyCma, CmaHistory } from '../components/MyCma';
 import { useCallback, useEffect, useState } from 'react';
 import { pdfHref, sourceFileHref } from '../api/client';
@@ -149,7 +151,9 @@ export function Workspace({
     <MacrosProvider macros={currentMacros(s.versions)}>
       <article className="workspace">
         <header className="record-head">
-          <h1>{s.title || 'Untitled paper'}</h1>
+          <h1>
+            <InlineLatex source={s.title || 'Untitled paper'} />
+          </h1>
           <AuthorLine authors={s.authors} />
           <p className="entry-meta">
             <span>
@@ -287,6 +291,13 @@ export function Workspace({
             </Fold>
           ) : null}
 
+          {current ? (
+            <EvidenceInventory
+              files={current.evidence}
+              submission={s.id}
+              version={current.number}
+            />
+          ) : null}
           <Fold id="abstract-h" title="Abstract">
             {s.abstract_text ? (
               <LatexText source={s.abstract_text} className="abstract" />
@@ -425,6 +436,7 @@ function VersionsSection({ submission }: { submission: Submission }) {
               </>
             ) : null}{' '}
             · <a href={sourceFileHref(submission.id, v.number)}>source</a>
+            <EvidenceInventory files={v.evidence} submission={submission.id} version={v.number} />
             {v.note ? <span className="muted"> — {v.note}</span> : null}
           </li>
         ))}

@@ -52,6 +52,8 @@ pub struct BlobRef {
 /// One uploaded version of the source.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PaperVersion {
+    #[serde(default)]
+    pub evidence: Vec<super::EvidenceAttachment>,
     pub number: u32,
     pub archive: BlobRef,
     pub filename: String,

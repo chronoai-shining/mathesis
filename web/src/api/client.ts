@@ -1,3 +1,4 @@
+import type { LeanPreflight } from './types';
 import type {
   LeanDeposit,
   FormalizationOpportunity,
@@ -337,12 +338,14 @@ export interface ApiClient {
     options?: RequestOptions,
   ): Promise<Listing<FormalizationOpportunity>>;
   submitFormalization(body: NewLeanDeposit): Promise<LeanDeposit>;
+  preflightFormalization(body: NewLeanDeposit): Promise<LeanPreflight>;
   formalizations(page?: PageParams, options?: RequestOptions): Promise<Listing<LeanDeposit>>;
   verifyFormalization(
     id: string,
     record: string,
     claim: string,
     expectedTarget?: string,
+    solution?: string,
   ): Promise<AttemptView>;
   // Public papers.
   listPapers(page?: PaperQuery, options?: RequestOptions): Promise<Listing<PaperSummary>>;
@@ -506,14 +509,16 @@ export function createApiClient(fetchImpl: FetchLike = (input, init) => fetch(in
         undefined,
         o,
       ),
+    preflightFormalization: (body) => request('POST', api('/formalizations/preflight'), body),
     submitFormalization: (body) => request('POST', api('/formalizations'), body),
     formalizations: (p = {}, o) =>
       request('GET', api(`/formalizations${buildQuery(page(p))}`), undefined, o),
-    verifyFormalization: (id, record, claim, expectedTarget) =>
+    verifyFormalization: (id, record, claim, expectedTarget, solution) =>
       request('POST', api(`/formalizations/${encodeURIComponent(id)}/attempts`), {
         record,
         claim,
         expected_target: expectedTarget,
+        solution,
       }),
     listPapers: (p = {}, o) =>
       request(
