@@ -357,3 +357,23 @@ fn nested_modules_support_namespaces_but_cannot_shadow_root_targets() {
     );
     assert!(validate_project(source, &modules).is_err());
 }
+
+#[cfg(unix)]
+#[test]
+fn nested_outputs_cannot_follow_prepared_workspace_links() {
+    let work = tempfile::tempdir().unwrap();
+    let outside = tempfile::tempdir().unwrap();
+    let victim = outside.path().join("Proof.lean");
+    std::fs::write(&victim, "original source").unwrap();
+    std::os::unix::fs::symlink(outside.path(), work.path().join("Linked")).unwrap();
+    assert!(prepare_module_outputs(work.path(), &["Linked.Proof"]).is_err());
+    assert_eq!(std::fs::read_to_string(&victim).unwrap(), "original source");
+    assert!(ensure_module_parent(&work.path().join("Linked"), "Proof").is_err());
+    std::os::unix::fs::symlink(&victim, work.path().join("Research.Part.Proof.setup.json"))
+        .unwrap();
+    prepare_module_outputs(work.path(), &["Research.Part.Proof"]).unwrap();
+    assert!(!work.path().join("Research.Part.Proof.setup.json").exists());
+    assert!(work.path().join("Research/Part").is_dir());
+    std::fs::write(work.path().join("Research/Part/Proof.lean"), "new source").unwrap();
+    assert_eq!(std::fs::read_to_string(&victim).unwrap(), "original source");
+}

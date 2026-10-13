@@ -228,6 +228,63 @@ fn import_artifacts(olean: &Path) -> serde_json::Value {
     }
     serde_json::json!([parts, ir])
 }
+fn ensure_module_parent(work: &Path, module: &str) -> Result<(), String> {
+    let root = std::fs::symlink_metadata(work).map_err(|e| e.to_string())?;
+    if !root.is_dir() || root.file_type().is_symlink() {
+        return Err("verification workspace must be a real temporary directory".into());
+    }
+    let mut path = work.to_path_buf();
+    let mut parts = module.split('.').peekable();
+    while let Some(part) = parts.next() {
+        if parts.peek().is_none() {
+            break;
+        }
+        path.push(part);
+        match std::fs::symlink_metadata(&path) {
+            Ok(metadata) if metadata.is_dir() && !metadata.file_type().is_symlink() => {}
+            Ok(_) => {
+                return Err(format!(
+                    "module {module}: output parent is a link or non-directory"
+                ));
+            }
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+                std::fs::create_dir(&path).map_err(|e| e.to_string())?
+            }
+            Err(error) => return Err(error.to_string()),
+        }
+    }
+    Ok(())
+}
+fn prepare_module_outputs(work: &Path, modules: &[&str]) -> Result<(), String> {
+    // Validate every parent before touching artifacts. Prepared workspaces can
+    // contain links; all untrusted writes must remain inside this fresh copy.
+    for name in modules {
+        ensure_module_parent(work, name)?;
+    }
+    let remove = |path: PathBuf| -> Result<(), String> {
+        match std::fs::remove_file(path) {
+            Ok(()) => Ok(()),
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
+            Err(error) => Err(format!("cannot clear prepared output: {error}")),
+        }
+    };
+    for name in modules {
+        for suffix in [
+            "olean",
+            "olean.private",
+            "olean.server",
+            "ilean",
+            "lean",
+            "ir",
+            "ir.sig",
+        ] {
+            remove(work.join(format!("{}.{suffix}", name.replace('.', "/"))))?;
+        }
+        // Setup JSON lives at the workspace root, named by the dotted module.
+        remove(work.join(format!("{name}.setup.json")))?;
+    }
+    Ok(())
+}
 fn command(program: &Path, work: &Path) -> Command {
     let mut cmd = Command::new(program);
     cmd.env_clear()
@@ -351,21 +408,7 @@ impl Checker {
             .chain(modules.iter().map(String::as_str))
             .chain(["Solution", "Check"])
             .collect();
-        for name in &build_order {
-            // Never reuse an artifact supplied by the prepared workspace.
-            for suffix in [
-                "olean",
-                "olean.private",
-                "olean.server",
-                "ilean",
-                "lean",
-                "ir",
-                "ir.sig",
-            ] {
-                let _ =
-                    std::fs::remove_file(work.join(format!("{}.{suffix}", name.replace('.', "/"))));
-            }
-        }
+        prepare_module_outputs(&work, &build_order)?;
         std::fs::write(work.join("Target.lean"), &request.target).map_err(|e| e.to_string())?;
         std::fs::write(work.join("Solution.lean"), &request.solution).map_err(|e| e.to_string())?;
         for (name, source) in &request.modules {

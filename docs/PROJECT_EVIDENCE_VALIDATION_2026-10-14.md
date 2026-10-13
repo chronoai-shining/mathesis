@@ -38,7 +38,9 @@ root adapter referenced `Research.helper`:
 - target `False` with the same proof: **Rejected**.
 
 The checker test asserted the complete project digest in both receipts and
-completed in **496.56 seconds**. This tests nested paths, namespace support,
+completed in **496.56 seconds**. A separate filesystem regression rejects
+symlinked output parents before artifact cleanup and confirms that the original
+source outside the temporary workspace remains unchanged. This tests nested paths, namespace support,
 prepared dependency resolution and the exact-target boundary together.
 
 ## Real computational evidence
@@ -79,7 +81,7 @@ no horizontal page overflow and no browser exceptions. Preflight findings beyond
 the first five are expandable. Screenshots and raw logs remain in the isolated
 local stress-test artifact directory.
 
-- Rust workspace: **262 tests passed**, with MongoDB and local TeX enabled.
+- Rust workspace: **263 tests passed**, with MongoDB and local TeX enabled.
   Optional real Lean execution above was run separately.
 - Web: **300 tests passed**; formatting, lint, TypeScript and production build passed.
 - SDK: **3 tests passed**, formatting and clippy passed.
