@@ -216,6 +216,54 @@ impl App {
         }
     }
 
+    /// Lists need proof counts, never the full statements or proof source blobs.
+    async fn paper_summary(
+        &self,
+        record: &Record,
+        submission: &Submission,
+    ) -> CoreResult<PaperSummary> {
+        let mut item = summary(record, submission);
+        if submission.analysis_visibility == Visibility::Public {
+            let mut count = 0;
+            for claim in &submission.claims {
+                if lean(&submission.formalization, &claim.id).is_some() {
+                    count += 1;
+                    continue;
+                }
+                // Most archive claims have no approved, confirmed formal target.
+                // Skip their solver queries, retaining the ordinary live target checks
+                // for every claim that could actually carry a verified proof.
+                if !submission.approved_statement(&claim.id)
+                    || !submission.lean_statements.iter().any(|target| {
+                        target.claim == claim.id
+                            && target.faithfulness.is_some()
+                            && matches!(target.response, LeanStatementResponse::Confirmed { .. })
+                    })
+                {
+                    continue;
+                }
+                let target = match self.target(&record.id, &claim.id).await {
+                    Ok(target) => target,
+                    Err(CoreError::NotFound { .. } | CoreError::Conflict(_)) => continue,
+                    Err(error) => return Err(error),
+                };
+                let file = self.solve_file(&record.id, &claim.id).await?;
+                if file.attempts.iter().any(|attempt| {
+                    attempt.verified()
+                        && attempt.target_digest == target.digest
+                        && attempt
+                            .receipt
+                            .as_ref()
+                            .is_some_and(|r| r.verdict == Verdict::Proved)
+                }) {
+                    count += 1;
+                }
+            }
+            item.lean_verified = count;
+        }
+        Ok(item)
+    }
+
     /// Accepted papers, newest first.
     pub async fn list_papers(
         &self,
@@ -226,25 +274,7 @@ impl App {
         let mut items = Vec::with_capacity(page.items.len());
         for record in &page.items {
             if let Ok(submission) = self.accepted(record).await {
-                let mut item = summary(record, &submission);
-                if submission.analysis_visibility == Visibility::Public {
-                    let mut count = 0;
-                    for claim in &submission.claims {
-                        let legacy = lean(&submission.formalization, &claim.id).is_some();
-                        let verified = if submission.approved_statement(&claim.id) {
-                            self.public_attempts(&record.id, &claim.id)
-                                .await?
-                                .iter()
-                                .any(|a| a.receipt.verdict == Verdict::Proved)
-                        } else {
-                            false
-                        };
-                        if legacy || verified {
-                            count += 1;
-                        }
-                    }
-                    item.lean_verified = count;
-                }
+                let item = self.paper_summary(record, &submission).await?;
                 items.push(item);
             }
         }
@@ -280,12 +310,7 @@ impl App {
                 if submission.analysis_visibility != Visibility::Public {
                     continue;
                 }
-                // Reuse the public projection, including independently verified proof counts.
-                let paper = self.paper(&record.id).await?;
-                if !paper.summary.public {
-                    continue;
-                }
-                items.push(paper.summary);
+                items.push(self.paper_summary(&record, &submission).await?);
                 if items.len() > limit {
                     items.pop();
                     let next_before = items.last().map(|p| p.record.to_string());

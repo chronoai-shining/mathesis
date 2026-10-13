@@ -89,6 +89,7 @@ export function SubmitForm({ reviewOnly = false }: { reviewOnly?: boolean } = {}
   const [background, setBackground] = useState('');
   const [origin, setOrigin] = useState('');
   const [authorName, setAuthorName] = useState(person?.display_name ?? '');
+  const [sourceAuthors, setSourceAuthors] = useState('');
   const typed = kind === 'conjecture' && mode === 'type';
   const { navigate } = useRouter();
   const [file, setFile] = useState<File | null>(null);
@@ -138,6 +139,12 @@ export function SubmitForm({ reviewOnly = false }: { reviewOnly?: boolean } = {}
       }
       metadata.value.typed_conjecture = { title, statement, background, origin };
       metadata.value.authors = [{ name: authorName, person: person?.id }];
+    } else if (sourceAuthors.trim()) {
+      metadata.value.authors = sourceAuthors
+        .split('\n')
+        .map((name) => name.trim())
+        .filter(Boolean)
+        .map((name) => ({ name }));
     }
     setBusy(true);
     api.createSubmission(metadata.value, typed ? undefined : (file ?? undefined)).then(
@@ -293,6 +300,18 @@ export function SubmitForm({ reviewOnly = false }: { reviewOnly?: boolean } = {}
               {fileProblem ? <span className="form-error"> — {fileProblem}</span> : null}
             </p>
           ) : null}
+          <Field
+            label="Authors (optional)"
+            htmlFor="source-authors"
+            hint="Leave blank to read authors from the source. If the manuscript omits them, enter the author names here, one per line. This replaces the source author list."
+          >
+            <textarea
+              id="source-authors"
+              rows={2}
+              value={sourceAuthors}
+              onChange={(e) => setSourceAuthors(e.target.value)}
+            />
+          </Field>
         </>
       )}
       {!reviewOnly ? (

@@ -1001,6 +1001,19 @@ async fn paper_statement_uses_attempt_verifier_and_credits_formalized_only() {
         w.app.list_papers(None, None).await.unwrap().items[0].lean_verified,
         1
     );
+    let query = PaperSearch {
+        q: Some(record.to_string()),
+        ..Default::default()
+    };
+    assert_eq!(
+        w.app
+            .search_papers(query.clone(), None, None)
+            .await
+            .unwrap()
+            .items[0]
+            .lean_verified,
+        1
+    );
     assert_eq!(
         public.claims[0].verified.as_ref().unwrap().entrant.id,
         solver.person.as_str()
@@ -1023,6 +1036,19 @@ async fn paper_statement_uses_attempt_verifier_and_credits_formalized_only() {
     let legacy: Submission = serde_json::from_value(legacy).unwrap();
     assert!(legacy.processing_consent.is_none());
     assert!(legacy.lean_statements[0].faithfulness.is_none());
+    // A previously verified proof must disappear from list counts when its
+    // exact target is no longer confirmed, even though the receipt remains.
+    let mut current = w.app.load(&paper.id).await.unwrap();
+    current.lean_statements.clear();
+    w.app.save(&mut current).await.unwrap();
+    assert_eq!(
+        w.app.list_papers(None, None).await.unwrap().items[0].lean_verified,
+        0
+    );
+    assert_eq!(
+        w.app.search_papers(query, None, None).await.unwrap().items[0].lean_verified,
+        0
+    );
 }
 #[tokio::test]
 async fn leaderboard_ranks_others_before_total_including_coauthors_and_agent_owners() {

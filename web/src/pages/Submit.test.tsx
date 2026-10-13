@@ -77,6 +77,25 @@ describe('SubmitPage', () => {
     expect(createSubmission).not.toHaveBeenCalled();
   });
 
+  it('lets an author supply names omitted from an anonymous source without linking accounts', async () => {
+    const createSubmission = vi.fn(async () => draft);
+    renderWithApp(<SubmitPage />, fakeApi({ createSubmission }, author));
+    const user = userEvent.setup();
+    const file = new File(['\\documentclass{article}'], 'anonymous.tex');
+    await user.upload(await screen.findByLabelText('LaTeX source'), file);
+    await user.type(
+      screen.getByLabelText('Authors (optional)'),
+      '  Ada Example  \n\nBenoit Example',
+    );
+    await user.type(screen.getByLabelText('AI disclosure statement'), 'None.');
+    await user.click(screen.getByRole('checkbox', { name: /I agree that the source/ }));
+    await user.click(screen.getByRole('button', { name: 'Upload and read statements' }));
+    expect(createSubmission).toHaveBeenCalledWith(
+      expect.objectContaining({ authors: [{ name: 'Ada Example' }, { name: 'Benoit Example' }] }),
+      file,
+    );
+  });
+
   it('refuses a PDF before uploading and shows the server’s detail on failure', async () => {
     const createSubmission = vi.fn(async () => {
       throw new ApiError({
