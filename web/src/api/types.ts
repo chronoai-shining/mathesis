@@ -46,7 +46,14 @@ export type RefereeAudit = {
   agrees_with_referee: boolean;
   summary: string;
   claims: AuditedClaim[];
-  concerns: { concern: string; status: 'confirmed' | 'refuted' | 'not_checkable'; note: string }[];
+  concerns: {
+    concern: string;
+    status: 'confirmed' | 'refuted' | 'not_checkable';
+    note: string;
+    evidence?: string;
+    basis?: string;
+    location?: string;
+  }[];
 };
 
 export type ImprovementKind =
@@ -125,6 +132,8 @@ export type Step<T> = {
   state: StepState<T>;
 };
 export type RefereeRound = {
+  source_sha256?: string;
+  response_ids?: string[];
   number: number;
   version: number;
   claims_revision: number;
@@ -148,7 +157,22 @@ export type FeedbackLetter = {
   sent_by: string;
   sent_at: string;
 };
+export type FindingResponse = {
+  id: string;
+  round: number;
+  concern: number;
+  version: number;
+  claims_revision: number;
+  body: string;
+  author: string;
+  at: string;
+};
+export type NewFindingResponse = Pick<
+  FindingResponse,
+  'round' | 'concern' | 'version' | 'claims_revision' | 'body'
+>;
 export type RefereeFile = {
+  finding_responses?: FindingResponse[];
   cma_attempts?: CmaAttemptView[];
   id: string;
   rounds: RefereeRound[];
@@ -210,6 +234,8 @@ export type TypedConjecture = {
   origin?: string;
 };
 export type NewPaper = {
+  purpose?: 'publication' | 'review_only';
+  review_scope?: string;
   processing_consent?: string;
   kind?: SubmissionKind;
   make_public_after_acceptance?: boolean;
@@ -275,12 +301,15 @@ export type PaperVersion = {
 export type SubmissionStatus =
   | { state: 'draft' }
   | { state: 'in_review' }
+  | { state: 'review_complete' }
   | { state: 'accepted'; record: string }
   | { state: 'not_accepted' }
   | { state: 'withdrawn' };
 export type AnalysisVisibility = 'undecided' | 'public' | 'private';
 
 export type Submission = {
+  purpose?: 'publication' | 'review_only';
+  review_scope?: string;
   conjecture_dependencies?: {
     from: string;
     target: { record: string; claim: string };

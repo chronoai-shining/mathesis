@@ -90,7 +90,8 @@ impl App {
             filed_at: self.ports.clock.now(),
         });
         let endorsements = self.ports.endorsements.for_submission(id).await?;
-        submission.decision = Some(self.policy.decide(&submission, &endorsements));
+        submission.decision = (submission.purpose == SubmissionPurpose::Publication)
+            .then(|| self.policy.decide(&submission, &endorsements));
         self.save(&mut submission).await?;
         if let Some(next) = self.policy.next_machine_stage(&submission) {
             self.ports.queue.enqueue(id, JobKind::Stage(next)).await?;
@@ -317,6 +318,11 @@ impl App {
         id: &SubmissionId,
     ) -> CoreResult<Decision> {
         let submission = self.submission(caller, id).await?;
+        if submission.purpose == SubmissionPurpose::ReviewOnly {
+            return Err(CoreError::conflict(
+                "private review requests do not have publication decisions",
+            ));
+        }
         let endorsements = self.ports.endorsements.for_submission(id).await?;
         Ok(self.policy.decide(&submission, &endorsements))
     }
@@ -335,6 +341,11 @@ impl App {
         caller: &Caller,
         mut submission: Submission,
     ) -> CoreResult<Submission> {
+        if submission.purpose == SubmissionPurpose::ReviewOnly {
+            return Err(CoreError::conflict(
+                "private review requests cannot be published",
+            ));
+        }
         let id = &submission.id.clone();
         if matches!(
             submission.status,

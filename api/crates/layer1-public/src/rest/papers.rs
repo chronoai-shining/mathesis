@@ -30,6 +30,7 @@ pub(super) fn routes() -> Router<Arc<App>> {
         )
         .route("/submissions/{id}", get(get_submission))
         .route("/submissions/{id}/review", get(review_report))
+        .route("/submissions/{id}/review.md", get(review_markdown))
         .route("/submissions/{id}/claims", post(confirm_claims))
         .route(
             "/submissions/{id}/lean-statement/response",
@@ -392,5 +393,24 @@ async fn respond_lean_statement(
             body.comment,
         )
         .await?,
+    ))
+}
+
+async fn review_markdown(
+    State(app): AppState,
+    AuthenticatedCaller(caller): AuthenticatedCaller,
+    Path(id): Path<String>,
+) -> ApiResult<impl IntoResponse> {
+    let report = app.review_report(&caller, &SubmissionId(id)).await?;
+    Ok((
+        [
+            (header::CONTENT_TYPE, "text/markdown; charset=utf-8"),
+            (header::CACHE_CONTROL, "private, no-store"),
+            (
+                header::CONTENT_DISPOSITION,
+                "attachment; filename=mathesis-review.md",
+            ),
+        ],
+        report.markdown(),
     ))
 }

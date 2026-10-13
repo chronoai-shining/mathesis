@@ -6,6 +6,8 @@ use serde::Serialize;
 #[derive(Debug, Serialize)]
 pub struct ReviewReport {
     pub schema_version: u32,
+    pub purpose: SubmissionPurpose,
+    pub review_scope: String,
     pub service: &'static str,
     pub submission: SubmissionId,
     pub title: String,
@@ -24,15 +26,27 @@ impl App {
         id: &SubmissionId,
     ) -> CoreResult<ReviewReport> {
         let submission = self.submission(caller, id).await?;
-        let file = self
+        let mut file = self
             .ports
             .referees
             .get(id)
             .await?
             .unwrap_or_else(|| RefereeFile::new(id.clone()));
+        for round in &mut file.rounds {
+            if round.source_sha256.is_empty() {
+                round.source_sha256 = submission
+                    .versions
+                    .iter()
+                    .find(|v| v.number == round.version)
+                    .map(|v| v.archive.sha256.clone())
+                    .unwrap_or_default();
+            }
+        }
         let version = submission.current_version();
         Ok(ReviewReport {
-            schema_version: 1,
+            schema_version: 2,
+            purpose: submission.purpose,
+            review_scope: submission.review_scope.clone(),
             service: "Orchestra",
             submission: id.clone(),
             title: submission.title.clone(),
@@ -44,5 +58,90 @@ impl App {
             claims: submission.claims.clone(),
             review: file.view(false),
         })
+    }
+}
+
+impl ReviewReport {
+    /// Portable author-safe text uses exactly the same projection as JSON.
+    pub fn markdown(&self) -> String {
+        use std::fmt::Write;
+        let mut out = format!(
+            "# Orchestra review — {}\n\nSubmission: {} · Current version: {}\n\nSource SHA-256: {}\n\nReview focus: {}\n\nModel review is research feedback, not a Lean proof certificate. Each round below identifies its own source.\n",
+            self.title, self.submission, self.version, self.source_sha256, self.review_scope
+        );
+        for round in &self.review.rounds {
+            let _ = writeln!(
+                out,
+                "\n## Round {} — source version {}\n\nSource SHA-256: {}\n",
+                round.number, round.version, round.source_sha256
+            );
+            if let Some(report) = round.referee.done() {
+                let _ = writeln!(out, "### Referee report\n\n{}\n", report.summary);
+                for c in &report.concerns {
+                    let _ = writeln!(out, "- {:?}: {}\n", c.severity, c.issue);
+                }
+                for limit in &report.limits {
+                    let _ = writeln!(out, "Unchecked / limitation: {limit}\n");
+                }
+            }
+            if let Some(audit) = round.audit.done() {
+                let _ = writeln!(out, "### Source audit\n\n{}\n", audit.summary);
+                for c in &audit.claims {
+                    let _ = writeln!(
+                        out,
+                        "#### Statement {} — {:?}\n\n{}\n",
+                        c.claim, c.correctness, c.comment
+                    );
+                    if let Some(known) = &c.known {
+                        let _ = writeln!(out, "Reported prior work: {known}\n");
+                    }
+                    for witness in &c.witnesses {
+                        let _ = writeln!(out, "Audited witness: {witness}\n");
+                    }
+                }
+                for (i, c) in audit.concerns.iter().enumerate() {
+                    let _ = writeln!(
+                        out,
+                        "#### R{}-A{} — {:?}\n\n{}\n\nReported location: {}\n\n{}\n\nEvidence ({}):\n\n{}\n",
+                        round.number,
+                        i + 1,
+                        c.status,
+                        c.concern,
+                        c.location,
+                        c.note,
+                        c.basis,
+                        c.evidence
+                    );
+                    for response in self
+                        .review
+                        .finding_responses
+                        .iter()
+                        .filter(|r| r.round == round.number && r.concern == i)
+                    {
+                        let _ = writeln!(
+                            out,
+                            "Author response on version {}: {}\n",
+                            response.version, response.body
+                        );
+                        for checked in self.review.rounds.iter().filter(|r| {
+                            r.version == response.version
+                                && r.claims_revision == response.claims_revision
+                                && r.response_ids.contains(&response.id)
+                                && r.audit.done().is_some()
+                        }) {
+                            let _ = writeln!(
+                                out,
+                                "Re-reviewed in round {}. Read that audit for its conclusion; this does not automatically mark the original finding resolved.\n",
+                                checked.number
+                            );
+                        }
+                    }
+                }
+            }
+        }
+        for letter in &self.review.letters {
+            let _ = writeln!(out, "\n## {}\n\n{}\n", letter.subject, letter.body);
+        }
+        out
     }
 }

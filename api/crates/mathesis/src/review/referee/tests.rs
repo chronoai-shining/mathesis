@@ -382,6 +382,8 @@ impl World {
             .submit_paper(
                 &author,
                 NewPaper {
+                    purpose: Default::default(),
+                    review_scope: Default::default(),
                     processing_consent: Some("ai-review-2026-10-11".into()),
                     kind,
                     make_public_after_acceptance: true,
@@ -3281,4 +3283,46 @@ async fn donation_attribution_follows_operator_payer_and_is_idempotent() {
     assert!(grant.runs.contains_key(venue.key()));
     assert_eq!(grant.used, 0);
     assert!(grant.runs.values().all(|r| r.usage.is_none()));
+}
+
+#[tokio::test]
+async fn review_only_worker_delivers_private_letter_without_publication_or_lean_probe() {
+    use mathesis_core::{
+        model::{SubmissionPurpose, Visibility},
+        ports::SubmissionStore,
+    };
+    let mut w = World::new(vec![completed("reject")], true).await;
+    let mut paper = w
+        .worker
+        .app
+        .submission(&w.author, &w.paper.id)
+        .await
+        .unwrap();
+    let revision = paper.revision;
+    paper.purpose = SubmissionPurpose::ReviewOnly;
+    paper.analysis_visibility = Visibility::Private;
+    paper.decision = None;
+    paper.revision += 1;
+    w.stores.replace(&paper, revision).await.unwrap();
+    let advisor = Arc::new(FakeAdvisor {
+        known: true,
+        ..Default::default()
+    });
+    w.worker.advisor = Some(advisor.clone());
+    w.run_round().await;
+    let paper = w.worker.app.submission(&w.author, &paper.id).await.unwrap();
+    assert_eq!(paper.status, SubmissionStatus::ReviewComplete);
+    assert!(paper.decision.is_none());
+    assert_eq!(paper.analysis_visibility, Visibility::Private);
+    let file = w.file().await;
+    assert!(file.current().unwrap().is_settled());
+    assert_eq!(file.letters.len(), 1);
+    assert!(
+        file.letters[0]
+            .body
+            .starts_with("Your private Orchestra review is complete.")
+    );
+    assert_eq!(advisor.advice.load(Ordering::SeqCst), 1);
+    assert_eq!(advisor.letters.load(Ordering::SeqCst), 1);
+    assert_eq!(w.formalizer.calls.load(Ordering::SeqCst), 0);
 }

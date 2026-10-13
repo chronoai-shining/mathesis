@@ -134,6 +134,11 @@ export function ConjectureView({ detail: c }: { detail: ConjectureDetail }) {
                 <li key={a.id}>
                   <EntrantName entrant={a.entrant} />
                   <ProofAttribution attribution={a.attribution} />
+                  <a
+                    href={`/api/v1/papers/${encodeURIComponent(s.record)}/statements/${encodeURIComponent(s.claim)}/attempts/${encodeURIComponent(a.id)}/bundle`}
+                  >
+                    Download verification bundle
+                  </a>
                   <p>
                     {a.also_verified ? 'Also verified' : 'First verified'} ·{' '}
                     <DateText iso={a.receipt.checked_at} />

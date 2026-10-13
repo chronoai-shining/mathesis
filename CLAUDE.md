@@ -8,7 +8,9 @@ repository. Rules here are binding.
 A venue where mathematicians submit their own papers, short notes and
 conjectures through one entry and one review pipeline. The venue reads their
 statements, audits the referee's mathematical reading, and gives accepted work
-one shared `WP-<year>-NNNN` record sequence. Short notes follow exactly the paper
+one shared `WP-<year>-NNNN` record sequence. Authors may instead choose an independent
+private Orchestra review, which never applies publication policy or creates a record.
+Short notes follow exactly the paper
 pipeline; only their labels differ.
 
 - **Input**: papers and notes upload `.tex`, `.zip` or `.tar.gz` sources.
@@ -24,6 +26,12 @@ pipeline; only their labels differ.
   witness) or follows by binding alone. Conjectures are checked for well-posedness,
   open/known status, and whether a proof would carry new mathematical content.
   Named works are reported names, never verified bibliographic claims.
+- **Private review**: `purpose: review_only` uses the same source/statement checks,
+  referee and source audit, followed by advice and a private letter. `review_complete`
+  means the audit is ready; the letter may still be running. This mode stays private,
+  has no publication decision/record, volunteer tasks or accepted-only Lean probe.
+  Optional `review_scope` (5,000 characters) gives untrusted author-requested focus.
+  Absent purpose defaults to `publication`; its acceptance policy is unchanged.
 - **Public layers**: the upload checkbox “Make public after acceptance” defaults
   to checked for all kinds. Publication happens at the decision, before advice,
   letter or Lean. The author may later change visibility through the existing
@@ -122,7 +130,7 @@ sdk/contribute/    the contributors' CLI and MCP server.
 
 ## 4. The author owns the paper
 
-- A paper in draft, in review, not accepted or withdrawn is visible only to
+- A paper in draft, in review, review complete, not accepted or withdrawn is visible only to
   its authors and to staff (editors, reviewer accounts, admins). Respond
   `not_found`, never `forbidden`, to anyone else.
 - Contributors see a statement, its dependencies, and the paper's title and
@@ -144,7 +152,8 @@ sdk/contribute/    the contributors' CLI and MCP server.
 
 - Escape judgements retain provenance; never present them as Lean-checked.
   GPT Pro referees and Codex audits its report against the source. Layer 2
-  files machine S2/S3 from that audit and automatically applies `Policy::decide`.
+  files machine S2/S3 from that audit and automatically applies `Policy::decide`
+  for publication submissions; review-only submissions complete without a decision.
   Only a proved main result audited `correct` can carry escape witnesses or
   ground a named open-problem settlement. Standalone conjecture admission uses
   the audited well-posed/open/content reading, with no proof-correctness claim. Recommendations are feedback, never decisions.
@@ -226,7 +235,7 @@ from `develop`. No force pushes to either.
 - S1 confirmation queues a referee round on the exact paper version and
   statement revision. Layer 2 owns ordering, input fencing, immutable settled
   steps, report filing, decision application, letter validation and view rules.
-- The pipeline is GPT Pro referee → Codex audit → automatic escape-analysis
+- The publication pipeline is GPT Pro referee → Codex audit → automatic escape-analysis
   decision → advice → automatically delivered letter → accepted-only Lean probe.
   Publication is immediate when the selected visibility is public. Paper/note
   probes and conjecture statement elaboration follow the delivered letter.
@@ -249,14 +258,15 @@ from `develop`. No force pushes to either.
   decided only by `Policy::decide`, never either model's recommendation.
   Report and decision replay is idempotent, including recovery after record
   insertion. Accepted records and their publication inputs remain immutable.
-- Advice runs after the applied decision for every audited paper and feeds
+- Advice runs after the applied decision (or private review completion) for every audited paper and feeds
   improvement suggestions to the letter. Formalization candidates are used only
   after acceptance. A sketch does not verify a theorem.
 - A completed letter step atomically delivers the letter in-app, with its round,
   audited assessment, the auditor as sender, and `edited=false`. It states the
   applied decision and record/reasons first, then audited feedback, confirmed
   changes, "please check" for unavailable facts, and improvement suggestions.
-  It contains no Lean results. Manual additional letters remain available.
+  It contains no Lean results. Private review letters state completion and feedback,
+  never acceptance/rejection. Manual additional letters remain available.
 - Lean runs only after a delivered letter and acceptance, using advice's proved
   candidates. The binary compiles each file and checks axioms. Authors see
   statement, outcome and theorem name afterwards; no second letter is needed.
@@ -441,6 +451,21 @@ funded; local elaboration and proof verification carry no CMA payer.
   CMA account configuration belongs in advanced compute settings. NyxID remains
   the identity and connection provider. API, OpenAPI, CLI and MCP project the
   same Layer 2 services. See `docs/RESEARCH_SERVICES.md` for exact current scope.
+
+- Audited concerns retain reported location, evidence and basis separately, including
+  offline calculations. A reported source is not an authenticated citation.
+- Authors/co-authors may append immutable responses to an audited finding, bound to
+  the current confirmed source version and claims revision. The ordinary durable
+  referee queue rechecks them. Exact retries are idempotent; at most five responses
+  per paper per 24 hours, 200 total. Replies never resolve findings automatically.
+  Queue reconciliation recovers a saved response after enqueue failure.
+- Review JSON schema 2 and `/review.md` include each round's source digest and author
+  responses. Both use the author-safe view, including when requested by staff.
+- Public verified attempts offer a JSON verification bundle: exact confirmed target,
+  solution/modules, pinned toolchain, attribution, source/claim identity and receipt.
+  Current public visibility and target validity are checked on export. Rechecking
+  requires a prepared matching Lean/Mathlib workspace; no historical checker binary
+  revision is invented and no private probe files are exported.
 
 ## 14. Mathesis identity and source projects
 

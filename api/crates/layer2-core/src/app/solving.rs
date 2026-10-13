@@ -971,6 +971,7 @@ impl App {
         Ok(())
     }
     pub async fn reconcile_attempts(&self) -> CoreResult<()> {
+        self.reconcile_private_rechecks().await?;
         let mut cursor = None;
         loop {
             let page = self

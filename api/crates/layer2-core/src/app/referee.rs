@@ -8,7 +8,7 @@ use crate::{
         Caller, Correctness, EscapeAssessment, FeedbackLetter, MAX_LETTER_CHARS, NewLetter,
         Outcome, PriorRelation, PriorWork, ProofShape, RefereeFile, RefereeRound, RefereeView,
         ReviewerIdentity, Role, RoundUpdate, Source, SourceKind, Stage, StagePayload, StageReport,
-        Step, StepState, Submission, SubmissionStatus,
+        Step, StepState, Submission, SubmissionPurpose, SubmissionStatus,
     },
     ports::JobKind,
 };
@@ -46,7 +46,23 @@ impl App {
         };
         let mut evidence = vec![];
         for trigger in &round.recheck_requests {
-            if let Some(report_id) = trigger.strip_prefix("error-report:") {
+            if let Some(response_id) = trigger.strip_prefix("finding-response:") {
+                if let Some(response) = file.finding_responses.iter().find(|r| {
+                    r.id == response_id
+                        && r.version == round.version
+                        && r.claims_revision == round.claims_revision
+                }) {
+                    let concern = file
+                        .rounds
+                        .iter()
+                        .find(|r| r.number == response.round)
+                        .and_then(|r| r.audit.done())
+                        .and_then(|a| a.concerns.get(response.concern));
+                    evidence.push(
+                        serde_json::json!({"author_response":response,"original_finding":concern}),
+                    );
+                }
+            } else if let Some(report_id) = trigger.strip_prefix("error-report:") {
                 if let Some(report) = self
                     .all_error_reports()
                     .await?
@@ -223,8 +239,12 @@ impl App {
             return Ok(file);
         }
         if !(submission.is_open()
-            || matches!(submission.status, SubmissionStatus::Accepted { .. })
-                && !file.recheck_requests.is_empty())
+            || matches!(
+                submission.status,
+                SubmissionStatus::Accepted { .. }
+                    | SubmissionStatus::NotAccepted
+                    | SubmissionStatus::ReviewComplete
+            ) && !file.recheck_requests.is_empty())
         {
             return Err(CoreError::conflict(format!(
                 "the paper is {}",
@@ -339,7 +359,9 @@ impl App {
                         && (round.audit.done().is_none()
                             || !matches!(
                                 submission.status,
-                                SubmissionStatus::Accepted { .. } | SubmissionStatus::NotAccepted
+                                SubmissionStatus::Accepted { .. }
+                                    | SubmissionStatus::NotAccepted
+                                    | SubmissionStatus::ReviewComplete
                             ))
                     {
                         return Err(CoreError::conflict(
@@ -415,7 +437,9 @@ impl App {
                     if round.audit.done().is_none()
                         || !matches!(
                             submission.status,
-                            SubmissionStatus::Accepted { .. } | SubmissionStatus::NotAccepted
+                            SubmissionStatus::Accepted { .. }
+                                | SubmissionStatus::NotAccepted
+                                | SubmissionStatus::ReviewComplete
                         )
                     {
                         return Err(CoreError::conflict(
@@ -438,6 +462,7 @@ impl App {
                                 format!("Your paper is accepted as {record}.")
                             }
                         }
+                        SubmissionStatus::ReviewComplete => "Your private Orchestra review is complete. This is research feedback, not a publication decision.".into(),
                         SubmissionStatus::NotAccepted => {
                             let reasons = match &submission.decision {
                                 Some(crate::policy::Decision::NotAccepted { reasons }) => reasons
@@ -506,7 +531,9 @@ impl App {
             .ok_or_else(|| CoreError::conflict("audit is not complete"))?;
         if matches!(
             submission.status,
-            SubmissionStatus::Accepted { .. } | SubmissionStatus::NotAccepted
+            SubmissionStatus::Accepted { .. }
+                | SubmissionStatus::NotAccepted
+                | SubmissionStatus::ReviewComplete
         ) && round.recheck_requests.is_empty()
         {
             return Ok(submission);
@@ -628,6 +655,12 @@ impl App {
             // Publication inputs remain immutable; the new audit and assessment belong to this round.
             return Ok(submission);
         }
+        if submission.purpose == SubmissionPurpose::ReviewOnly {
+            submission.status = SubmissionStatus::ReviewComplete;
+            submission.decision = None;
+            self.save(&mut submission).await?;
+            return Ok(submission);
+        }
         self.apply_decision(caller, submission).await
     }
 
@@ -676,6 +709,10 @@ impl App {
     fn push_round(&self, file: &mut RefereeFile, submission: &Submission, version: u32) {
         let number = file.rounds.last().map_or(1, |r| r.number + 1);
         file.rounds.push(RefereeRound {
+            source_sha256: submission
+                .current_version()
+                .map(|v| v.archive.sha256.clone())
+                .unwrap_or_default(),
             recheck_requests: file.recheck_requests.clone(),
             number,
             version,

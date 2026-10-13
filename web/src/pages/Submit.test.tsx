@@ -43,6 +43,8 @@ describe('SubmitPage', () => {
     expect(createSubmission).toHaveBeenCalledWith(
       {
         kind: 'paper',
+        purpose: 'publication',
+        review_scope: '',
         processing_consent: 'ai-review-2026-10-11',
         make_public_after_acceptance: true,
         ai_disclosure: { level: 'substantial', statement: 'A model drafted Lemma 2.' },
@@ -185,5 +187,31 @@ it('requires explicit AI processing consent, unchecked on a fresh upload', async
   expect(createSubmission).not.toHaveBeenCalled();
   expect(await screen.findByRole('alert')).toHaveTextContent(
     'Agree to third-party AI review before uploading.',
+  );
+});
+
+it('requests a private review with a focus and no public contribution switches', async () => {
+  const createSubmission = vi.fn(async () => draft);
+  renderWithApp(<SubmitPage initialIntake="review" />, fakeApi({ createSubmission }, author));
+  const user = userEvent.setup();
+  const source = new File(['source'], 'review.tex', { type: 'text/plain' });
+  await user.upload(await screen.findByLabelText('LaTeX source'), source);
+  expect(screen.queryByRole('checkbox', { name: 'Make public after acceptance' })).toBeNull();
+  expect(screen.queryByRole('checkbox', { name: /volunteer contributors/ })).toBeNull();
+  await user.type(
+    screen.getByLabelText(/What should the review focus/),
+    'Check the boundary case.',
+  );
+  await user.type(screen.getByLabelText('AI disclosure statement'), 'None.');
+  await user.click(screen.getByRole('checkbox', { name: /I agree that the source/ }));
+  await user.click(screen.getByRole('button', { name: 'Upload and read statements' }));
+  expect(createSubmission).toHaveBeenCalledWith(
+    expect.objectContaining({
+      purpose: 'review_only',
+      review_scope: 'Check the boundary case.',
+      make_public_after_acceptance: false,
+      open_to_contributors: false,
+    }),
+    source,
   );
 });

@@ -56,3 +56,21 @@ and a full `source_revision`. Original research authors and Lean contributors
 remain distinct. Use `expected_target` on `verify-formalization` to bind the
 request to the target you inspected. Sources become public only through the
 existing independently verified attempt path.
+
+## Review responses and verified evidence
+
+```sh
+mathesis-contribute review SUBMISSION_ID > review.json
+mathesis-contribute respond-review SUBMISSION_ID response.json
+mathesis-contribute verification-bundle WP-2026-0001 C1 ATTEMPT_ID > bundle.json
+jq '.verification_request' bundle.json > verification-request.json
+WISHPOOL_LEAN_WORKSPACE=/path/to/prepared-workspace mathesis-verifier < verification-request.json
+```
+
+`response.json` contains `round`, zero-based `concern`, current confirmed `version`,
+`claims_revision`, and `body` (1–10,000 characters). Responses request a new private
+review; they do not mark findings resolved. The same `respond-review` MCP tool takes
+`id` and a nested `response` object. The `verification-bundle` MCP tool takes `record`,
+`claim`, `attempt`. Bundles include all supporting sources, attribution and receipts;
+only current public verified attempts are available. Rechecking requires a prepared
+matching Lean/Mathlib workspace. The historical verifier binary revision is not recorded.

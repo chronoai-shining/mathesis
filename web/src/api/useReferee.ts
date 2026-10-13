@@ -46,7 +46,10 @@ export function useReferee(submission: Submission, isStaff: boolean, enabled = t
     if (
       !enabled ||
       isStaff ||
-      (paperStatus !== 'in_review' && paperStatus !== 'accepted' && paperStatus !== 'not_accepted')
+      (paperStatus !== 'in_review' &&
+        paperStatus !== 'accepted' &&
+        paperStatus !== 'not_accepted' &&
+        paperStatus !== 'review_complete')
     )
       return;
     const timer = window.setInterval(reload, 30_000);

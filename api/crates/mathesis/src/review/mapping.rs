@@ -561,6 +561,7 @@ pub(crate) fn audit(
             || c.note.trim().is_empty()
             || c.concern.chars().count() > 5_000
             || c.note.chars().count() > 10_000
+            || c.location.chars().count() > 1000
             || c.evidence.chars().count() > 8_000
             || c.basis == "opened_source"
                 && c.note.chars().count()
@@ -615,13 +616,16 @@ pub(crate) fn audit(
             }
         };
         concerns.push(AuditedConcern {
+            evidence: c.evidence.clone(),
+            basis: if ["offline", "opened_source", "external"].contains(&c.basis.as_str()) {
+                c.basis.clone()
+            } else {
+                "external".into()
+            },
+            location: c.location,
             concern: c.concern,
             status,
-            note: if c.basis == "opened_source" {
-                format!("{}{OPENED_EVIDENCE}{}", c.note, c.evidence)
-            } else {
-                c.note
-            },
+            note: c.note,
         });
     }
     let mut summary = raw.summary;
@@ -1184,6 +1188,7 @@ mod audit_tests {
             ],
             concerns: vec![
                 AuditedConcernOut {
+                    location: Default::default(),
                     concern: "The OEIS attribution is correct".into(),
                     status: "confirmed".into(),
                     note: "Attribution claimed in the report".into(),
@@ -1191,6 +1196,7 @@ mod audit_tests {
                     basis: "offline".into(),
                 },
                 AuditedConcernOut {
+                    location: Default::default(),
                     concern: "The base case is wrong".into(),
                     status: "refuted".into(),
                     note: "At n = 1 both sides are 1".into(),
@@ -1213,12 +1219,15 @@ mod audit_tests {
         assert!(result.claims[1].witnesses.is_empty());
         assert!(result.summary.contains("dropped"));
         assert_eq!(result.concerns[0].status, ConcernStatus::NotCheckable);
+        assert_eq!(result.concerns[1].evidence, "Substituting 1 yields 1 = 1");
+        assert_eq!(result.concerns[1].basis, "offline");
         assert_eq!(result.concerns[1].status, ConcernStatus::Refuted);
         assert_eq!(result.concerns[2].status, ConcernStatus::NotCheckable);
         let oversized = audit(
             AuditOut {
                 concerns: vec![
                     AuditedConcernOut {
+                        location: Default::default(),
                         concern: "A comparison".into(),
                         status: "confirmed".into(),
                         basis: "opened_source".into(),
@@ -1229,6 +1238,7 @@ mod audit_tests {
                         ),
                     },
                     AuditedConcernOut {
+                        location: Default::default(),
                         concern: "An argument".into(),
                         status: "confirmed".into(),
                         basis: "offline".into(),
@@ -1236,6 +1246,7 @@ mod audit_tests {
                         evidence: "e".repeat(8_001),
                     },
                     AuditedConcernOut {
+                        location: Default::default(),
                         concern: "A comparison without an argument".into(),
                         status: "confirmed".into(),
                         basis: "opened_source".into(),

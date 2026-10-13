@@ -882,3 +882,28 @@ with immutable source identity; only independent verification creates a receipt.
 all sources and attribution; owner/staff only, private/no-store. Verify requests
 may include `expected_target`; stale digests return 409. Public verified attempts
 include a `modules` source map so multi-file proofs remain reproducible.
+
+## Independent private review and portable evidence
+
+Submission metadata accepts `purpose: "publication" | "review_only"` (default
+`publication`) and optional `review_scope` (up to 5,000 characters). Review-only
+forces private visibility, refuses volunteer opt-in and publication decisions,
+and creates no WP record. After the source audit its status is `review_complete`;
+advice and the private letter follow. Authors may upload and confirm revisions.
+
+| Method | Path | Result |
+|---|---|---|
+| GET | `/submissions/{id}/review` | Schema 2 author-safe JSON report, including purpose/scope, historical source hashes, evidence and responses |
+| GET | `/submissions/{id}/review.md` | Readable Markdown report; same private authorization, no-store |
+| POST | `/submissions/{id}/review/responses` | Append author/co-author response, request recheck, return private RefereeView |
+| GET | `/papers/{record}/statements/{claim}/attempts/{attempt}/bundle` | Public verified evidence package with exact verifier request, attribution, source identity and original receipt; no-store |
+
+Response input: `{"round":1,"concern":0,"version":1,"claims_revision":1,"body":"The corrected argument is …"}`.
+`concern` is the zero-based index in that round's audit concerns (`R1-A1` in the UI).
+Version/revision must match the current confirmed source; drafts/withdrawn sources
+return 409. Only authors may respond; strangers receive 404. Text is 1–10,000
+characters. Five responses per paper per rolling 24 hours, 200 total; exact retries
+are idempotent. Responses and trigger intent are committed together and queue
+reconciliation recovers enqueue failure. Inclusion in a later audit means re-reviewed,
+not automatically resolved. JSON and Markdown exports omit staff-only advice, drafts
+and private Lean sources. Publication policy remains unchanged.

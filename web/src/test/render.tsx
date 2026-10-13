@@ -83,6 +83,7 @@ export function fakeApi(overrides: Partial<ApiClient> = {}, person?: Person): Ap
     proposeFormalization: vi.fn(notFound),
     updateConjecture: vi.fn(notFound),
     generateTasks: vi.fn(notFound),
+    respondToFinding: vi.fn(notFound),
     restartReferee: vi.fn(notFound),
     sendFeedback: vi.fn(notFound),
     formalizations: vi.fn(empty),

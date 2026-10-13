@@ -6,6 +6,7 @@ const ROUTES: Route[] = [
   { kind: 'papers' },
   { kind: 'formalizations' },
   { kind: 'submit', intake: 'lean' },
+  { kind: 'submit', intake: 'review' },
   { kind: 'submit', intake: 'lean', record: 'WP-2026-0001', claim: 'C1' },
   { kind: 'paper', record: 'WP-2026-0001' },
   { kind: 'policy' },

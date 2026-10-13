@@ -7,6 +7,7 @@ mod formalization_directory;
 pub use formalization_directory::{FormalizationOpportunity, FormalizationQuery};
 mod donations;
 mod error_reports;
+mod finding_responses;
 mod formalization;
 mod lean_statements;
 mod papers;
@@ -17,6 +18,8 @@ mod review;
 mod review_report;
 pub use review_report::ReviewReport;
 mod solving;
+mod verification_bundle;
+pub use verification_bundle::VerificationBundle;
 mod tasks;
 
 use std::{collections::BTreeSet, sync::Arc};

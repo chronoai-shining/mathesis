@@ -195,6 +195,25 @@ impl Client {
     pub fn review(&self, id: &str) -> ApiResult<Value> {
         self.get(&format!("/submissions/{}/review", segment(id)))
     }
+    pub fn respond_review(&self, id: &str, body: &Value) -> ApiResult<Value> {
+        self.post(
+            &format!("/submissions/{}/review/responses", segment(id)),
+            body,
+        )
+    }
+    pub fn verification_bundle(
+        &self,
+        record: &str,
+        claim: &str,
+        attempt: &str,
+    ) -> ApiResult<Value> {
+        self.get(&format!(
+            "/papers/{}/statements/{}/attempts/{}/bundle",
+            segment(record),
+            segment(claim),
+            segment(attempt)
+        ))
+    }
     pub fn formalization(&self, id: &str) -> ApiResult<Value> {
         self.get(&format!("/formalizations/{}", segment(id)))
     }

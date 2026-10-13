@@ -77,6 +77,8 @@ pub enum SubmissionStatus {
     /// Statements read from the source await the author's confirmation.
     Draft,
     InReview,
+    /// A private commissioned review has an audited result; no publication decision.
+    ReviewComplete,
     Accepted {
         record: RecordId,
     },
@@ -91,6 +93,7 @@ impl SubmissionStatus {
         match self {
             Self::Draft => "draft",
             Self::InReview => "in_review",
+            Self::ReviewComplete => "review_complete",
             Self::Accepted { .. } => "accepted",
             Self::NotAccepted => "not_accepted",
             Self::Withdrawn => "withdrawn",
@@ -110,6 +113,15 @@ pub enum SubmissionKind {
     Paper,
     Note,
     Conjecture,
+}
+
+/// Publication is the legacy default. Review-only requests never create public records.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum SubmissionPurpose {
+    #[default]
+    Publication,
+    ReviewOnly,
 }
 
 /// Typed conjectures become ordinary LaTeX sources before reading and storage.
@@ -259,6 +271,11 @@ pub struct ProcessingConsent {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Submission {
     #[serde(default)]
+    pub purpose: SubmissionPurpose,
+    /// Author-requested focus, bounded and treated as untrusted context.
+    #[serde(default)]
+    pub review_scope: String,
+    #[serde(default)]
     pub processing_consent: Option<ProcessingConsent>,
     /// Explicitly requested at new acceptance or by staff; legacy documents do
     /// not opt into a backfill merely because reconciliation visits them.
@@ -315,6 +332,11 @@ pub struct Submission {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct NewPaper {
     #[serde(default)]
+    pub purpose: SubmissionPurpose,
+    /// Author-requested focus, bounded and treated as untrusted context.
+    #[serde(default)]
+    pub review_scope: String,
+    #[serde(default)]
     pub processing_consent: Option<String>,
     #[serde(default)]
     pub kind: SubmissionKind,
@@ -336,6 +358,14 @@ pub struct NewPaper {
 
 impl NewPaper {
     pub fn validate(&self) -> CoreResult<()> {
+        if self.review_scope.chars().count() > 5000 {
+            return Err(CoreError::invalid("review scope exceeds 5000 characters"));
+        }
+        if self.purpose == SubmissionPurpose::ReviewOnly && self.open_to_contributors {
+            return Err(CoreError::invalid(
+                "private review requests cannot invite public contributors",
+            ));
+        }
         if self.processing_consent.as_deref() != Some(AI_PROCESSING_CONSENT_VERSION) {
             return Err(CoreError::invalid(
                 "agreement to third-party AI review is required",
@@ -458,6 +488,8 @@ mod tests {
 
     fn new_paper(doi: Option<&str>) -> NewPaper {
         NewPaper {
+            purpose: Default::default(),
+            review_scope: Default::default(),
             processing_consent: Some("ai-review-2026-10-11".into()),
             kind: crate::model::SubmissionKind::Paper,
             make_public_after_acceptance: true,

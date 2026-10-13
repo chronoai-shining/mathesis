@@ -29,6 +29,7 @@ import { Badge, ExternalLink, type BadgeTone } from './ui';
 const SUBMISSION_TONES: { [K in SubmissionStatus['state']]: BadgeTone } = {
   draft: 'warn',
   in_review: 'accent',
+  review_complete: 'good',
   accepted: 'good',
   not_accepted: 'bad',
   withdrawn: 'muted',

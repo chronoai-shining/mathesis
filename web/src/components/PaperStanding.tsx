@@ -47,17 +47,19 @@ export function PaperStanding({
   const probe = round?.formal?.state.state === 'done' ? round.formal.state.result : undefined;
   const failed = [round?.referee, round?.audit].some((s) => s?.state.state === 'failed');
   const headline =
-    status.state === 'accepted'
-      ? submission.kind === 'conjecture'
-        ? 'Displayed'
-        : 'Accepted'
-      : status.state === 'not_accepted'
+    status.state === 'review_complete'
+      ? 'Your private review is ready'
+      : status.state === 'accepted'
         ? submission.kind === 'conjecture'
-          ? 'Not displayed'
-          : 'Not accepted'
-        : status.state === 'withdrawn'
-          ? 'Withdrawn'
-          : 'Under review';
+          ? 'Displayed'
+          : 'Accepted'
+        : status.state === 'not_accepted'
+          ? submission.kind === 'conjecture'
+            ? 'Not displayed'
+            : 'Not accepted'
+          : status.state === 'withdrawn'
+            ? 'Withdrawn'
+            : 'Under review';
   const tone =
     status.state === 'accepted'
       ? 'good'
@@ -75,7 +77,9 @@ export function PaperStanding({
         ? 'major'
         : undefined;
   const mayRevise =
-    status.state === 'not_accepted' || (status.state === 'accepted' && revisions !== undefined);
+    status.state === 'review_complete' ||
+    status.state === 'not_accepted' ||
+    (status.state === 'accepted' && revisions !== undefined);
   const step = progressStep(round);
   const facts = audit
     ? [
@@ -107,7 +111,10 @@ export function PaperStanding({
         ) : (
           <>
             <ol className="standing-steps" aria-label="Review progress">
-              {STEPS.map((name, i) => (
+              {(submission.purpose === 'review_only'
+                ? ['Referee', 'Check', 'Feedback', 'Letter']
+                : STEPS
+              ).map((name, i) => (
                 <li
                   key={name}
                   className={i < step ? 'is-done' : i === step ? 'is-current' : undefined}
@@ -131,7 +138,10 @@ export function PaperStanding({
           ))}
         </ul>
       ) : null}
-      {(status.state === 'accepted' || status.state === 'not_accepted') && audit ? (
+      {(status.state === 'accepted' ||
+        status.state === 'not_accepted' ||
+        status.state === 'review_complete') &&
+      audit ? (
         <p className="standing-summary">{audit.summary}</p>
       ) : null}
       {facts.length > 0 && status.state !== 'in_review' ? (

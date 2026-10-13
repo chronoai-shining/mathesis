@@ -26,6 +26,10 @@ pub(super) fn routes() -> Router<Arc<App>> {
             "/papers/{record}/statements/{claim}/attempts/mine",
             get(mine),
         )
+        .route(
+            "/papers/{record}/statements/{claim}/attempts/{attempt}/bundle",
+            get(bundle),
+        )
         .route("/papers/{record}/errors", get(reports).post(report))
         .route("/errors/{id}", get(error_report))
         .route("/me/error-notifications", get(error_notifications))
@@ -236,4 +240,23 @@ async fn error_notifications(
 }
 async fn supporters(State(app): AppState) -> ApiResult<impl IntoResponse> {
     Ok(Json(app.supporters().await?))
+}
+
+async fn bundle(
+    State(app): AppState,
+    Path((r, c, a)): Path<(String, String, String)>,
+) -> ApiResult<impl IntoResponse> {
+    let bundle = app
+        .verification_bundle(&RecordId(r), &ClaimId(c), &a)
+        .await?;
+    Ok((
+        [
+            (header::CACHE_CONTROL, "no-store"),
+            (
+                header::CONTENT_DISPOSITION,
+                "attachment; filename=mathesis-verification.json",
+            ),
+        ],
+        Json(bundle),
+    ))
 }

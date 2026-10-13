@@ -122,6 +122,11 @@ export function StatementPage({ record, claim }: { record: string; claim: string
                       <li key={a.id}>
                         <EntrantName entrant={a.entrant} />
                         <ProofAttribution attribution={a.attribution} />
+                        <a
+                          href={`/api/v1/papers/${encodeURIComponent(record)}/statements/${encodeURIComponent(claim)}/attempts/${encodeURIComponent(a.id)}/bundle`}
+                        >
+                          Download verification bundle
+                        </a>
                         <p>
                           {a.receipt.verdict === 'proved' ? 'Proved' : 'Disproved'} the
                           author-confirmed Lean target.

@@ -113,7 +113,10 @@ export function Workspace({
   const [revising, setRevising] = useState(false);
   const showRevisionForm =
     revising &&
-    (state === 'in_review' || state === 'accepted' || state === 'not_accepted') &&
+    (state === 'in_review' ||
+      state === 'accepted' ||
+      state === 'not_accepted' ||
+      state === 'review_complete') &&
     isAuthor;
 
   // Keyed on the revision, so every change reloads the preview and the analysis.
@@ -125,7 +128,9 @@ export function Workspace({
     },
     [api, s.id, revision],
   );
-  const decision = useAsync(state === 'withdrawn' ? null : loadDecision);
+  const decision = useAsync(
+    state === 'withdrawn' || s.purpose === 'review_only' ? null : loadDecision,
+  );
   const loadAnalysis = useCallback(
     (signal: AbortSignal) => {
       void revision;
@@ -147,7 +152,9 @@ export function Workspace({
           <h1>{s.title || 'Untitled paper'}</h1>
           <AuthorLine authors={s.authors} />
           <p className="entry-meta">
-            <span>{SUBMISSION_KIND_LABELS[s.kind]}</span>
+            <span>
+              {s.purpose === 'review_only' ? 'Private review' : SUBMISSION_KIND_LABELS[s.kind]}
+            </span>
             <SubmissionStatusBadge status={s.status} />
             <span>
               Version {current?.number ?? 1} · <DateText iso={s.created_at} />
@@ -273,7 +280,7 @@ export function Workspace({
             </Fold>
           ) : null}
 
-          {isStaff ? (
+          {isStaff && s.purpose !== 'review_only' ? (
             <Fold id="stages-h" title="Publication decision">
               {state === 'in_review' && isStaff && preview ? (
                 <DecisionView decision={preview} policy={policy} />

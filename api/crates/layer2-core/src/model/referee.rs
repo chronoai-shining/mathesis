@@ -104,6 +104,13 @@ pub struct AuditedClaim {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AuditedConcern {
+    #[serde(default)]
+    pub evidence: String,
+    #[serde(default)]
+    pub basis: String,
+    /// Reported source location, not independently authenticated.
+    #[serde(default)]
+    pub location: String,
     pub concern: String,
     pub status: ConcernStatus,
     pub note: String,
@@ -335,6 +342,8 @@ impl<T> Step<T> {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RefereeRound {
     #[serde(default)]
+    pub source_sha256: String,
+    #[serde(default)]
     pub recheck_requests: Vec<String>,
     /// 1-based, in order of starting.
     pub number: u32,
@@ -392,9 +401,34 @@ pub struct AgentStep {
     pub progress: serde_json::Value,
 }
 
+/// Immutable author reply: the source it asks to recheck is explicit.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct FindingResponse {
+    pub id: String,
+    pub round: u32,
+    /// Zero-based index into the immutable round audit's concerns.
+    pub concern: usize,
+    pub version: u32,
+    pub claims_revision: u64,
+    pub body: String,
+    pub author: PersonId,
+    pub at: DateTime<Utc>,
+}
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct NewFindingResponse {
+    pub round: u32,
+    pub concern: usize,
+    pub version: u32,
+    pub claims_revision: u64,
+    pub body: String,
+}
+
 /// Every round and letter of one paper.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RefereeFile {
+    #[serde(default)]
+    pub finding_responses: Vec<FindingResponse>,
     #[serde(default)]
     pub recheck_requests: Vec<String>,
     /// Private durable external-agent steps, including auxiliary problem/target work.
@@ -414,6 +448,7 @@ impl RefereeFile {
     pub fn new(id: SubmissionId) -> Self {
         Self {
             id,
+            finding_responses: vec![],
             agent_steps: Default::default(),
             recheck_requests: vec![],
             rounds: vec![],
@@ -431,6 +466,7 @@ impl RefereeFile {
 /// draft, provider metadata, or Lean files.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct RefereeView {
+    pub finding_responses: Vec<FindingResponse>,
     pub cma_attempts: Vec<super::CmaAttemptView>,
     pub id: SubmissionId,
     pub rounds: Vec<RefereeRoundView>,
@@ -440,6 +476,8 @@ pub struct RefereeView {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct RefereeRoundView {
+    pub response_ids: Vec<String>,
+    pub source_sha256: String,
     pub number: u32,
     pub version: u32,
     pub claims_revision: u64,
@@ -548,6 +586,7 @@ impl RefereeFile {
             ))
         });
         RefereeView {
+            finding_responses: self.finding_responses,
             cma_attempts: attempts,
             id: self.id,
             letters: self.letters,
@@ -556,6 +595,12 @@ impl RefereeFile {
                 .rounds
                 .into_iter()
                 .map(|r| RefereeRoundView {
+                    response_ids: r
+                        .recheck_requests
+                        .iter()
+                        .filter_map(|t| t.strip_prefix("finding-response:").map(str::to_owned))
+                        .collect(),
+                    source_sha256: r.source_sha256,
                     number: r.number,
                     version: r.version,
                     claims_revision: r.claims_revision,

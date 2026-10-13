@@ -12,7 +12,7 @@ export type Route =
   | { kind: 'entrant'; id: string }
   | { kind: 'paper'; record: string }
   | { kind: 'policy' }
-  | { kind: 'submit'; intake?: 'lean'; record?: string; claim?: string }
+  | { kind: 'submit'; intake?: 'lean' | 'review'; record?: string; claim?: string }
   | { kind: 'submissions' }
   | { kind: 'queue' }
   | { kind: 'submission'; id: string }
@@ -65,7 +65,11 @@ export function parseRoute(pathname: string, search = ''): Route {
         const params = new URLSearchParams(search);
         return {
           kind: 'submit',
-          ...(params.get('type') === 'lean' ? { intake: 'lean' as const } : {}),
+          ...(params.get('type') === 'lean'
+            ? { intake: 'lean' as const }
+            : params.get('type') === 'review'
+              ? { intake: 'review' as const }
+              : {}),
           ...(params.get('record') && params.get('claim')
             ? {
                 intake: 'lean' as const,

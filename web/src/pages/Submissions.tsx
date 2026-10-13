@@ -145,7 +145,11 @@ export function SubmissionsPage({ scope }: { scope: SubmissionScope }) {
                     {s.title}
                   </Link>
                   <p className="entry-meta">
-                    <span>{SUBMISSION_KIND_LABELS[s.kind]}</span>
+                    <span>
+                      {s.purpose === 'review_only'
+                        ? 'Private review'
+                        : SUBMISSION_KIND_LABELS[s.kind]}
+                    </span>
                     <SubmissionStatusBadge status={s.status} />
                     <span>{formatAuthors(s.authors)}</span>
                     {newResultCount(s) > 0 ? <span>{newResults(newResultCount(s))}</span> : null}

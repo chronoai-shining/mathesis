@@ -24,6 +24,10 @@ pub(super) fn routes() -> Router<Arc<App>> {
     Router::new()
         .route("/submissions/{id}/referee", axum::routing::get(referee))
         .route("/submissions/{id}/referee/restart", post(restart_referee))
+        .route(
+            "/submissions/{id}/review/responses",
+            post(respond_to_finding),
+        )
         .route("/submissions/{id}/referee/letters", post(send_feedback))
         .route(
             "/submissions/{id}/stages/{stage}/reports",
@@ -248,5 +252,17 @@ async fn send_feedback(
     Ok((
         StatusCode::CREATED,
         Json(app.send_feedback(&caller, &SubmissionId(id), new).await?),
+    ))
+}
+
+async fn respond_to_finding(
+    State(app): AppState,
+    AuthenticatedCaller(caller): AuthenticatedCaller,
+    Path(id): Path<String>,
+    Body(body): Body<mathesis_core::model::NewFindingResponse>,
+) -> ApiResult<impl IntoResponse> {
+    Ok(Json(
+        app.respond_to_finding(&caller, &SubmissionId(id), body)
+            .await?,
     ))
 }

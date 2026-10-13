@@ -2413,3 +2413,30 @@ input[type='file']::file-selector-button {
     flex-basis: 100%;
   }
 }
+
+.review-findings {
+  margin-block: 1.5rem;
+}
+.finding-card {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  margin-block: 0.75rem;
+  overflow-wrap: anywhere;
+}
+.finding-card > summary {
+  cursor: pointer;
+  line-height: 1.6;
+}
+.finding-card[open] > summary {
+  margin-bottom: 1rem;
+}
+.finding-evidence,
+.finding-response {
+  border-left: 2px solid var(--border);
+  padding-left: 1rem;
+  margin-block: 1rem;
+}
+.finding-card .form {
+  margin-top: 1rem;
+}

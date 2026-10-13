@@ -868,3 +868,20 @@ describe('referee polling', () => {
     expect(referee).toHaveBeenCalledTimes(1);
   });
 });
+
+it('shows private review completion without requesting a publication decision', async () => {
+  const previewDecision = vi.fn();
+  workspace({ previewDecision }, author, {
+    ...submission,
+    purpose: 'review_only',
+    status: { state: 'review_complete' },
+    decision: undefined,
+  });
+  expect(await screen.findByText('Your private review is ready')).toBeInTheDocument();
+  expect(screen.getByRole('link', { name: 'Download readable report' })).toHaveAttribute(
+    'href',
+    `/api/v1/submissions/${submission.id}/review.md`,
+  );
+  expect(screen.queryByRole('heading', { name: 'Publication decision' })).toBeNull();
+  expect(previewDecision).not.toHaveBeenCalled();
+});

@@ -38,7 +38,7 @@ parallel database, identity provider or proof-acceptance mechanism.
 | Service | Current implementation | Durable evidence |
 |---|---|---|
 | Paper discovery | Indexed search of Mathesis publication metadata, author/MSC/type filters, cursor pages | Immutable accepted record and publication snapshot; live visibility checked again |
-| Review | Existing referee → source audit → policy decision → advice → letter pipeline; progress and audit now visible to authors before the letter; downloadable dossier | Source digest, paper version, claims revision, append-only rounds and delivered letters |
+| Review | Private review or publication review; evidence, author responses and durable rechecks; readable and JSON reports | Source digest, paper version, claims revision, append-only rounds and delivered letters |
 | Lean intake | Standalone source deposit with original authors, mathematical statement, source reference, toolchain and license | Immutable GridFS source/digest and attributed deposit; exact replays return the same id |
 | Lean verification | Owner links a deposit to an existing confirmed public target | Ordinary durable attempt and independent verifier receipt; CAS-fenced attempt links |
 | Machine access | REST, OpenAPI, expanded stdio MCP and CLI; optional NyxID CLI transport | Same authenticated domain operations as the website |
@@ -73,7 +73,7 @@ semantic/vector ranking.
 ## Review reports
 
 `GET /api/v1/submissions/{id}/review` downloads `mathesis-review.json` with
-`schema_version: 1`, `service: "Orchestra"`, current source SHA-256, paper
+`schema_version: 2`, `service: "Orchestra"`, current source SHA-256, paper
 version, claims revision, submission status, claims, review rounds and letters.
 Each historical round retains its own version and claims revision; consumers
 must not interpret an old round as a review of the current source.
@@ -83,7 +83,21 @@ export. Advice, letter drafts, provider task identifiers, raw model prompts,
 credentials and private probe files are excluded. Private reports never enter
 the public search index. Reports use `Cache-Control: private, no-store`.
 Review findings are judgements; they never confer a Lean verification badge.
-The underlying policy and review-generation pipeline are unchanged.
+Publication policy is unchanged. Independent private review is available through
+`purpose: "review_only"` at the ordinary submission endpoint and `/submit?type=review`.
+It forces private visibility and disables volunteer access. Auditing sets
+`review_complete`; advice and the letter follow, without record creation or an
+accepted-only Lean probe. `review_scope` optionally names the author's focus.
+
+`GET /submissions/{id}/review.md` downloads the readable report. Concerns include
+reported location, basis and complete retained evidence, including offline arguments.
+Historical source hashes remain attached to the corresponding rounds.
+`POST /submissions/{id}/review/responses` appends an author/co-author response with
+`round`, zero-based `concern`, current `version`, `claims_revision`, and `body`
+(1–10,000 characters). The immutable response requests an ordinary durable recheck;
+no finding is automatically resolved. Exact requests replay idempotently. Admission
+is limited to five responses per paper per 24 hours, 200 in total. Upload and confirm
+source revisions first. Reconciliation recovers saved responses if enqueue fails.
 
 ## Lean intake and verification
 
@@ -218,3 +232,20 @@ an author-facing research job that adapts deposited proofs to confirmed targets.
 The existing review pipeline supplies literature analysis, but it is not a
 standalone bibliographic index. Publication still follows admission; separating
 archive deposit from review acceptance is a distinct policy/data-model change.
+
+## Verification bundles
+
+`GET /api/v1/papers/{record}/statements/{claim}/attempts/{attempt}/bundle`
+downloads JSON schema 1 for a currently public, verifier-passed attempt. It contains
+the source digest/version and claim revision, public attribution and original
+receipt, and a `verification_request` with the exact Target, Solution, supporting
+modules and pinned toolchain. Private or stale targets and queued/rejected attempts
+are unavailable. Responses are `no-store`.
+
+Extract `.verification_request` and pass it on stdin to `mathesis-verifier` with
+`WISHPOOL_LEAN_WORKSPACE` set to a prepared matching Lean/Mathlib workspace. A new
+check creates a new receipt; the historical checker binary revision was not recorded.
+This is a portable evidence package, not a dependency installer or permission to
+execute user Lake scripts. Independent external theorem admission still needs a
+separate target provenance/semantic-confirmation path; a private deposit alone
+never creates a public verified theorem.

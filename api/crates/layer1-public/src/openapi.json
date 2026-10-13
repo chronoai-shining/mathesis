@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Mathesis research services",
-    "version": "1.1.0",
+    "version": "1.2.0",
     "description": "Research archive, private Orchestra review dossiers, Lean source intake and independent verification. Authentication is NyxID; private resources return 404 to other users. This document covers the research-service surface; see docs/API.md for staff and contribution administration."
   },
   "servers": [
@@ -934,6 +934,234 @@
           }
         }
       }
+    },
+    "/api/v1/submissions/{id}/review.md": {
+      "get": {
+        "operationId": "download_readable_review",
+        "summary": "Download the author-safe version-bound review as Markdown; private, no-store",
+        "security": [
+          {
+            "nyxid": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "text/markdown": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid NyxID identity"
+          },
+          "404": {
+            "description": "Resource unavailable or not visible to the caller"
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": ""
+          }
+        ]
+      }
+    },
+    "/api/v1/submissions/{id}/review/responses": {
+      "post": {
+        "operationId": "respond_to_review_finding",
+        "summary": "Author response and durable re-review request; does not resolve the finding",
+        "security": [
+          {
+            "nyxid": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Private RefereeView"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid NyxID identity"
+          },
+          "404": {
+            "description": "Resource unavailable or not visible to the caller"
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Stale source, draft/withdrawn, or response limit reached"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": ""
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewFindingResponse"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/papers/{record}/statements/{claim}/attempts/{attempt}/bundle": {
+      "get": {
+        "operationId": "download_verification_bundle",
+        "summary": "Exact sources, pinned toolchain, public attribution, source identity and original receipt for a current public verified attempt",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "schema_version": {
+                      "const": 1
+                    },
+                    "record": {
+                      "type": "string"
+                    },
+                    "claim": {
+                      "type": "string"
+                    },
+                    "source_sha256": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "claims_revision": {
+                      "type": "integer"
+                    },
+                    "statement": {
+                      "type": "string"
+                    },
+                    "attempt": {
+                      "type": "object",
+                      "description": "Public verified attempt, sources, attribution and original receipt"
+                    },
+                    "verification_request": {
+                      "type": "object",
+                      "properties": {
+                        "target": {
+                          "type": "string"
+                        },
+                        "target_digest": {
+                          "type": "string"
+                        },
+                        "toolchain": {
+                          "type": "string"
+                        },
+                        "solution": {
+                          "type": "string"
+                        },
+                        "modules": {
+                          "type": "object",
+                          "additionalProperties": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "instructions": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid NyxID identity"
+          },
+          "404": {
+            "description": "Resource unavailable or not visible to the caller"
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "record",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "claim",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "attempt",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
     }
   },
   "components": {
@@ -1375,7 +1603,7 @@
         "type": "object",
         "properties": {
           "schema_version": {
-            "const": 1
+            "const": 2
           },
           "service": {
             "const": "Orchestra"
@@ -1431,8 +1659,25 @@
               },
               "revision": {
                 "type": "integer"
+              },
+              "finding_responses": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "description": "Immutable version-bound author response with id, author, at, round, concern and body"
+                }
               }
             }
+          },
+          "purpose": {
+            "enum": [
+              "publication",
+              "review_only"
+            ]
+          },
+          "review_scope": {
+            "type": "string",
+            "maxLength": 5000
           }
         },
         "required": [
@@ -1546,6 +1791,41 @@
         "required": [
           "items",
           "next_before"
+        ]
+      },
+      "NewFindingResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "round": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "concern": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Zero-based index in the referenced audit concerns"
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "claims_revision": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "body": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 10000
+          }
+        },
+        "required": [
+          "round",
+          "concern",
+          "version",
+          "claims_revision",
+          "body"
         ]
       }
     }

@@ -72,6 +72,19 @@ fn main() -> ExitCode {
         ["papers", query] => print(client.papers(&serde_json::json!({"q": query}))),
         ["paper", record] => print(client.paper(record)),
         ["review", id] => print(client.review(id)),
+        ["verification-bundle", record, claim, attempt] => {
+            print(client.verification_bundle(record, claim, attempt))
+        }
+        ["respond-review", id, file] => match std::fs::read_to_string(file)
+            .map_err(|e| e.to_string())
+            .and_then(|s| serde_json::from_str(&s).map_err(|e| e.to_string()))
+        {
+            Ok(body) => print(client.respond_review(id, &body)),
+            Err(error) => {
+                eprintln!("{error}");
+                ExitCode::FAILURE
+            }
+        },
         ["formalization", id] => print(client.formalization(id)),
         ["verify-formalization", id, record, claim] => {
             print(client.verify_formalization(id, record, claim))
@@ -156,7 +169,7 @@ fn main() -> ExitCode {
         },
         _ => {
             eprintln!(
-                "usage: mathesis-contribute formalization-opportunities [query] | formalizations | formalization-project <id> | papers [query] | paper <record> | review <submission-id> | submit-formalization <deposit.json> | formalization <id> | verify-formalization <id> <record> <claim> | conjectures | target <record> <claim> | attempt <record> <claim> <file> [--as-agent NAME] | attempt-status <id> | report <record> <report.json> | report-status <id> | tasks [kind] | show <task> | lease <task> | release <task> | submit <task> <result.json> | mcp"
+                "usage: mathesis-contribute formalization-opportunities [query] | formalizations | formalization-project <id> | papers [query] | paper <record> | review <submission-id> | respond-review <submission-id> <response.json> | verification-bundle <record> <claim> <attempt> | submit-formalization <deposit.json> | formalization <id> | verify-formalization <id> <record> <claim> | conjectures | target <record> <claim> | attempt <record> <claim> <file> [--as-agent NAME] | attempt-status <id> | report <record> <report.json> | report-status <id> | tasks [kind] | show <task> | lease <task> | release <task> | submit <task> <result.json> | mcp"
             );
             ExitCode::from(2)
         }
@@ -230,6 +243,8 @@ mod tests {
                 "papers",
                 "paper",
                 "review",
+                "respond-review",
+                "verification-bundle",
                 "submit-formalization",
                 "formalization",
                 "verify-formalization",

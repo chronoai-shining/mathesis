@@ -32,11 +32,12 @@ pub use person::*;
 pub use record::*;
 pub use referee::{
     Advice, AgentStep, AgentStepUpdate, AuditedClaim, AuditedConcern, ConcernStatus, Correctness,
-    Effort, Evidence as ImprovementEvidence, Feasibility, FeedbackLetter, FormalAttempt,
-    FormalProbe, FormalProbeView, FormalizationCandidate, Improvement, ImprovementKind,
-    LetterDraft, MAX_LETTER_CHARS, NewLetter, ProbeOutcome, ProbeOutcomeView, Recommendation,
-    RefereeAudit, RefereeClaim, RefereeConcern, RefereeFile, RefereeReport, RefereeRound,
-    RefereeRoundView, RefereeView, RoundUpdate, Severity, Step, StepState,
+    Effort, Evidence as ImprovementEvidence, Feasibility, FeedbackLetter, FindingResponse,
+    FormalAttempt, FormalProbe, FormalProbeView, FormalizationCandidate, Improvement,
+    ImprovementKind, LetterDraft, MAX_LETTER_CHARS, NewFindingResponse, NewLetter, ProbeOutcome,
+    ProbeOutcomeView, Recommendation, RefereeAudit, RefereeClaim, RefereeConcern, RefereeFile,
+    RefereeReport, RefereeRound, RefereeRoundView, RefereeView, RoundUpdate, Severity, Step,
+    StepState,
 };
 pub use review::*;
 pub use search::*;

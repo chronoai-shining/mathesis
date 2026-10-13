@@ -394,6 +394,12 @@ async fn visibility_and_versions_hide_solutions_and_remove_their_credit() {
             .is_empty()
     );
     assert!(w.app.attempt(None, &attempt.id).await.is_err());
+    assert!(
+        w.app
+            .verification_bundle(&record, &"C1".into(), &attempt.id)
+            .await
+            .is_err()
+    );
     assert!(w.app.leaderboard("all", "all").await.unwrap().is_empty());
     w.app
         .set_analysis_visibility(&a, &paper.id, Visibility::Public)
@@ -415,6 +421,12 @@ async fn visibility_and_versions_hide_solutions_and_remove_their_credit() {
         .unwrap();
     assert!(w.app.target(&record, &"C1".into()).await.is_err());
     assert!(w.app.attempt(None, &attempt.id).await.is_err());
+    assert!(
+        w.app
+            .verification_bundle(&record, &"C1".into(), &attempt.id)
+            .await
+            .is_err()
+    );
     assert!(w.app.leaderboard("all", "all").await.unwrap().is_empty());
 }
 #[tokio::test]
@@ -649,6 +661,12 @@ async fn superseded_pending_attempts_are_terminal_private_and_not_requeued() {
     assert!(private.reason.unwrap().contains("current target"));
     assert!(private.receipt.is_none());
     assert!(w.app.attempt(None, &attempt.id).await.is_err());
+    assert!(
+        w.app
+            .verification_bundle(&record, &"C1".into(), &attempt.id)
+            .await
+            .is_err()
+    );
     w.app.verify_attempt(&r, &attempt.id).await.unwrap();
     assert!(w.app.leaderboard("all", "all").await.unwrap().is_empty());
 }
@@ -1492,6 +1510,12 @@ async fn project_deposits_bind_all_modules_and_public_directory_checks_current_v
         .await
         .unwrap();
     assert_eq!(attempt.modules, body.modules);
+    assert!(
+        w.app
+            .verification_bundle(&record, &"C1".into(), &attempt.id)
+            .await
+            .is_err()
+    );
     let query = || crate::app::FormalizationQuery {
         status: Some("open".into()),
         ..Default::default()
@@ -1530,6 +1554,30 @@ async fn project_deposits_bind_all_modules_and_public_directory_checks_current_v
         lean_solution_digest(&body.solution, &body.modules)
     );
     assert_eq!(proof.modules, body.modules);
+    let bundle = w
+        .app
+        .verification_bundle(&record, &"C1".into(), &attempt.id)
+        .await
+        .unwrap();
+    assert_eq!(bundle.verification_request.modules, body.modules);
+    assert_eq!(bundle.verification_request.target, confirmed.lean);
+    assert_eq!(
+        bundle.attempt.receipt.solution_digest,
+        lean_solution_digest(
+            &bundle.verification_request.solution,
+            &bundle.verification_request.modules
+        )
+    );
+    assert_eq!(
+        bundle.source_sha256,
+        paper.current_version().unwrap().archive.sha256
+    );
+    assert!(
+        w.app
+            .verification_bundle(&record, &"C1".into(), "missing")
+            .await
+            .is_err()
+    );
     let mut changed = body.clone();
     changed
         .modules
@@ -1559,6 +1607,12 @@ async fn project_deposits_bind_all_modules_and_public_directory_checks_current_v
             .is_empty()
     );
     assert!(w.app.attempt(None, &attempt.id).await.is_err());
+    assert!(
+        w.app
+            .verification_bundle(&record, &"C1".into(), &attempt.id)
+            .await
+            .is_err()
+    );
     for name in [
         "../Escape",
         "Target",

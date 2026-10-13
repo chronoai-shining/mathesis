@@ -32,6 +32,8 @@ fn report(stage: Stage, outcome: Outcome, payload: StagePayload, human: bool) ->
 fn paper(claims: Vec<Claim>) -> Submission {
     let now = Utc::now();
     let mut s = Submission {
+        purpose: Default::default(),
+        review_scope: Default::default(),
         processing_consent: None,
         problem_check_requested: false,
         conjecture_dependencies: vec![],

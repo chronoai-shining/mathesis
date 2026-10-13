@@ -7,8 +7,12 @@ Start with **Papers** to discover research or **Formalizations** to contribute a
 proof. Lean projects can carry up to 32 supporting modules, original authors,
 formalization contributors, source references and a Git revision.
 
-A venue for mathematicians' own papers, short notes and conjectures, with one
-submission entry and one pipeline: GPT Pro referee → Codex audit → automatic
+Choose **Private review** to receive Orchestra feedback without applying for
+publication. Evidence, author responses and successive reviews remain bound to
+source versions; download a readable report or use the same operations by API/MCP.
+Public verified Lean attempts offer a complete JSON verification bundle.
+
+Publication submissions of papers, short notes and conjectures follow: GPT Pro referee → Codex audit → automatic
 decision → immediate public display → private letter → Lean.
 
 - **Submit.** Upload `.tex`, `.zip` or `.tar.gz` for any kind. Conjectures also

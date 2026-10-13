@@ -281,6 +281,10 @@ export interface ApiClient {
   proposeFormalization(id: string, claim: string, reason: string): Promise<Submission>;
   updateConjecture(id: string, claim: string, state: ConjectureState): Promise<Submission>;
   generateTasks(id: string): Promise<TaskGeneration>;
+  respondToFinding(
+    id: string,
+    response: import('./types').NewFindingResponse,
+  ): Promise<RefereeFile>;
   restartReferee(id: string): Promise<RefereeFile>;
   sendFeedback(id: string, letter: SendFeedback): Promise<FeedbackLetter>;
 
@@ -449,6 +453,7 @@ export function createApiClient(fetchImpl: FetchLike = (input, init) => fetch(in
     updateConjecture: (id, claim, state) =>
       request('PUT', sub(id, `/conjectures/${seg(claim)}`), { state }),
     generateTasks: (id) => request('POST', sub(id, '/tasks')),
+    respondToFinding: (id, response) => request('POST', sub(id, '/review/responses'), response),
     restartReferee: (id) => request('POST', sub(id, '/referee/restart')),
     sendFeedback: (id, letter) => request('POST', sub(id, '/referee/letters'), letter),
 

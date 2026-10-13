@@ -14,17 +14,24 @@ export function SubmitPage({
   initialIntake,
   targetRecord,
   targetClaim,
-}: { initialIntake?: 'lean'; targetRecord?: string; targetClaim?: string } = {}) {
-  const [intake, setIntake] = useState<'research' | 'lean'>(initialIntake ?? 'research');
+}: { initialIntake?: 'lean' | 'review'; targetRecord?: string; targetClaim?: string } = {}) {
+  const [intake, setIntake] = useState<'research' | 'lean' | 'review'>(initialIntake ?? 'research');
   const { session, person } = useSession();
   return (
     <div className="page narrow-page">
       <header className="page-head">
         <div>
-          <h1>{intake === 'lean' ? 'Contribute a formalization' : 'Submit your work'}</h1>
+          <h1>
+            {intake === 'lean'
+              ? 'Contribute a formalization'
+              : intake === 'review'
+                ? 'Request a private review'
+                : 'Submit your work'}
+          </h1>
           <p className="lede">
-            Share research or contribute a Lean proof. Orchestra supports research review and deep
-            reasoning; independent Lean verification checks formal proofs.
+            {intake === 'review'
+              ? 'Submit a manuscript for private Orchestra feedback. Check arguments, examine prior work, and follow up on specific findings.'
+              : 'Share research or contribute a Lean proof. Orchestra supports research review and deep reasoning; independent Lean verification checks formal proofs.'}
           </p>
           <p className="small">
             <Link to={{ kind: 'policy' }}>How work is reviewed</Link>
@@ -36,6 +43,13 @@ export function SubmitPage({
         <SignInPrompt what="submit your work" />
       ) : null}
       <div className="button-row" role="group" aria-label="Submission type">
+        <button
+          className={`button ${intake === 'review' ? '' : 'button-quiet'}`}
+          aria-pressed={intake === 'review'}
+          onClick={() => setIntake('review')}
+        >
+          Private review
+        </button>
         <button
           className={`button ${intake === 'research' ? '' : 'button-quiet'}`}
           aria-pressed={intake === 'research'}
@@ -52,8 +66,8 @@ export function SubmitPage({
         </button>
       </div>
       {person ? (
-        intake === 'research' ? (
-          <SubmitForm />
+        intake !== 'lean' ? (
+          <SubmitForm key={intake} reviewOnly={intake === 'review'} />
         ) : (
           <LeanDepositForm targetRecord={targetRecord} targetClaim={targetClaim} />
         )
@@ -62,9 +76,10 @@ export function SubmitPage({
   );
 }
 
-export function SubmitForm() {
+export function SubmitForm({ reviewOnly = false }: { reviewOnly?: boolean } = {}) {
   const api = useApi();
   const { person } = useSession();
+  const [reviewScope, setReviewScope] = useState('');
   const [kind, setKind] = useState<SubmissionKind>('paper');
   const [mode, setMode] = useState<'upload' | 'type'>('upload');
   const [consent, setConsent] = useState(false);
@@ -109,7 +124,9 @@ export function SubmitForm() {
     }
     metadata.value.processing_consent = PROCESSING_CONSENT_VERSION;
     metadata.value.kind = kind;
-    metadata.value.make_public_after_acceptance = makePublic;
+    metadata.value.purpose = reviewOnly ? 'review_only' : 'publication';
+    metadata.value.review_scope = reviewScope;
+    metadata.value.make_public_after_acceptance = !reviewOnly && makePublic;
     if (typed) {
       if (!title.trim() || !statement.trim() || !authorName.trim()) {
         setError('Give a title, statement and author name.');
@@ -137,6 +154,28 @@ export function SubmitForm() {
 
   return (
     <form className="form" onSubmit={submit} aria-label="Submit work" noValidate>
+      {reviewOnly ? (
+        <div className="notice notice-info">
+          <strong>Private research feedback</strong>
+          <p>
+            Get your arguments checked without applying for publication. Your manuscript and review
+            remain available only to you, linked co-authors and review staff.
+          </p>
+        </div>
+      ) : null}
+      <Field
+        label="What should the review focus on? (optional)"
+        htmlFor="review-scope"
+        hint="Name the statements, proof steps or literature questions that matter most. All confirmed statements still receive an audit reading."
+      >
+        <textarea
+          id="review-scope"
+          maxLength={5000}
+          rows={3}
+          value={reviewScope}
+          onChange={(e) => setReviewScope(e.target.value)}
+        />
+      </Field>
       <fieldset className="submission-choices">
         <legend>What are you sharing?</legend>
         {(['paper', 'note', 'conjecture'] as const).map((value) => (
@@ -256,14 +295,16 @@ export function SubmitForm() {
           ) : null}
         </>
       )}
-      <label className="checkbox">
-        <input
-          type="checkbox"
-          checked={makePublic}
-          onChange={(e) => setMakePublic(e.target.checked)}
-        />
-        <span>Make public after acceptance</span>
-      </label>
+      {!reviewOnly ? (
+        <label className="checkbox">
+          <input
+            type="checkbox"
+            checked={makePublic}
+            onChange={(e) => setMakePublic(e.target.checked)}
+          />
+          <span>Make public after acceptance</span>
+        </label>
+      ) : null}
       <p className="hint">Reviews and letters are only shown to you.</p>
 
       <fieldset className="radio-list">
@@ -310,17 +351,19 @@ export function SubmitForm() {
         </Field>
       </div>
 
-      <label className="checkbox">
-        <input
-          type="checkbox"
-          checked={openToContributors}
-          onChange={(e) => setOpen(e.target.checked)}
-        />
-        <span>
-          Let volunteer contributors help analyse the paper. They will see the statements, the title
-          and the abstract while the paper is in review. You can change this later.
-        </span>
-      </label>
+      {!reviewOnly ? (
+        <label className="checkbox">
+          <input
+            type="checkbox"
+            checked={openToContributors}
+            onChange={(e) => setOpen(e.target.checked)}
+          />
+          <span>
+            Let volunteer contributors help analyse the paper. They will see the statements, the
+            title and the abstract while the paper is in review. You can change this later.
+          </span>
+        </label>
+      ) : null}
 
       <label className="checkbox">
         <input

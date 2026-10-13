@@ -205,6 +205,8 @@ impl App {
         let now = self.ports.clock.now();
         let version = self.new_version(1, &upload, &read, String::new()).await?;
         let submission = Submission {
+            purpose: new.purpose,
+            review_scope: new.review_scope,
             processing_consent: Some(ProcessingConsent {
                 version: AI_PROCESSING_CONSENT_VERSION.into(),
                 at: now,
@@ -229,7 +231,9 @@ impl App {
             status: SubmissionStatus::Draft,
             decision: None,
             open_to_contributors: new.open_to_contributors,
-            analysis_visibility: if new.make_public_after_acceptance {
+            analysis_visibility: if new.purpose == SubmissionPurpose::Publication
+                && new.make_public_after_acceptance
+            {
                 Visibility::Public
             } else {
                 Visibility::Private
@@ -377,7 +381,8 @@ impl App {
         }
         submission.status = SubmissionStatus::InReview;
         let endorsements = self.ports.endorsements.for_submission(id).await?;
-        submission.decision = Some(self.policy.decide(&submission, &endorsements));
+        submission.decision = (submission.purpose == SubmissionPurpose::Publication)
+            .then(|| self.policy.decide(&submission, &endorsements));
         self.save(&mut submission).await?;
         if let Some(stage) = self.policy.next_machine_stage(&submission) {
             self.ports.queue.enqueue(id, JobKind::Stage(stage)).await?;
@@ -415,6 +420,7 @@ impl App {
             submission.status,
             SubmissionStatus::Draft
                 | SubmissionStatus::InReview
+                | SubmissionStatus::ReviewComplete
                 | SubmissionStatus::NotAccepted
                 | SubmissionStatus::Accepted { .. }
         ) {
@@ -460,7 +466,9 @@ impl App {
         }
         if matches!(
             submission.status,
-            SubmissionStatus::NotAccepted | SubmissionStatus::Accepted { .. }
+            SubmissionStatus::ReviewComplete
+                | SubmissionStatus::NotAccepted
+                | SubmissionStatus::Accepted { .. }
         ) {
             let active = self.ports.submissions.active_count(&caller.person).await?;
             if active as usize >= self.policy.max_active_per_author {
@@ -558,6 +566,11 @@ impl App {
     ) -> CoreResult<Submission> {
         let mut submission = self.load(id).await?;
         Self::require_submitter(caller, &submission)?;
+        if submission.purpose == SubmissionPurpose::ReviewOnly && open {
+            return Err(CoreError::invalid(
+                "private review requests cannot invite public contributors",
+            ));
+        }
         submission.open_to_contributors = open;
         self.save(&mut submission).await?;
         if open {
@@ -698,7 +711,8 @@ impl App {
             });
             let endorsements = self.ports.endorsements.for_submission(id).await?;
             if submission.status != SubmissionStatus::Draft {
-                submission.decision = Some(self.policy.decide(&submission, &endorsements));
+                submission.decision = (submission.purpose == SubmissionPurpose::Publication)
+                    .then(|| self.policy.decide(&submission, &endorsements));
             }
         }
         self.save(&mut submission).await?;

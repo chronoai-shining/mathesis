@@ -60,6 +60,8 @@ fn uuid_like() -> String {
 
 fn submission(id: &str, submitter: &str, status: SubmissionStatus) -> Submission {
     Submission {
+        purpose: Default::default(),
+        review_scope: Default::default(),
         processing_consent: None,
         problem_check_requested: false,
         conjecture_dependencies: vec![],
@@ -292,6 +294,8 @@ async fn paper_flow_against_mongo() {
     let helper = caller("helper", &[]).await;
 
     let new = NewPaper {
+        purpose: Default::default(),
+        review_scope: Default::default(),
         processing_consent: Some("ai-review-2026-10-11".into()),
         kind: mathesis_core::model::SubmissionKind::Paper,
         make_public_after_acceptance: true,

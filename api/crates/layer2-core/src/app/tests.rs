@@ -100,6 +100,8 @@ impl World {
         doi: Option<&str>,
     ) -> Submission {
         let new = NewPaper {
+            purpose: Default::default(),
+            review_scope: Default::default(),
             processing_consent: Some("ai-review-2026-10-11".into()),
             kind: crate::model::SubmissionKind::Paper,
             make_public_after_acceptance: true,
@@ -614,6 +616,8 @@ async fn authority_and_limits() {
     w.submit(&author, "t", false).await;
     w.submit(&author, "t", false).await;
     let new = NewPaper {
+        purpose: Default::default(),
+        review_scope: Default::default(),
         processing_consent: Some("ai-review-2026-10-11".into()),
         kind: crate::model::SubmissionKind::Paper,
         make_public_after_acceptance: true,

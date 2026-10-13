@@ -137,3 +137,201 @@ async fn portable_review_preserves_provenance_and_author_only_access() {
         serde_json::to_value(staff_report).unwrap()
     );
 }
+
+#[tokio::test]
+async fn private_review_has_no_publication_and_retains_evidence_through_revisions() {
+    let w = World::new().await;
+    let author = w.person("review-author", &[]).await;
+    let stranger = w.person("stranger", &[]).await;
+    let reviewer = w.person("reviewer", &[Role::Reviewer, Role::Editor]).await;
+    let new: NewPaper = serde_json::from_value(serde_json::json!({
+        "purpose":"review_only", "review_scope":"Check the boundary case and the main argument.",
+        "processing_consent":AI_PROCESSING_CONSENT_VERSION,
+        "ai_disclosure":{"level":"none","statement":"No AI."},
+        "make_public_after_acceptance":true
+    }))
+    .unwrap();
+    let draft = w
+        .app
+        .submit_paper(
+            &author,
+            new,
+            Upload {
+                filename: "t.tex".into(),
+                bytes: b"source v1".to_vec(),
+            },
+        )
+        .await
+        .unwrap();
+    assert_eq!(draft.analysis_visibility, Visibility::Private);
+    assert!(
+        w.app
+            .set_open_to_contributors(&author, &draft.id, true)
+            .await
+            .is_err()
+    );
+    let paper = w.review_paper(&author, &draft).await;
+    assert!(paper.decision.is_none());
+    w.app
+        .begin_referee_round(&reviewer, &paper.id)
+        .await
+        .unwrap();
+    w.app
+        .update_referee_round(
+            &reviewer,
+            &paper.id,
+            1,
+            RoundUpdate::Referee(done_step(referee_report(Some(Recommendation::Reject)))),
+        )
+        .await
+        .unwrap();
+    // A known/bind-only result is still a successful review service.
+    let mut audit = audit_for(
+        &paper,
+        Recommendation::MajorRevision,
+        Correctness::Gap,
+        ProofShape::BindOnly,
+        Some("Known theorem".into()),
+    );
+    audit.concerns.push(AuditedConcern {
+        concern: "Boundary hypothesis is missing".into(),
+        status: ConcernStatus::Confirmed,
+        note: "Include the zero case.".into(),
+        evidence: "At n = 0 the left side is 0 and the claimed lower bound is 1.".into(),
+        basis: "offline".into(),
+        location: "Theorem 1, final inequality".into(),
+    });
+    let reviewed = audited(&w, &reviewer, &paper, audit).await;
+    assert_eq!(reviewed.status, SubmissionStatus::ReviewComplete);
+    assert!(reviewed.decision.is_none());
+    assert!(
+        w.app
+            .ports
+            .records
+            .for_submission(&paper.id)
+            .await
+            .unwrap()
+            .is_none()
+    );
+    assert!(w.app.decide(&reviewer, &paper.id).await.is_err());
+    assert!(
+        w.app
+            .set_analysis_visibility(&author, &paper.id, Visibility::Public)
+            .await
+            .is_err()
+    );
+    assert!(matches!(
+        w.app.review_report(&stranger, &paper.id).await,
+        Err(CoreError::NotFound { .. })
+    ));
+    for update in [
+        RoundUpdate::Advice(done_step(Advice {
+            summary: "Fix the zero case.".into(),
+            improvements: vec![],
+            formalization: vec![],
+        })),
+        RoundUpdate::Letter(done_step(LetterDraft {
+            subject: "Private review".into(),
+            body: "Dear Author,\n\nPlease include the boundary case.".into(),
+            note: String::new(),
+        })),
+        RoundUpdate::Formal(Step {
+            state: StepState::Skipped {
+                reason: "Review-only service".into(),
+            },
+            ..Step::pending()
+        }),
+    ] {
+        w.app
+            .update_referee_round(&reviewer, &paper.id, 1, update)
+            .await
+            .unwrap();
+    }
+    let report = w.app.review_report(&author, &paper.id).await.unwrap();
+    assert!(report.markdown().contains("left side is 0"));
+    assert_eq!(
+        report.review.rounds[0].source_sha256,
+        paper.current_version().unwrap().archive.sha256
+    );
+    assert!(
+        report.review.letters[0]
+            .body
+            .contains("private Orchestra review is complete")
+    );
+    assert!(!report.review.letters[0].body.contains("not accepted"));
+    assert!(report.review.rounds[0].advice.is_none());
+    let new = NewFindingResponse {
+        round: 1,
+        concern: 0,
+        version: 1,
+        claims_revision: paper.claims_revision,
+        body: "The zero case is covered by the displayed convention; please check it.".into(),
+    };
+    assert!(
+        w.app
+            .respond_to_finding(&stranger, &paper.id, new.clone())
+            .await
+            .is_err()
+    );
+    let responded = w
+        .app
+        .respond_to_finding(&author, &paper.id, new.clone())
+        .await
+        .unwrap();
+    let replay = w
+        .app
+        .respond_to_finding(&author, &paper.id, new)
+        .await
+        .unwrap();
+    assert_eq!(responded.finding_responses, replay.finding_responses);
+    assert_eq!(replay.finding_responses.len(), 1);
+    let round2 = w
+        .app
+        .begin_referee_round(&reviewer, &paper.id)
+        .await
+        .unwrap();
+    assert_eq!(round2.current().unwrap().number, 2);
+    assert!(
+        w.app
+            .recheck_evidence(&reviewer, &paper.id)
+            .await
+            .unwrap()
+            .contains("displayed convention")
+    );
+    assert!(round2.current().unwrap().audit.done().is_none());
+    w.app.reconcile_private_rechecks().await.unwrap();
+    let revised = w
+        .app
+        .upload_version(
+            &author,
+            &paper.id,
+            Upload {
+                filename: "t.tex".into(),
+                bytes: b"source v2".to_vec(),
+            },
+            "Explain zero case".into(),
+            Some(AI_PROCESSING_CONSENT_VERSION.into()),
+        )
+        .await
+        .unwrap();
+    assert_eq!(revised.status, SubmissionStatus::Draft);
+    assert!(
+        w.app
+            .respond_to_finding(
+                &author,
+                &paper.id,
+                NewFindingResponse {
+                    round: 1,
+                    concern: 0,
+                    version: 1,
+                    claims_revision: paper.claims_revision,
+                    body: "stale".into()
+                }
+            )
+            .await
+            .is_err()
+    );
+    let report = w.app.review_report(&author, &paper.id).await.unwrap();
+    assert_ne!(report.source_sha256, report.review.rounds[0].source_sha256);
+    assert!(report.markdown().contains("Author response on version 1"));
+}

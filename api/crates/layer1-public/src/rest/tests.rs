@@ -805,3 +805,81 @@ async fn project_export_preserves_sources_and_never_exposes_private_deposits() {
         StatusCode::UNPROCESSABLE_ENTITY
     );
 }
+
+#[tokio::test]
+async fn private_review_reports_are_downloadable_only_by_author_and_responses_are_fenced() {
+    let app = router();
+    let metadata = serde_json::json!({"purpose":"review_only", "review_scope":"Boundary cases", "make_public_after_acceptance":true, "processing_consent":"ai-review-2026-10-11", "ai_disclosure":{"level":"none","statement":"None."}}).to_string();
+    let body = multipart(&[
+        ("metadata", None, metadata.as_bytes()),
+        ("source", Some("paper.tex"), b"source"),
+    ]);
+    let request = Request::builder()
+        .method("POST")
+        .uri("/submissions")
+        .header("x-test-subject", "author")
+        .header(
+            header::CONTENT_TYPE,
+            format!("multipart/form-data; boundary={BOUNDARY}"),
+        )
+        .body(Body::from(body))
+        .unwrap();
+    let (status, paper, _) = send(&app, request).await;
+    assert_eq!(status, StatusCode::CREATED);
+    assert_eq!(paper["purpose"], "review_only");
+    assert_eq!(paper["analysis_visibility"], "private");
+    let id = paper["id"].as_str().unwrap();
+    let report = call(
+        &app,
+        "GET",
+        &format!("/submissions/{id}/review"),
+        Some("author"),
+        None,
+    )
+    .await
+    .1;
+    assert_eq!(report["schema_version"], 2);
+    assert_eq!(report["review_scope"], "Boundary cases");
+    let path = format!("/submissions/{id}/review.md");
+    let request = Request::builder()
+        .uri(&path)
+        .header("x-test-subject", "author")
+        .body(Body::empty())
+        .unwrap();
+    let response = app.clone().oneshot(request).await.unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(
+        response.headers()[header::CACHE_CONTROL],
+        "private, no-store"
+    );
+    assert_eq!(
+        response.headers()[header::CONTENT_TYPE],
+        "text/markdown; charset=utf-8"
+    );
+    let bytes = axum::body::to_bytes(response.into_body(), 1 << 20)
+        .await
+        .unwrap();
+    assert!(
+        std::str::from_utf8(&bytes)
+            .unwrap()
+            .contains("Boundary cases")
+    );
+    assert_eq!(
+        call(&app, "GET", &path, Some("stranger"), None).await.0,
+        StatusCode::NOT_FOUND
+    );
+    let path = format!("/submissions/{id}/review/responses");
+    let body = serde_json::json!({"round":1,"concern":0,"version":1,"claims_revision":0,"body":"Please recheck."});
+    assert_eq!(
+        call(&app, "POST", &path, Some("stranger"), Some(body.clone()))
+            .await
+            .0,
+        StatusCode::NOT_FOUND
+    );
+    assert_eq!(
+        call(&app, "POST", &path, Some("author"), Some(body))
+            .await
+            .0,
+        StatusCode::CONFLICT
+    );
+}

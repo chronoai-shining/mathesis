@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { ReviewFindings } from './ReviewFindings';
 import { useApi } from '../api/context';
 import type { RefereeResource } from '../api/useReferee';
 import type {
@@ -81,8 +82,8 @@ export function RefereeWorkspace(props: WorkspaceProps & { resource: RefereeReso
                     : 'Confirm your statements to start the review.'}
                 </p>
                 <p className="small muted">
-                  Your review checks the argument, examines prior work and identifies gaps. Deep
-                  reasoning and formalization follow the reviewed statements.
+                  Your review checks the argument, examines prior work and identifies gaps. Respond
+                  to a finding below to request a recheck against your confirmed source.
                 </p>
                 <a
                   className="button button-quiet button-small"
@@ -90,11 +91,42 @@ export function RefereeWorkspace(props: WorkspaceProps & { resource: RefereeReso
                 >
                   Download review report
                 </a>
+                <a
+                  className="text-link"
+                  href={`/api/v1/submissions/${encodeURIComponent(submission.id)}/review.md`}
+                >
+                  Download readable report
+                </a>
+                <ReviewFindings submission={submission} file={file} onChange={resource.replace} />
                 {file.letters.length > 0 ? <SentLetters letters={file.letters} authorView /> : null}
                 {current?.audit?.state.state === 'done' ? (
                   <details className="history">
                     <summary>Statement audit</summary>
                     <AuditView audit={current.audit.state.result} />
+                  </details>
+                ) : null}
+                {file.rounds.filter((r) => r.number !== current?.number).length ? (
+                  <details className="history">
+                    <summary>Earlier review rounds</summary>
+                    {[...file.rounds]
+                      .reverse()
+                      .filter((r) => r.number !== current?.number)
+                      .map((round) => (
+                        <section key={round.number}>
+                          <h3>
+                            Round {round.number} · source version {round.version}
+                          </h3>
+                          {round.audit?.state.state === 'done' ? (
+                            <AuditView audit={round.audit.state.result} />
+                          ) : null}
+                          {round.referee.state.state === 'done' ? (
+                            <ReportView
+                              report={round.referee.state.result}
+                              submission={submission}
+                            />
+                          ) : null}
+                        </section>
+                      ))}
                   </details>
                 ) : null}
                 {current?.referee.state.state === 'done' ? (
@@ -128,6 +160,7 @@ export function RefereeWorkspace(props: WorkspaceProps & { resource: RefereeReso
               <p className="review-status" role="status">
                 {current ? roundStatus(current, sent) : 'No review has started.'}
               </p>
+              <ReviewFindings submission={submission} file={file} onChange={resource.replace} />
               {current ? (
                 <RoundView
                   key={current.number}
@@ -516,7 +549,9 @@ function AuditView({ audit }: { audit: RefereeAudit }) {
           <li key={i}>
             <strong>{c.status}</strong>
             <p>{c.concern}</p>
-            <p>{c.note}</p>
+            <Markdown text={c.note} />
+            {c.location ? <p>Reported location: {c.location}</p> : null}
+            {c.evidence ? <Markdown text={c.evidence} /> : null}
           </li>
         ))}
       </ul>
