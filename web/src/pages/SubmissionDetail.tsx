@@ -223,8 +223,6 @@ export function Workspace({
           />
         ) : null}
 
-        {s.submitter === person?.id ? <MyCma /> : null}
-        {isStaff || isAuthor ? <CmaHistory attempts={referee.value?.cma_attempts ?? []} /> : null}
         {state === 'draft' ? <DraftNotice submission={s} /> : null}
         {state === 'draft' && isAuthor ? (
           <section aria-labelledby="confirm-h">
@@ -302,10 +300,16 @@ export function Workspace({
           </Fold>
 
           <VersionsSection submission={s} />
+          {isAuthor || isStaff ? (
+            <Fold id="compute-h" title="Advanced: compute settings and history">
+              {s.submitter === person?.id ? <MyCma /> : null}
+              <CmaHistory attempts={referee.value?.cma_attempts ?? []} />
+            </Fold>
+          ) : null}
 
           {isAuthor ? (
             <Fold id="settings-h" title="Settings">
-              {state !== 'withdrawn' && state !== 'not_accepted' ? (
+              {s.purpose !== 'review_only' && state !== 'withdrawn' && state !== 'not_accepted' ? (
                 <ContributorsToggle submission={s} onChange={onChange} />
               ) : null}
               {state === 'draft' || (state === 'in_review' && !showRevisionForm) ? (

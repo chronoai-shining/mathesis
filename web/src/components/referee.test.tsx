@@ -878,10 +878,14 @@ it('shows private review completion without requesting a publication decision', 
     decision: undefined,
   });
   expect(await screen.findByText('Your private review is ready')).toBeInTheDocument();
-  expect(screen.getByRole('link', { name: 'Download readable report' })).toHaveAttribute(
+  expect(await screen.findByRole('link', { name: 'Download readable report' })).toHaveAttribute(
     'href',
     `/api/v1/submissions/${submission.id}/review.md`,
   );
   expect(screen.queryByRole('heading', { name: 'Publication decision' })).toBeNull();
   expect(previewDecision).not.toHaveBeenCalled();
+  expect(screen.queryByText(/Volunteer contributors may help analyse/)).toBeNull();
+  expect(
+    screen.getByText('Advanced: compute settings and history').closest('details'),
+  ).not.toHaveAttribute('open');
 });

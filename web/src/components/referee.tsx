@@ -85,18 +85,20 @@ export function RefereeWorkspace(props: WorkspaceProps & { resource: RefereeReso
                   Your review checks the argument, examines prior work and identifies gaps. Respond
                   to a finding below to request a recheck against your confirmed source.
                 </p>
-                <a
-                  className="button button-quiet button-small"
-                  href={`/api/v1/submissions/${encodeURIComponent(submission.id)}/review`}
-                >
-                  Download review report
-                </a>
-                <a
-                  className="text-link"
-                  href={`/api/v1/submissions/${encodeURIComponent(submission.id)}/review.md`}
-                >
-                  Download readable report
-                </a>
+                <div className="button-row">
+                  <a
+                    className="button button-quiet button-small"
+                    href={`/api/v1/submissions/${encodeURIComponent(submission.id)}/review`}
+                  >
+                    Download review report
+                  </a>
+                  <a
+                    className="text-link"
+                    href={`/api/v1/submissions/${encodeURIComponent(submission.id)}/review.md`}
+                  >
+                    Download readable report
+                  </a>
+                </div>
                 <ReviewFindings submission={submission} file={file} onChange={resource.replace} />
                 {file.letters.length > 0 ? <SentLetters letters={file.letters} authorView /> : null}
                 {current?.audit?.state.state === 'done' ? (

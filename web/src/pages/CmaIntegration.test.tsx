@@ -85,6 +85,11 @@ describe('Optional own agents in pages', () => {
         expect(referee).not.toHaveBeenCalled();
         expect(screen.queryByRole('region', { name: 'Who ran each step' })).toBeNull();
       } else {
+        const advanced = screen
+          .getByText('Advanced: compute settings and history')
+          .closest('details');
+        expect(advanced).not.toHaveAttribute('open');
+        await userEvent.click(screen.getByText('Advanced: compute settings and history'));
         expect(await screen.findByRole('region', { name: 'Who ran each step' })).toHaveTextContent(
           'Codex audit · Your agents · running',
         );
