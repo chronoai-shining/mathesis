@@ -276,6 +276,11 @@ pub struct Ports {
 
 #[async_trait]
 pub trait SolvingStore: Send + Sync {
+    async fn list_admitted(
+        &self,
+        limit: u32,
+        before: Option<String>,
+    ) -> CoreResult<Listing<crate::model::SolveFile>>;
     async fn report_files(&self) -> CoreResult<Vec<crate::model::ErrorReportFile>>;
     async fn insert_report_file(&self, file: &crate::model::ErrorReportFile) -> CoreResult<()>;
     async fn replace_report_file(

@@ -59,7 +59,7 @@ export function Header() {
       <div className="site-header-inner">
         <Link to={{ kind: 'home' }} className="wordmark">
           <BrandMark />
-          wishpool
+          Mathesis
         </Link>
         <nav className="site-nav" aria-label="Main">
           <NavLink
@@ -71,6 +71,11 @@ export function Header() {
             to={{ kind: 'conjectures' }}
             label="Conjectures"
             active={k === 'conjectures' || k === 'conjecture'}
+          />
+          <NavLink
+            to={{ kind: 'formalizations' }}
+            label="Formalizations"
+            active={k === 'formalizations' || k === 'statement'}
           />
           <NavLink to={{ kind: 'submit' }} label="Submit" active={k === 'submit'} />
           {person ? (

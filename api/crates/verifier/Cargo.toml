@@ -1,5 +1,5 @@
 [package]
-name = "wishpool-verifier"
+name = "mathesis-verifier"
 description = "Stateless, credential-free Lean solution checker"
 version.workspace = true
 edition.workspace = true

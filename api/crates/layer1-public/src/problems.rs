@@ -7,8 +7,8 @@ use axum::{
     http::{HeaderValue, StatusCode, header},
     response::{IntoResponse, Response},
 };
+use mathesis_core::CoreError;
 use serde::Serialize;
-use wishpool_core::CoreError;
 
 const PROBLEM_BASE: &str = "urn:wishpool:problem";
 

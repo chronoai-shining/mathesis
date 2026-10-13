@@ -29,7 +29,20 @@ impl App {
             .blobs
             .put(new.solution.as_bytes(), "text/plain; charset=utf-8")
             .await?;
+        let mut modules = std::collections::BTreeMap::new();
+        for (name, text) in &new.modules {
+            modules.insert(
+                name.clone(),
+                self.ports
+                    .blobs
+                    .put(text.as_bytes(), "text/plain; charset=utf-8")
+                    .await?,
+            );
+        }
         let deposit = LeanDeposit {
+            modules,
+            formalizers: new.formalizers,
+            source_revision: new.source_revision,
             id: id.clone(),
             owner: caller.person.clone(),
             title: new.title,
@@ -84,12 +97,51 @@ impl App {
         String::from_utf8(bytes)
             .map_err(|_| CoreError::Unavailable("stored Lean source is not UTF-8".into()))
     }
+    pub async fn lean_deposit_modules(
+        &self,
+        caller: &Caller,
+        id: &str,
+    ) -> CoreResult<std::collections::BTreeMap<String, String>> {
+        let deposit = self.lean_deposit(caller, id).await?;
+        self.lean_module_sources(&deposit.modules).await
+    }
+    pub(crate) async fn lean_module_sources(
+        &self,
+        modules: &std::collections::BTreeMap<String, BlobRef>,
+    ) -> CoreResult<std::collections::BTreeMap<String, String>> {
+        let mut sources = std::collections::BTreeMap::new();
+        for (name, blob) in modules {
+            let bytes = self
+                .ports
+                .blobs
+                .get(&blob.id)
+                .await?
+                .ok_or_else(|| CoreError::Unavailable("Lean module is missing".into()))?;
+            sources.insert(
+                name.clone(),
+                String::from_utf8(bytes)
+                    .map_err(|_| CoreError::Unavailable("Lean module is not UTF-8".into()))?,
+            );
+        }
+        Ok(sources)
+    }
     pub async fn verify_lean_deposit(
         &self,
         caller: &Caller,
         id: &str,
         record: &RecordId,
         claim: &ClaimId,
+    ) -> CoreResult<AttemptView> {
+        self.verify_lean_deposit_against(caller, id, record, claim, None)
+            .await
+    }
+    pub async fn verify_lean_deposit_against(
+        &self,
+        caller: &Caller,
+        id: &str,
+        record: &RecordId,
+        claim: &ClaimId,
+        expected_target: Option<&str>,
     ) -> CoreResult<AttemptView> {
         let deposit = self.lean_deposit(caller, id).await?;
         if deposit.owner != caller.person {
@@ -98,13 +150,21 @@ impl App {
             ));
         }
         let target = self.target(record, claim).await?;
+        if expected_target.is_some_and(|digest| digest != target.digest) {
+            return Err(CoreError::conflict(
+                "target changed; review the current target before verification",
+            ));
+        }
         if target.toolchain != deposit.toolchain {
             return Err(CoreError::invalid(
                 "deposit toolchain must match the confirmed target toolchain",
             ));
         }
         let source = self.lean_deposit_source(caller, id).await?;
+        let modules = self.lean_deposit_modules(caller, id).await?;
         let attribution = FormalizationAttribution {
+            formalizers: deposit.formalizers.clone(),
+            source_revision: deposit.source_revision.clone(),
             deposit: id.into(),
             authors: deposit.authors.clone(),
             source_reference: deposit.source_reference.clone(),
@@ -118,6 +178,7 @@ impl App {
                 super::solving::AttemptInput {
                     expected_target: Some(target.digest),
                     solution: source,
+                    modules,
                     as_agent: None,
                     note: format!("Formalization deposit {id}"),
                     attribution: Some(attribution),

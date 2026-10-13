@@ -19,7 +19,7 @@ impl Verifier for FakeVerifier {
             },
             reason: "independent fake Lean boundary".into(),
             target_digest: r.target_digest.clone(),
-            solution_digest: format!("{:x}", sha2::Sha256::digest(r.solution.as_bytes())),
+            solution_digest: lean_solution_digest(&r.solution, &r.modules),
             toolchain: r.toolchain.clone(),
             axioms: vec!["propext".into()],
             checked_at: Utc::now()
@@ -286,7 +286,7 @@ async fn agents_are_owned_unique_renameable_retireable_and_share_one_board() {
     );
     assert!(
         w.app
-            .update_agent(&owner, &agent.id, Some("Wishpool-agent".into()), false)
+            .update_agent(&owner, &agent.id, Some("Mathesis-agent".into()), false)
             .await
             .is_err()
     );
@@ -1332,6 +1332,9 @@ async fn deposited_sources_preserve_authorship_and_use_only_independent_verifica
     let solver = w.person("depositor", &[]).await;
     let (_, record) = target(&w, &a, &r).await;
     let new = NewLeanDeposit {
+        modules: Default::default(),
+        formalizers: vec![],
+        source_revision: None,
         title: "Existing formalization".into(),
         authors: vec!["Original mathematician".into()],
         statement: "True".into(),
@@ -1434,6 +1437,210 @@ async fn deposited_sources_preserve_authorship_and_use_only_independent_verifica
     assert!(
         w.app
             .verify_lean_deposit(&solver, &d.id, &record, &"C1".into())
+            .await
+            .is_err()
+    );
+}
+
+#[tokio::test]
+async fn project_deposits_bind_all_modules_and_public_directory_checks_current_visibility() {
+    let w = world(20).await;
+    let author = w.person("author", &[]).await;
+    let reviewer = w.person("reviewer", &[Role::Reviewer]).await;
+    let owner = w.person("formalizer", &[]).await;
+    let (paper, record) = target(&w, &author, &reviewer).await;
+    let confirmed = w.app.target(&record, &"C1".into()).await.unwrap();
+    let body = NewLeanDeposit {
+        title: "Formalization project".into(), authors: vec!["Research author".into()], formalizers: vec!["Lean contributor".into()],
+        source_revision: Some("a".repeat(40)), statement: "True".into(),
+        source_reference: Source { kind: SourceKind::Url, locator: "https://example.org/commit/source".into(), year: None },
+        toolchain: confirmed.toolchain.clone(), license: "Apache-2.0".into(),
+        solution: "import Target\nimport Helpers\ntheorem wishpool_solution : wishpool_target_prop := helper".into(),
+        modules: std::collections::BTreeMap::from([("Helpers".into(), "import Mathlib\ntheorem helper : True := True.intro".into())]),
+    };
+    let deposit = w
+        .app
+        .submit_lean_deposit(&owner, body.clone())
+        .await
+        .unwrap();
+    assert_eq!(
+        w.app
+            .lean_deposit_modules(&owner, &deposit.id)
+            .await
+            .unwrap(),
+        body.modules
+    );
+    assert!(matches!(
+        w.app.lean_deposit_modules(&author, &deposit.id).await,
+        Err(CoreError::NotFound { .. })
+    ));
+    assert!(matches!(
+        w.app
+            .verify_lean_deposit_against(&owner, &deposit.id, &record, &"C1".into(), Some("stale"))
+            .await,
+        Err(CoreError::Conflict(_))
+    ));
+    let attempt = w
+        .app
+        .verify_lean_deposit_against(
+            &owner,
+            &deposit.id,
+            &record,
+            &"C1".into(),
+            Some(&confirmed.digest),
+        )
+        .await
+        .unwrap();
+    assert_eq!(attempt.modules, body.modules);
+    let query = || crate::app::FormalizationQuery {
+        status: Some("open".into()),
+        ..Default::default()
+    };
+    let open = w.app.formalization_opportunities(query()).await.unwrap();
+    assert_eq!(open.items.len(), 1);
+    assert_eq!(open.items[0].verified_count, 0);
+    assert!(open.items[0].attribution.is_none());
+    w.app.verify_attempt(&reviewer, &attempt.id).await.unwrap();
+    assert!(
+        w.app
+            .formalization_opportunities(query())
+            .await
+            .unwrap()
+            .items
+            .is_empty()
+    );
+    let published = w
+        .app
+        .formalization_opportunities(crate::app::FormalizationQuery::default())
+        .await
+        .unwrap();
+    assert_eq!(published.items[0].status, "verified");
+    assert_eq!(
+        published.items[0].attribution.as_ref().unwrap().formalizers,
+        body.formalizers
+    );
+    let proof = w
+        .app
+        .public_attempts(&record, &"C1".into())
+        .await
+        .unwrap()
+        .remove(0);
+    assert_eq!(
+        proof.receipt.solution_digest,
+        lean_solution_digest(&body.solution, &body.modules)
+    );
+    assert_eq!(proof.modules, body.modules);
+    let mut changed = body.clone();
+    changed
+        .modules
+        .get_mut("Helpers")
+        .unwrap()
+        .push_str("\n-- revised");
+    let next = w.app.submit_lean_deposit(&owner, changed).await.unwrap();
+    assert_ne!(next.id, deposit.id);
+    assert_ne!(
+        w.app
+            .verify_lean_deposit(&owner, &next.id, &record, &"C1".into())
+            .await
+            .unwrap()
+            .id,
+        attempt.id
+    );
+    w.app
+        .set_analysis_visibility(&author, &paper.id, Visibility::Private)
+        .await
+        .unwrap();
+    assert!(
+        w.app
+            .formalization_opportunities(Default::default())
+            .await
+            .unwrap()
+            .items
+            .is_empty()
+    );
+    assert!(w.app.attempt(None, &attempt.id).await.is_err());
+    for name in [
+        "../Escape",
+        "Target",
+        "Mathlib",
+        "A.B",
+        "a",
+        "/tmp/File",
+        "Helpers.lean",
+    ] {
+        let mut invalid = body.clone();
+        invalid.modules = std::collections::BTreeMap::from([(
+            name.into(),
+            "theorem ok : True := True.intro".into(),
+        )]);
+        assert!(
+            w.app.submit_lean_deposit(&owner, invalid).await.is_err(),
+            "{name}"
+        );
+    }
+}
+
+#[tokio::test]
+async fn formalization_directory_pages_and_excludes_unconfirmed_or_stale_targets() {
+    let w = world(20).await;
+    let author = w.person("author", &[]).await;
+    let reviewer = w.person("reviewer", &[Role::Reviewer]).await;
+    let mut records = vec![];
+    for _ in 0..3 {
+        records.push(target(&w, &author, &reviewer).await);
+    }
+    let mut seen = vec![];
+    let mut before = None;
+    loop {
+        let page = w
+            .app
+            .formalization_opportunities(crate::app::FormalizationQuery {
+                limit: Some(1),
+                before,
+                ..Default::default()
+            })
+            .await
+            .unwrap();
+        seen.extend(page.items.iter().map(|i| i.record.clone()));
+        before = page.next_before;
+        if before.is_none() {
+            break;
+        }
+    }
+    assert_eq!(seen.len(), 3);
+    seen.sort();
+    seen.dedup();
+    assert_eq!(seen.len(), 3);
+    let (source, _) = records.remove(0);
+    let mut source = w.app.load(&source.id).await.unwrap();
+    source.claims_revision += 1;
+    w.app.save(&mut source).await.unwrap();
+    assert_eq!(
+        w.app
+            .formalization_opportunities(Default::default())
+            .await
+            .unwrap()
+            .items
+            .len(),
+        2
+    );
+    assert!(
+        w.app
+            .formalization_opportunities(crate::app::FormalizationQuery {
+                kind: Some("paper".into()),
+                ..Default::default()
+            })
+            .await
+            .unwrap()
+            .items
+            .is_empty()
+    );
+    assert!(
+        w.app
+            .formalization_opportunities(crate::app::FormalizationQuery {
+                status: Some("queued".into()),
+                ..Default::default()
+            })
             .await
             .is_err()
     );

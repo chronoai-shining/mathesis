@@ -1,3 +1,4 @@
+import { Link } from '../routing/router';
 import { ProofAttribution } from '../components/ProofAttribution';
 import { useCallback, useState, type FormEvent } from 'react';
 import { useApi } from '../api/context';
@@ -96,13 +97,19 @@ export function ConjectureView({ detail: c }: { detail: ConjectureDetail }) {
         </section>
         {c.target ? (
           <section>
-            <h2>Submit an attempt</h2>
+            <h2>Contribute a proof or disproof</h2>
+            <Link
+              className="button"
+              to={{ kind: 'submit', intake: 'lean', record: s.record, claim: s.claim }}
+            >
+              Submit attributed Lean work
+            </Link>
             <p>
               Import Target and prove <code>wishpool_solution : wishpool_target_prop</code>, or
               disprove it with <code>wishpool_disproof : ¬ wishpool_target_prop</code>.
             </p>
             <pre>
-              <code>{`wishpool-contribute attempt ${s.record} ${s.claim} Solution.lean`}</code>
+              <code>{`mathesis-contribute attempt ${s.record} ${s.claim} Solution.lean`}</code>
             </pre>
             <AttemptForm record={s.record} claim={s.claim} />
           </section>

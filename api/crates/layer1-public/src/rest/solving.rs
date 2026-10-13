@@ -7,13 +7,13 @@ use axum::{
     response::IntoResponse,
     routing::{get, patch, post},
 };
-use serde::Deserialize;
-use std::sync::Arc;
-use wishpool_core::{
+use mathesis_core::{
     app::App,
     ids::{ClaimId, RecordId, SubmissionId},
     model::Caller,
 };
+use serde::Deserialize;
+use std::sync::Arc;
 pub(super) fn routes() -> Router<Arc<App>> {
     Router::new()
         .route("/papers/{record}/statements/{claim}", get(statement))
@@ -205,7 +205,7 @@ async fn report(
     State(app): AppState,
     AuthenticatedCaller(c): AuthenticatedCaller,
     Path(r): Path<String>,
-    Body(b): Body<wishpool_core::model::NewErrorReport>,
+    Body(b): Body<mathesis_core::model::NewErrorReport>,
 ) -> ApiResult<impl IntoResponse> {
     Ok((
         StatusCode::ACCEPTED,

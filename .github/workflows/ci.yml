@@ -35,18 +35,18 @@ jobs:
             awk '/^\[dependencies\]$/ { d=1; next } /^\[/ { d=0 } d { print }' "$1"
           }
           fail=0
-          production_dependencies api/crates/layer2-core/Cargo.toml | grep -qE 'wishpool-(public|review|latex)|mongodb|axum|reqwest|jsonwebtoken' \
+          production_dependencies api/crates/layer2-core/Cargo.toml | grep -qE 'mathesis-(public|review|latex)|mongodb|axum|reqwest|jsonwebtoken' \
             && { echo "::error::layer2-core must not depend on Layer 1, Layer 3 or I/O crates"; fail=1; }
-          production_dependencies api/crates/layer1-public/Cargo.toml | grep -qE 'wishpool-(review|latex)|mongodb|reqwest' \
+          production_dependencies api/crates/layer1-public/Cargo.toml | grep -qE 'mathesis-(review|latex)|mongodb|reqwest' \
             && { echo "::error::layer1-public may depend only on layer2-core"; fail=1; }
           for crate in layer3-review layer3-latex; do
-            production_dependencies api/crates/$crate/Cargo.toml | grep -qE 'wishpool-(core|public)' \
+            production_dependencies api/crates/$crate/Cargo.toml | grep -qE 'mathesis-(core|public)' \
               && { echo "::error::$crate must not depend on Layer 1 or Layer 2"; fail=1; }
           done
           exit $fail
       - name: Every config key is declared in infra
         run: |
-          keys=$(grep -ohE '"(WISHPOOL|CHRONO)_[A-Z_]+"' api/crates/wishpool/src/config.rs | tr -d '"' | sort -u)
+          keys=$(grep -ohE '"(WISHPOOL|CHRONO)_[A-Z_]+"' api/crates/mathesis/src/config.rs | tr -d '"' | sort -u)
           for key in $keys; do
             grep -q "^  $key:" infra/api/configmap.yaml infra/api/secret.yaml || { echo "::error::$key missing from infra/api"; exit 1; }
           done
@@ -146,8 +146,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
-      - run: docker build -f infra/api/Dockerfile -t wishpool-api:ci .
-      - run: docker build -f infra/web/Dockerfile -t wishpool-web:ci .
+      - run: docker build -f infra/api/Dockerfile -t mathesis-api:ci .
+      - run: docker build -f infra/web/Dockerfile -t mathesis-web:ci .
       - name: kubeconform
         run: |
           curl -sSL https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz | tar xz

@@ -126,8 +126,8 @@ export const formalProbe: FormalProbe = {
     {
       claim: 'C2',
       outcome: 'compiled',
-      theorem: 'Wishpool.C2.main',
-      lean: 'import Mathlib\n\ntheorem Wishpool.C2.main : Function.Injective (fun n : ℕ => n * n) := by\n  exact?',
+      theorem: 'Mathesis.C2.main',
+      lean: 'import Mathlib\n\ntheorem Mathesis.C2.main : Function.Injective (fun n : ℕ => n * n) := by\n  exact?',
       axioms: ['propext', 'Classical.choice', 'Quot.sound'],
       note: 'Matches the paper’s statement for natural numbers.',
       log: '',

@@ -6,9 +6,9 @@ FROM rust:1.95-slim-bookworm AS build
 WORKDIR /src
 COPY api/ ./
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
-    cargo build --release --locked -p wishpool-verifier
+    cargo build --release --locked -p mathesis-verifier
 FROM ${LEAN_IMAGE}
-COPY --from=build /src/target/release/wishpool-verifier /usr/local/bin/wishpool-verifier
+COPY --from=build /src/target/release/mathesis-verifier /usr/local/bin/mathesis-verifier
 USER 65532:65532
 EXPOSE 8081
-ENTRYPOINT ["/usr/local/bin/wishpool-verifier"]
+ENTRYPOINT ["/usr/local/bin/mathesis-verifier"]

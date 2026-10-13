@@ -170,7 +170,7 @@ const attempt: CmaAttemptView = {
 };
 
 describe('Who ran each step', () => {
-  it('shows compact rows and explains only the Wishpool fallback', async () => {
+  it('shows compact rows and explains only the Mathesis fallback', async () => {
     renderWithApp(
       <CmaHistory
         attempts={[
@@ -201,7 +201,7 @@ describe('Who ran each step', () => {
     const list = within(history).getAllByRole('listitem');
     expect(list[0]).toHaveTextContent(/^Codex audit · Your agents · failed$/);
     expect(list[0]?.querySelector('p')).toBeNull();
-    expect(list[1]).toHaveTextContent('Codex audit · Wishpool · running');
+    expect(list[1]).toHaveTextContent('Codex audit · Mathesis · running');
     expect(list[1]).toHaveTextContent('Your agents failed for an unknown reason.');
     expect(document.body).not.toHaveTextContent('workspace');
   });
@@ -232,7 +232,7 @@ describe('Who ran each step', () => {
       <CmaHistory attempts={[{ ...attempt, kind: undefined }]} />,
       fakeApi(),
     );
-    expect(screen.getByRole('listitem')).toHaveTextContent(/^r1:audit · Wishpool · running$/);
+    expect(screen.getByRole('listitem')).toHaveTextContent(/^r1:audit · Mathesis · running$/);
     rerender(<CmaHistory attempts={[]} />);
     expect(screen.queryByRole('region', { name: 'Who ran each step' })).toBeNull();
   });

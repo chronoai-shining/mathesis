@@ -8,14 +8,14 @@ use axum::{
     middleware::{self, Next},
     response::Response,
 };
-use tower::ServiceExt;
-use wishpool_core::{
+use mathesis_core::{
     app::App,
     memory::MemoryStores,
     model::{Caller, ClaimKind, VerifiedIdentity},
     policy::Policy,
     ports::{PaperReader, ReadPaper, ReadStatement, SystemClock},
 };
+use tower::ServiceExt;
 
 use crate::AuthenticatedCaller;
 
@@ -337,7 +337,7 @@ async fn submission_queue_requires_a_review_role() {
 
 #[tokio::test]
 async fn referee_routes_project_visibility_roles_and_letter_validation() {
-    use wishpool_core::{
+    use mathesis_core::{
         ids::SubmissionId,
         model::{Role, RoundUpdate, Step, StepState},
     };
@@ -436,7 +436,7 @@ async fn referee_routes_project_visibility_roles_and_letter_validation() {
     let confirmations = submission
         .extracted
         .iter()
-        .map(|c| wishpool_core::model::ClaimConfirmation {
+        .map(|c| mathesis_core::model::ClaimConfirmation {
             depends_on_conjectures: vec![],
             id: c.id.clone(),
             kind: c.kind,
@@ -734,5 +734,74 @@ async fn research_service_contract_and_formalization_permissions() {
         .await
         .0,
         StatusCode::NOT_FOUND
+    );
+}
+
+#[tokio::test]
+async fn project_export_preserves_sources_and_never_exposes_private_deposits() {
+    let app = router();
+    let input = serde_json::json!({"title":"Lean project", "authors":["Research author"], "formalizers":["Lean author"], "source_revision":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "statement":"True", "source_reference":{"kind":"url","locator":"https://example.org/source"},"toolchain":"pinned", "license":"MIT", "solution":"import Target\nimport Helpers", "modules":{"Helpers":"import Mathlib\ntheorem helper : True := True.intro"}});
+    let (status, deposit, _) = call(
+        &app,
+        "POST",
+        "/formalizations",
+        Some("owner"),
+        Some(input.clone()),
+    )
+    .await;
+    assert_eq!(status, StatusCode::CREATED);
+    let path = format!(
+        "/formalizations/{}/project",
+        deposit["id"].as_str().unwrap()
+    );
+    assert_eq!(
+        call(&app, "GET", &path, Some("stranger"), None).await.0,
+        StatusCode::NOT_FOUND
+    );
+    let (status, project, _) = call(&app, "GET", &path, Some("owner"), None).await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(project["modules"], input["modules"]);
+    assert_eq!(project["formalizers"], input["formalizers"]);
+    let response = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(&path)
+                .header("x-test-subject", "owner")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(
+        response.headers()[header::CACHE_CONTROL],
+        "private, no-store"
+    );
+    assert_eq!(
+        call(
+            &app,
+            "POST",
+            "/formalizations",
+            Some("owner"),
+            Some(project)
+        )
+        .await
+        .1["id"],
+        deposit["id"]
+    );
+    let directory = call(&app, "GET", "/formalizations/opportunities", None, None).await;
+    assert_eq!(directory.0, StatusCode::OK);
+    assert_eq!(directory.1["items"], serde_json::json!([]));
+    assert_eq!(
+        call(
+            &app,
+            "GET",
+            "/formalizations/opportunities?status=queued",
+            None,
+            None
+        )
+        .await
+        .0,
+        StatusCode::UNPROCESSABLE_ENTITY
     );
 }

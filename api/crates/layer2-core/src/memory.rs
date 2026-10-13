@@ -597,6 +597,15 @@ impl GrantStore for MemoryStores {
 
 #[async_trait]
 impl SolvingStore for MemoryStores {
+    async fn list_admitted(
+        &self,
+        limit: u32,
+        before: Option<String>,
+    ) -> CoreResult<Listing<SolveFile>> {
+        Ok(page(&*self.solving.lock().await, limit, before, |f| {
+            f.admitted
+        }))
+    }
     async fn report_files(&self) -> CoreResult<Vec<ErrorReportFile>> {
         Ok(self.error_reports.lock().await.values().cloned().collect())
     }

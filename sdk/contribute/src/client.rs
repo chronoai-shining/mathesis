@@ -1,4 +1,4 @@
-//! A small blocking client for the wishpool contribution API.
+//! A small blocking client for the Mathesis contribution API.
 
 use serde_json::{Value, json};
 
@@ -36,12 +36,12 @@ fn segment(value: &str) -> String {
 }
 
 impl Client {
-    /// `base` is the venue origin, e.g. `https://wishpool.example.org`;
+    /// `base` is the venue origin, e.g. `https://mathesis.example.org`;
     /// `token` a NyxID access token (or `dev:<name>` against a dev server).
     pub fn new(base: &str, token: &str) -> Self {
         let http = reqwest::blocking::Client::builder()
             .timeout(std::time::Duration::from_secs(60))
-            .user_agent("wishpool-contribute/0.1")
+            .user_agent("mathesis-contribute/0.1")
             .build()
             .expect("HTTP client");
         Self {
@@ -53,7 +53,7 @@ impl Client {
     }
 
     pub fn via_nyxid(service: &str) -> Self {
-        let mut client = Self::new("https://wishpool.invalid", "");
+        let mut client = Self::new("https://mathesis.invalid", "");
         client.nyxid_service = Some(service.to_owned());
         client
     }
@@ -114,7 +114,7 @@ impl Client {
                 detail: e.to_string(),
             })?;
             if !output.status.success() {
-                return Err(ApiError { status: 0, detail: "NyxID proxy request failed. Check your sign-in and connected Wishpool service with nyxid proxy discover.".into() });
+                return Err(ApiError { status: 0, detail: "NyxID proxy request failed. Check your sign-in and connected Mathesis service with nyxid proxy discover.".into() });
             }
             return serde_json::from_slice(&output.stdout).map_err(|_| ApiError {
                 status: 0,
@@ -154,6 +154,24 @@ impl Client {
         self.send(self.http.delete(format!("{}{path}", self.base)))
     }
 
+    pub fn formalization_opportunities(&self, args: &Value) -> ApiResult<Value> {
+        let mut query = vec![];
+        for key in ["q", "kind", "status", "before"] {
+            if let Some(value) = args[key].as_str() {
+                query.push(format!("{key}={}", segment(value)));
+            }
+        }
+        if let Some(limit) = args["limit"].as_u64() {
+            query.push(format!("limit={}", limit.clamp(1, 100)));
+        }
+        self.get(&format!(
+            "/formalizations/opportunities?{}",
+            query.join("&")
+        ))
+    }
+    pub fn formalization_project(&self, id: &str) -> ApiResult<Value> {
+        self.get(&format!("/formalizations/{}/project", segment(id)))
+    }
     pub fn papers(&self, args: &Value) -> ApiResult<Value> {
         let mut query = Vec::new();
         for key in ["q", "author", "msc", "kind", "before"] {
@@ -181,9 +199,18 @@ impl Client {
         self.get(&format!("/formalizations/{}", segment(id)))
     }
     pub fn verify_formalization(&self, id: &str, record: &str, claim: &str) -> ApiResult<Value> {
+        self.verify_formalization_against(id, record, claim, None)
+    }
+    pub fn verify_formalization_against(
+        &self,
+        id: &str,
+        record: &str,
+        claim: &str,
+        digest: Option<&str>,
+    ) -> ApiResult<Value> {
         self.post(
             &format!("/formalizations/{}/attempts", segment(id)),
-            &json!({"record": record, "claim": claim}),
+            &json!({"record": record, "claim": claim, "expected_target": digest}),
         )
     }
     pub fn conjectures(&self) -> ApiResult<Value> {
@@ -275,6 +302,11 @@ mod solving_tests {
                 ),
                 (
                     "GET",
+                    "/api/v1/formalizations/opportunities?q=prime%20%26%20gaps&kind=paper&status=open&limit=1",
+                    json!({"items":[], "next_before": "cursor"}),
+                ),
+                (
+                    "GET",
                     "/api/v1/submissions/sub1/review",
                     json!({"schema_version":1,"source_sha256":"pinned-source","service":"Orchestra"}),
                 ),
@@ -352,6 +384,14 @@ mod solving_tests {
                 .papers(&json!({"q":"prime & gaps","author":"A. Author"}))
                 .unwrap()["items"],
             json!([])
+        );
+        assert_eq!(
+            client
+                .formalization_opportunities(
+                    &json!({"q":"prime & gaps", "kind":"paper", "status":"open", "limit":1})
+                )
+                .unwrap()["next_before"],
+            "cursor"
         );
         assert_eq!(
             client.review("sub1").unwrap()["source_sha256"],

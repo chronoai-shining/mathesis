@@ -84,7 +84,7 @@ describe('solving pages', () => {
     expect(screen.getByText('View Target.lean').closest('details')).not.toHaveAttribute('open');
     expect(screen.getByText(/Sign in to submit a Lean solution/)).toBeInTheDocument();
     expect(screen.queryByLabelText('Note (optional, private)')).not.toBeInTheDocument();
-    expect(screen.getByText(/wishpool-contribute attempt WP-2026-0001 C2/)).toBeInTheDocument();
+    expect(screen.getByText(/mathesis-contribute attempt WP-2026-0001 C2/)).toBeInTheDocument();
     expect(document.querySelector('.katex')).not.toBeNull();
   });
 
@@ -235,14 +235,14 @@ describe('solving pages', () => {
     );
     expect(await screen.findByRole('link', { name: paperSummary.title })).toBeInTheDocument();
     expect(await screen.findByRole('link', { name: 'An open bound' })).toBeInTheDocument();
-    const intro = screen.getByRole('region', { name: 'Mathematical papers & conjectures.' });
+    const intro = screen.getByRole('region', { name: 'Where mathematics takes form.' });
     expect(within(intro).getByRole('link', { name: 'Browse papers' })).toHaveAttribute(
       'href',
       '/papers',
     );
-    expect(within(intro).getByRole('link', { name: 'Submit research' })).toHaveAttribute(
+    expect(within(intro).getByRole('link', { name: 'Contribute a formalization' })).toHaveAttribute(
       'href',
-      '/submit',
+      '/formalizations',
     );
     const research = screen.getByRole('heading', { name: 'Latest research' });
     const conjectures = screen.getByRole('heading', { name: 'Open conjectures' });
@@ -265,7 +265,7 @@ describe('solving pages', () => {
       within(nav)
         .getAllByRole('link')
         .map((a) => a.textContent),
-    ).toEqual(['Papers', 'Conjectures', 'Submit', 'My work']);
+    ).toEqual(['Papers', 'Conjectures', 'Formalizations', 'Submit', 'My work']);
     expect(within(nav).queryByRole('link', { name: 'Policy' })).not.toBeInTheDocument();
     for (const name of ['Leaderboard', 'Contribute']) {
       expect(within(nav).queryByRole('link', { name })).not.toBeInTheDocument();

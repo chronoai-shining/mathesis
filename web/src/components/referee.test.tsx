@@ -190,7 +190,7 @@ describe('referee workspace', () => {
     expect(
       within(probe).getByText('Axioms: propext, Classical.choice, Quot.sound'),
     ).toBeInTheDocument();
-    expect(within(probe).getByText('Wishpool.C2.main')).toBeInTheDocument();
+    expect(within(probe).getByText('Mathesis.C2.main')).toBeInTheDocument();
     expect(within(probe).getByText('Lean source')).toBeInTheDocument();
     await userEvent.click(within(probe).getByText('Lean source'));
     expect(probe.querySelector('.code-block pre')).toHaveTextContent('import Mathlib');

@@ -1,5 +1,5 @@
 [package]
-name = "wishpool-latex"
+name = "mathesis-latex"
 description = "Layer 3: read a LaTeX paper (single file, zip or tar.gz) into its title, abstract and statement environments; compile it to PDF with TeX Live."
 version.workspace = true
 edition.workspace = true

@@ -1,6 +1,6 @@
 [package]
-name = "wishpool-contribute"
-description = "Contribute idle model tokens to wishpool: a CLI and an MCP server for your own agent."
+name = "mathesis-contribute"
+description = "Contribute idle model tokens to Mathesis: a CLI and an MCP server for your own agent."
 version = "0.1.0"
 edition = "2024"
 rust-version = "1.93"
@@ -8,7 +8,7 @@ license = "Apache-2.0"
 publish = false
 
 [[bin]]
-name = "wishpool-contribute"
+name = "mathesis-contribute"
 path = "src/main.rs"
 
 [dependencies]

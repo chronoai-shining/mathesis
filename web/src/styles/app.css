@@ -2366,3 +2366,50 @@ input[type='file']::file-selector-button {
 .lean-deposit-form {
   margin-block: 1.5rem 3rem;
 }
+
+/* Formalization is a primary contribution path, alongside the research archive. */
+.formalization-intro {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 2rem;
+  padding: 1.5rem 0;
+  margin-bottom: 1.5rem;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+.formalization-intro p {
+  margin: 0;
+}
+.formalization-intro strong,
+.formalization-intro span {
+  display: block;
+}
+.formalization-intro span {
+  margin-top: 0.5rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+.formalization-search {
+  display: flex;
+  gap: 0.75rem;
+  margin: 1rem 0 2rem;
+}
+.formalization-search input {
+  flex: 1;
+  min-width: 0;
+}
+.formalization-search select {
+  width: auto;
+}
+@media (max-width: 640px) {
+  .formalization-intro {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  .formalization-search {
+    flex-wrap: wrap;
+  }
+  .formalization-search input {
+    flex-basis: 100%;
+  }
+}

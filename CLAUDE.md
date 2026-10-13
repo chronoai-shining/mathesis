@@ -1,9 +1,9 @@
-# wishpool
+# Mathesis
 
 This file is the contract for anyone — human or agent — working in this
 repository. Rules here are binding.
 
-## 1. What wishpool is
+## 1. What Mathesis is
 
 A venue where mathematicians submit their own papers, short notes and
 conjectures through one entry and one review pipeline. The venue reads their
@@ -105,7 +105,7 @@ api/crates/
   layer3-latex/    Layer 3: unpack, read and compile LaTeX sources.
   layer3-review/   Layer 3: models via NyxID: Oracle broker and CMA.
   verifier/        stateless, credential-free Lean checker and binary.
-  wishpool/        binary: composition, MongoDB (GridFS for files), NyxID
+  mathesis/        binary: composition, MongoDB (GridFS for files), NyxID
                    sign-in and delegated tokens, workers.
 sdk/contribute/    the contributors' CLI and MCP server.
 ```
@@ -364,7 +364,8 @@ funded; local elaboration and proof verification carry no CMA payer.
   `Classical.choice`, and `Quot.sound` are allowed. Reject axioms, constants,
   opaque/unsafe declarations, sorry/admit, implementation overrides, extern,
   macros/notation/syntax/elaborators/initializers, weakened options, executable
-  commands, and imports other than Mathlib and Target.
+  commands, and imports other than Mathlib, Target and submitted supporting
+  modules validated under §14.
 - The verifier is stateless and credential-free: cleared environment (PATH and
   fresh HOME only during compilation), fresh work directory, bounded input and
   output, and a deadline (default 1200 seconds, maximum 3600). Local workers use
@@ -410,8 +411,9 @@ funded; local elaboration and proof verification carry no CMA payer.
   remain immutable; the new private audit and assessment are retained.
   Confirmed target reports also void the exact digest and regenerate it.
 - Donations fund our agents, never impersonate donors as solvers. Venue agent
-  id/name `wishpool-agent` is reserved, owned by `wishpool:venue`. A confirmed
-  open target queues one durable CMA attempt per digest; wishpool runs Lean.
+  id `wishpool-agent` is owned by `wishpool:venue`; both `wishpool-agent` and
+  `mathesis-agent` names are reserved. A confirmed
+  open target queues one durable CMA attempt per digest; Mathesis runs Lean.
   Supporters is alphabetical and unranked. Run attribution is durable, separate
   from usage. Only a NyxID accounting receipt can charge tokens, atomically and
   once per run. CMA v2 rejects restricted delegated tokens: use the configured
@@ -439,3 +441,20 @@ funded; local elaboration and proof verification carry no CMA payer.
   CMA account configuration belongs in advanced compute settings. NyxID remains
   the identity and connection provider. API, OpenAPI, CLI and MCP project the
   same Layer 2 services. See `docs/RESEARCH_SERVICES.md` for exact current scope.
+
+## 14. Mathesis identity and source projects
+
+- Mathesis is the public product and repository name. Follow
+  `docs/MATHESIS_MIGRATION.md` for compatibility: persistent WP ids, proof names,
+  identity subjects, database names, cookies and WISHPOOL server config remain.
+- Formalization is a primary participation path. The public directory lists
+  only current confirmed public targets and independent verifier results;
+  private deposits, queued/rejected attempts and stale targets are excluded.
+- Deposits may include 32 flat supporting Lean modules, at most 1 MiB together
+  with Solution. They are immutable GridFS sources. Record original authors,
+  formalizers and optional full Git revision separately from uploader identity.
+- Project verification uses the same independent checker and durable attempts.
+  Scan every module, reject cycles, unsafe constructs and reserved/shadowing
+  names, compile in dependency order, and bind all sources into the receipt.
+  Do not execute user Lake scripts or install custom dependencies. Only the
+  existing pinned workspace supplies dependencies. Single-file hashes stay stable.

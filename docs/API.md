@@ -1,4 +1,4 @@
-# Wishpool HTTP API
+# Mathesis HTTP API
 
 The browser and every other client use the same public routes. The web app is
 served from the same origin as the API; there is no private route.
@@ -592,7 +592,7 @@ here for brevity):
     "number": 1, "version": 1, "claims_revision": 1,
     "started_at": "2026-10-09T00:00:00Z",
     "formal": { "attempts": 0, "state": { "state": "done", "at": "2026-10-09T03:00:00Z",
-      "result": { "attempts": [{ "claim": "C1", "outcome": "compiled", "theorem": "Wishpool.C1.main" }] } } }
+      "result": { "attempts": [{ "claim": "C1", "outcome": "compiled", "theorem": "Mathesis.C1.main" }] } } }
   }],
   "letters": [{
     "round": 1, "assessment": "minor_revision", "subject": "Feedback on your paper",
@@ -859,3 +859,26 @@ for the same authenticated owner return the same deposit id. Changed metadata
 or source creates a new deposit. The existing source-processing consent remains
 required for paper/conjecture AI review; depositing code alone does not start
 an AI review or grant permission to publish it.
+
+### Mathesis formalization participation
+
+`GET /api/v1/formalizations/opportunities` is anonymous. Optional query fields:
+`q` (at most 200 characters, all words), `kind=paper|conjecture`,
+`status=open|verified|disproved`, `limit` (1–100), `before` (returned cursor).
+Only current public author-confirmed targets are returned. Each row includes
+record/claim, title/label/statement/authors, kind/status, target_digest/toolchain,
+verified_count and nullable contributor/attribution/receipt. Filters apply
+before pagination. No private source deposits or unverified attempts appear.
+
+Lean intake also accepts optional `formalizers: string[]`,
+`source_revision: string` (full 40/64-digit Git commit), and
+`modules: { "Helpers": "import Mathlib\ntheorem helper : True := True.intro\n" }`.
+Use `import Helpers` in the main `solution`. At most 32 flat modules and 1 MiB
+total source; reserved and case-colliding names are rejected. No arbitrary Lake
+build or custom dependency execution is supported. These fields are carried
+with immutable source identity; only independent verification creates a receipt.
+
+`GET /api/v1/formalizations/{id}/project` downloads reusable intake JSON with
+all sources and attribution; owner/staff only, private/no-store. Verify requests
+may include `expected_target`; stale digests return 409. Public verified attempts
+include a `modules` source map so multi-file proofs remain reproducible.

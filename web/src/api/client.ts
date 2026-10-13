@@ -1,5 +1,6 @@
 import type {
   LeanDeposit,
+  FormalizationOpportunity,
   NewLeanDeposit,
   MyCmaStatus,
   ErrorReport,
@@ -327,9 +328,18 @@ export interface ApiClient {
   retireAgent(id: string): Promise<Entrant>;
   notifications(options?: RequestOptions): Promise<SolveNotification[]>;
 
+  formalizationOpportunities(
+    query?: PageParams & { q?: string; kind?: string; status?: string },
+    options?: RequestOptions,
+  ): Promise<Listing<FormalizationOpportunity>>;
   submitFormalization(body: NewLeanDeposit): Promise<LeanDeposit>;
   formalizations(page?: PageParams, options?: RequestOptions): Promise<Listing<LeanDeposit>>;
-  verifyFormalization(id: string, record: string, claim: string): Promise<AttemptView>;
+  verifyFormalization(
+    id: string,
+    record: string,
+    claim: string,
+    expectedTarget?: string,
+  ): Promise<AttemptView>;
   // Public papers.
   listPapers(page?: PaperQuery, options?: RequestOptions): Promise<Listing<PaperSummary>>;
   getPaper(record: string, options?: RequestOptions): Promise<PublicPaper>;
@@ -482,11 +492,24 @@ export function createApiClient(fetchImpl: FetchLike = (input, init) => fetch(in
         undefined,
         o,
       ),
+    formalizationOpportunities: (p = {}, o) =>
+      request(
+        'GET',
+        api(
+          `/formalizations/opportunities${buildQuery({ ...page(p), q: p.q, kind: p.kind, status: p.status })}`,
+        ),
+        undefined,
+        o,
+      ),
     submitFormalization: (body) => request('POST', api('/formalizations'), body),
     formalizations: (p = {}, o) =>
       request('GET', api(`/formalizations${buildQuery(page(p))}`), undefined, o),
-    verifyFormalization: (id, record, claim) =>
-      request('POST', api(`/formalizations/${encodeURIComponent(id)}/attempts`), { record, claim }),
+    verifyFormalization: (id, record, claim, expectedTarget) =>
+      request('POST', api(`/formalizations/${encodeURIComponent(id)}/attempts`), {
+        record,
+        claim,
+        expected_target: expectedTarget,
+      }),
     listPapers: (p = {}, o) =>
       request(
         'GET',

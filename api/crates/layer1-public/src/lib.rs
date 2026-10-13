@@ -12,7 +12,7 @@ mod rest;
 use std::sync::Arc;
 
 use axum::Router;
-use wishpool_core::app::App;
+use mathesis_core::app::App;
 
 pub use auth::{AuthenticatedCaller, RequestAuthentication};
 pub use problems::{Problem, problem_response};

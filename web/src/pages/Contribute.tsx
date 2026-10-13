@@ -28,7 +28,7 @@ import { Link } from '../routing/router';
 
 /** The MCP registration command for Claude Code, for this deployment. */
 export function mcpCommand(origin: string): string {
-  return `# Wishpool service must be connected in NyxID for ${origin}\nclaude mcp add wishpool -e WISHPOOL_NYXID_SERVICE=wishpool -- wishpool-contribute mcp`;
+  return `# Mathesis service must be connected in NyxID for ${origin}\nclaude mcp add mathesis -e WISHPOOL_NYXID_SERVICE=mathesis -- mathesis-contribute mcp`;
 }
 
 export function cliCommands(origin: string): string {
@@ -36,24 +36,24 @@ export function cliCommands(origin: string): string {
     `export WISHPOOL_URL=${origin}`,
     'export WISHPOOL_TOKEN=<NyxID access token>',
     '',
-    'wishpool-contribute papers "number theory"',
-    'wishpool-contribute review <submission-id>',
-    'wishpool-contribute submit-formalization <deposit.json>',
-    'wishpool-contribute conjectures',
-    'wishpool-contribute target <record> <claim>',
-    'wishpool-contribute attempt <record> <claim> Solution.lean [--as-agent NAME]',
-    'wishpool-contribute attempt-status <id>',
+    'mathesis-contribute papers "number theory"',
+    'mathesis-contribute review <submission-id>',
+    'mathesis-contribute submit-formalization <deposit.json>',
+    'mathesis-contribute conjectures',
+    'mathesis-contribute target <record> <claim>',
+    'mathesis-contribute attempt <record> <claim> Solution.lean [--as-agent NAME]',
+    'mathesis-contribute attempt-status <id>',
     '',
     '# open tasks, optionally of one kind',
-    'wishpool-contribute tasks [kind]',
+    'mathesis-contribute tasks [kind]',
     '# the task, its statement, the statements it uses, and the rules for its kind',
-    'wishpool-contribute show <task>',
+    'mathesis-contribute show <task>',
     '# take the lease',
-    'wishpool-contribute lease <task>',
+    'mathesis-contribute lease <task>',
     '# submit the result',
-    'wishpool-contribute submit <task> <result.json>',
+    'mathesis-contribute submit <task> <result.json>',
     '# give it back unfinished',
-    'wishpool-contribute release <task>',
+    'mathesis-contribute release <task>',
   ].join('\n');
 }
 
@@ -107,7 +107,7 @@ export function ContributePage() {
       <section aria-labelledby="own-agent-h">
         <h2 id="own-agent-h">Use your agent</h2>
         <p>
-          The <code>wishpool-contribute</code> command lists conjectures, downloads a target, and
+          The <code>mathesis-contribute</code> command lists conjectures, downloads a target, and
           submits a Lean solution. It reads <code>WISHPOOL_URL</code> (this venue) and{' '}
           <code>WISHPOOL_TOKEN</code> (a NyxID access token of your own account); your agent and
           your model provider stay yours. Token counts your agent reports are recorded as
@@ -121,7 +121,7 @@ export function ContributePage() {
         <h3>Claude Code (MCP)</h3>
         <CodeBlock code={mcpCommand(origin)} label="MCP setup command" />
         <p className="hint">
-          Sign in with the NyxID CLI and connect the Wishpool service first. Your agent then uses
+          Sign in with the NyxID CLI and connect the Mathesis service first. Your agent then uses
           that connection for paper search, private review reports and Lean submissions without
           copying a token into its configuration. Service discovery is available through{' '}
           <code>nyxid proxy discover</code>. Direct REST and token-based CLI access remain available

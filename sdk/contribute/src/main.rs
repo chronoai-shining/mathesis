@@ -1,16 +1,16 @@
-//! wishpool-contribute: give your idle model tokens to mathematics.
+//! mathesis-contribute: give your idle model tokens to mathematics.
 //!
 //! ```text
-//! WISHPOOL_URL=https://wishpool.example.org WISHPOOL_TOKEN=<NyxID access token> \
-//!   wishpool-contribute tasks [kind]       open tasks
-//!   wishpool-contribute show <task>        task, target statement and rules
-//!   wishpool-contribute lease <task>       lease a task
-//!   wishpool-contribute release <task>     give it back
-//!   wishpool-contribute submit <task> <result.json>
-//!   wishpool-contribute mcp                MCP server on stdio for your agent
+//! MATHESIS_URL=https://mathesis.example.org MATHESIS_TOKEN=<NyxID access token> \
+//!   mathesis-contribute tasks [kind]       open tasks
+//!   mathesis-contribute show <task>        task, target statement and rules
+//!   mathesis-contribute lease <task>       lease a task
+//!   mathesis-contribute release <task>     give it back
+//!   mathesis-contribute submit <task> <result.json>
+//!   mathesis-contribute mcp                MCP server on stdio for your agent
 //! ```
 //!
-//! Claude Code: `claude mcp add wishpool -e WISHPOOL_URL=… -e WISHPOOL_TOKEN=… -- wishpool-contribute mcp`.
+//! Claude Code: `claude mcp add mathesis -e MATHESIS_NYXID_SERVICE=mathesis -- mathesis-contribute mcp`.
 
 mod client;
 mod mcp;
@@ -20,19 +20,24 @@ use std::process::ExitCode;
 
 use client::Client;
 
+fn setting(name: &str) -> Result<String, std::env::VarError> {
+    std::env::var(format!("MATHESIS_{name}")).or_else(|_| std::env::var(format!("WISHPOOL_{name}")))
+}
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
-    let client = if let Ok(service) = std::env::var("WISHPOOL_NYXID_SERVICE") {
+    let client = if let Ok(service) = setting("NYXID_SERVICE") {
         if service.is_empty() || service.starts_with('-') {
-            eprintln!("WISHPOOL_NYXID_SERVICE must name a connected service");
+            eprintln!(
+                "MATHESIS_NYXID_SERVICE (or legacy WISHPOOL_NYXID_SERVICE) must name a connected service"
+            );
             return ExitCode::from(2);
         }
         Client::via_nyxid(&service)
-    } else if let Ok(url) = std::env::var("WISHPOOL_URL") {
-        Client::new(&url, &std::env::var("WISHPOOL_TOKEN").unwrap_or_default())
+    } else if let Ok(url) = setting("URL") {
+        Client::new(&url, &setting("TOKEN").unwrap_or_default())
     } else {
         eprintln!(
-            "set WISHPOOL_NYXID_SERVICE for a connected NyxID service, or WISHPOOL_URL (and WISHPOOL_TOKEN for private operations)"
+            "set MATHESIS_NYXID_SERVICE for a connected NyxID service, or MATHESIS_URL (and MATHESIS_TOKEN for private operations); legacy WISHPOOL variables are also supported"
         );
         return ExitCode::from(2);
     };
@@ -55,6 +60,14 @@ fn main() -> ExitCode {
         .collect::<Vec<_>>()
         .as_slice()
     {
+        ["formalization-opportunities"] => {
+            print(client.formalization_opportunities(&serde_json::json!({})))
+        }
+        ["formalization-opportunities", query] => {
+            print(client.formalization_opportunities(&serde_json::json!({"q": query})))
+        }
+        ["formalizations"] => print(client.get("/formalizations")),
+        ["formalization-project", id] => print(client.formalization_project(id)),
         ["papers"] => print(client.papers(&serde_json::json!({}))),
         ["papers", query] => print(client.papers(&serde_json::json!({"q": query}))),
         ["paper", record] => print(client.paper(record)),
@@ -143,7 +156,7 @@ fn main() -> ExitCode {
         },
         _ => {
             eprintln!(
-                "usage: wishpool-contribute papers [query] | paper <record> | review <submission-id> | submit-formalization <deposit.json> | formalization <id> | verify-formalization <id> <record> <claim> | conjectures | target <record> <claim> | attempt <record> <claim> <file> [--as-agent NAME] | attempt-status <id> | report <record> <report.json> | report-status <id> | tasks [kind] | show <task> | lease <task> | release <task> | submit <task> <result.json> | mcp"
+                "usage: mathesis-contribute formalization-opportunities [query] | formalizations | formalization-project <id> | papers [query] | paper <record> | review <submission-id> | submit-formalization <deposit.json> | formalization <id> | verify-formalization <id> <record> <claim> | conjectures | target <record> <claim> | attempt <record> <claim> <file> [--as-agent NAME] | attempt-status <id> | report <record> <report.json> | report-status <id> | tasks [kind] | show <task> | lease <task> | release <task> | submit <task> <result.json> | mcp"
             );
             ExitCode::from(2)
         }
@@ -211,6 +224,9 @@ mod tests {
         assert_eq!(
             names,
             [
+                "formalization-opportunities",
+                "formalizations",
+                "formalization-project",
                 "papers",
                 "paper",
                 "review",

@@ -10,13 +10,13 @@ use axum::{
     response::{IntoResponse, Response},
     routing::{get, post, put},
 };
-use serde::Deserialize;
-use wishpool_core::{
+use mathesis_core::{
     CoreError,
     app::{App, MAX_UPLOAD_BYTES, PaperFile, SubmissionScope, Upload},
     ids::{RecordId, SubmissionId},
     model::{ClaimConfirmation, NewPaper, Visibility},
 };
+use serde::Deserialize;
 
 use super::{ApiResult, AppState, Body, Path, Query};
 use crate::{auth::AuthenticatedCaller, problems::Problem};
@@ -169,7 +169,7 @@ async fn review_report(
     );
     response.headers_mut().insert(
         header::CONTENT_DISPOSITION,
-        HeaderValue::from_static("attachment; filename=wishpool-review.json"),
+        HeaderValue::from_static("attachment; filename=mathesis-review.json"),
     );
     Ok(response)
 }
@@ -325,7 +325,7 @@ struct PaperQuery {
     q: Option<String>,
     author: Option<String>,
     msc: Option<String>,
-    kind: Option<wishpool_core::model::SubmissionKind>,
+    kind: Option<mathesis_core::model::SubmissionKind>,
 }
 async fn list_papers(
     State(app): AppState,
@@ -333,7 +333,7 @@ async fn list_papers(
 ) -> ApiResult<impl IntoResponse> {
     Ok(Json(
         app.search_papers(
-            wishpool_core::model::PaperSearch {
+            mathesis_core::model::PaperSearch {
                 q: q.q,
                 author: q.author,
                 msc: q.msc,

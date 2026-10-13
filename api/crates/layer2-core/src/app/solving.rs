@@ -6,12 +6,9 @@ use crate::{
     ports::JobKind,
 };
 use chrono::{Datelike, Duration};
-use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
-fn digest(text: &str) -> String {
-    format!("{:x}", Sha256::digest(text.as_bytes()))
-}
 pub(crate) struct AttemptInput {
+    pub modules: BTreeMap<String, String>,
     pub expected_target: Option<String>,
     pub solution: String,
     pub as_agent: Option<String>,
@@ -46,7 +43,7 @@ impl App {
         let owner = self
             .caller(&VerifiedIdentity {
                 subject: "wishpool:venue".into(),
-                name: Some("wishpool".into()),
+                name: Some("Mathesis".into()),
                 email: None,
                 picture: None,
             })
@@ -63,11 +60,11 @@ impl App {
         }
         let agent = Entrant {
             id: "wishpool-agent".into(),
-            name: "wishpool-agent".into(),
+            name: "mathesis-agent".into(),
             kind: EntrantKind::Agent,
             owner: Some(Owner {
                 id: owner.person.clone(),
-                name: "wishpool".into(),
+                name: "Mathesis".into(),
             }),
             retired: false,
             revision: 0,
@@ -104,7 +101,10 @@ impl App {
     }
     pub async fn create_agent(&self, caller: &Caller, name: String) -> CoreResult<Entrant> {
         require_text("agent name", &name, 40)?;
-        if name.trim().eq_ignore_ascii_case("wishpool-agent") {
+        if ["wishpool-agent", "mathesis-agent"]
+            .iter()
+            .any(|reserved| name.trim().eq_ignore_ascii_case(reserved))
+        {
             return Err(CoreError::invalid(
                 "this agent name is reserved for the venue",
             ));
@@ -139,7 +139,10 @@ impl App {
             .ok_or_else(|| CoreError::not_found("agent", id))?;
         if let Some(name) = name {
             require_text("agent name", &name, 40)?;
-            if name.trim().eq_ignore_ascii_case("wishpool-agent") {
+            if ["wishpool-agent", "mathesis-agent"]
+                .iter()
+                .any(|reserved| name.trim().eq_ignore_ascii_case(reserved))
+            {
                 return Err(CoreError::invalid(
                     "this agent name is reserved for the venue",
                 ));
@@ -356,6 +359,7 @@ impl App {
             claim,
             AttemptInput {
                 expected_target: None,
+                modules: BTreeMap::new(),
                 solution,
                 as_agent,
                 note,
@@ -372,6 +376,7 @@ impl App {
         input: AttemptInput,
     ) -> CoreResult<AttemptView> {
         let AttemptInput {
+            modules,
             expected_target,
             solution,
             as_agent,
@@ -396,7 +401,18 @@ impl App {
             ));
         }
         let entrant = self.resolve_entrant(caller, as_agent).await?;
-        let hash = digest(&solution);
+        validate_lean_modules(&solution, &modules)?;
+        let hash = lean_solution_digest(&solution, &modules);
+        let mut module_blobs = BTreeMap::new();
+        for (name, text) in &modules {
+            module_blobs.insert(
+                name.clone(),
+                self.ports
+                    .blobs
+                    .put(text.as_bytes(), "text/plain; charset=utf-8")
+                    .await?,
+            );
+        }
         let blob = self
             .ports
             .blobs
@@ -435,6 +451,7 @@ impl App {
                 ));
             }
             let attempt = Attempt {
+                modules: module_blobs.clone(),
                 attribution: attribution.clone(),
                 id: new_uuid(),
                 owner: caller.person.clone(),
@@ -547,6 +564,7 @@ impl App {
             return Err(CoreError::not_found("attempt", id));
         }
         Ok(AttemptView {
+            modules: self.lean_module_sources(&attempt.modules).await?,
             attribution: attempt.attribution.clone(),
             id: attempt.id.clone(),
             record: file.record,
@@ -628,6 +646,7 @@ impl App {
             .ports
             .verifier
             .verify(&VerificationRequest {
+                modules: self.lean_module_sources(&attempt.modules).await?,
                 target: target.lean,
                 target_digest: target.digest.clone(),
                 toolchain: target.toolchain.clone(),
@@ -711,6 +730,7 @@ impl App {
             .filter(|a| a.verified() && a.target_digest == target.digest)
         {
             out.push(PublicAttempt {
+                modules: self.lean_module_sources(&a.modules).await?,
                 attribution: a.attribution.clone(),
                 id: a.id.clone(),
                 entrant: self.current_entrant(&a.entrant).await?,
@@ -969,6 +989,11 @@ impl App {
                 if s.analysis_visibility == Visibility::Public
                     && let SubmissionStatus::Accepted { record } = &s.status
                 {
+                    // Existing approved paper targets also participate in discovery,
+                    // including historical confirmations made before this directory.
+                    for claim in s.claims.iter().filter(|c| s.approved_statement(&c.id)) {
+                        self.solve_file(record, &claim.id).await?;
+                    }
                     let mut needs_review = false;
                     let mut needs_target = false;
                     for claim in s.claims.iter().filter(|c| {

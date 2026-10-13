@@ -4,8 +4,17 @@ export function ProofAttribution({ attribution }: { attribution?: FormalizationA
   if (!attribution) return null;
   return (
     <p className="small">
-      Original formalization: {attribution.authors.join(', ')} ·{' '}
+      Original authors: {attribution.authors.join(', ')} ·{' '}
+      {attribution.formalizers?.length ? (
+        <>Formalization: {attribution.formalizers.join(', ')} · </>
+      ) : null}
       <SourceLink source={attribution.source_reference} /> · {attribution.license}
+      {attribution.source_revision ? (
+        <>
+          {' '}
+          · revision <code>{attribution.source_revision}</code>
+        </>
+      ) : null}
     </p>
   );
 }

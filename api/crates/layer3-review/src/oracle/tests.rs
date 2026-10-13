@@ -93,7 +93,7 @@ async fn http_sends_payload_and_polls() {
                 let expected_token = expected_token.clone();
                 async move {
                     assert_eq!(headers["authorization"], expected_token);
-                    assert_eq!(headers["user-agent"], concat!("wishpool/", env!("CARGO_PKG_VERSION")));
+                    assert_eq!(headers["user-agent"], concat!("mathesis/", env!("CARGO_PKG_VERSION")));
                     assert_eq!(body["prompt"], "Read the paper");
                     assert!(body.get("model").is_none());
                     assert_eq!(body["client_ref"], "wishpool:p:r1:v1:c1:test");
@@ -107,7 +107,7 @@ async fn http_sends_payload_and_polls() {
         .route(
             "/api/v1/oracle/tasks/t1",
             get(|headers: HeaderMap| async move {
-                assert_eq!(headers["user-agent"], concat!("wishpool/", env!("CARGO_PKG_VERSION")));
+                assert_eq!(headers["user-agent"], concat!("mathesis/", env!("CARGO_PKG_VERSION")));
                 Json(json!({"status":"completed","response":"report", "observed_model_switcher":"gpt_6", "observed_model_effort":"pro"}))
             }),
         );
@@ -337,7 +337,7 @@ async fn http_cancel_ignores_missing_or_settled_tasks() {
             async move {
                 assert_eq!(body, json!({}));
                 assert_eq!(headers["authorization"], expected_token);
-                assert_eq!(headers["user-agent"], concat!("wishpool/", env!("CARGO_PKG_VERSION")));
+                assert_eq!(headers["user-agent"], concat!("mathesis/", env!("CARGO_PKG_VERSION")));
                 (StatusCode::from_u16(status).unwrap(), Json(if status == 200 {
                     json!({"status":"cancelled"})
                 } else {

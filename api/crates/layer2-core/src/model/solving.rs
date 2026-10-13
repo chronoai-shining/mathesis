@@ -44,6 +44,8 @@ pub struct VerificationReceipt {
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VerificationRequest {
+    #[serde(default, skip_serializing_if = "std::collections::BTreeMap::is_empty")]
+    pub modules: std::collections::BTreeMap<String, String>,
     pub target: String,
     pub target_digest: String,
     pub toolchain: String,
@@ -51,6 +53,8 @@ pub struct VerificationRequest {
 }
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Attempt {
+    #[serde(default, skip_serializing_if = "std::collections::BTreeMap::is_empty")]
+    pub modules: std::collections::BTreeMap<String, BlobRef>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub attribution: Option<super::FormalizationAttribution>,
     pub id: String,
@@ -114,6 +118,8 @@ impl SolveFile {
 }
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PublicAttempt {
+    #[serde(default, skip_serializing_if = "std::collections::BTreeMap::is_empty")]
+    pub modules: std::collections::BTreeMap<String, String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub attribution: Option<super::FormalizationAttribution>,
     pub id: String,
@@ -124,6 +130,8 @@ pub struct PublicAttempt {
 }
 #[derive(Debug, Clone, Serialize)]
 pub struct AttemptView {
+    #[serde(default, skip_serializing_if = "std::collections::BTreeMap::is_empty")]
+    pub modules: std::collections::BTreeMap<String, String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub attribution: Option<super::FormalizationAttribution>,
     pub id: String,

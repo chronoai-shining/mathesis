@@ -1,6 +1,6 @@
 # Architecture
 
-wishpool accepts mathematicians' own papers, short notes and conjectures through
+Mathesis accepts mathematicians' own papers, short notes and conjectures through
 one endpoint and one referee → audit → decision → letter → Lean pipeline.
 Short notes differ only in labels. Every kind shares the record sequence.
 Public mathematical details are selected by a default-checked upload checkbox;
@@ -14,9 +14,9 @@ private review material never enters the public projection.
 | `layer1-public` | 1 | `/api/v1` REST projection, including multipart upload and file download |
 | `layer3-latex` | 3 | unpack `.tex`/`.zip`/`.tar.gz` with limits; find the main file, inline `\input`/`\include`, read title, authors, abstract and statement environments; compile with TeX Live |
 | `layer3-review` | 3 | Oracle broker and CMA agents through NyxID; optional LLM gateway contributor judgements with metered usage |
-| `wishpool-verifier` | 3 / binary | stateless Lean module checker, source scan, pinned workspace copy, bounded isolated processes, JSON receipt; no database or credentials |
-| `wishpool` | binary | composition, MongoDB stores and GridFS files, NyxID sign-in and delegated tokens, the paper worker (compile, S2 leads, S3 proposals), donation attribution and credential cleanup, lease reconciliation |
-| `sdk/contribute` | client | `wishpool-contribute`: CLI and MCP server for contributors' own agents |
+| `mathesis-verifier` | 3 / binary | stateless Lean module checker, source scan, pinned workspace copy, bounded isolated processes, JSON receipt; no database or credentials |
+| `Mathesis` | binary | composition, MongoDB stores and GridFS files, NyxID sign-in and delegated tokens, the paper worker (compile, S2 leads, S3 proposals), donation attribution and credential cleanup, lease reconciliation |
+| `sdk/contribute` | client | `mathesis-contribute`: CLI and MCP server for contributors' own agents |
 
 Layer 2 depends on no workspace crate and no I/O crate; Layer 1 only on
 Layer 2; Layer 3 crates on neither. CI enforces the rule. Layer 2 sees a
@@ -204,7 +204,7 @@ polls its task id. `OracleCli` consumes the same broker JSON through
 `nyxid proxy request oracle api/v1/oracle/...`: POST `pools/<pool>/tasks`,
 GET `tasks/<id>`, and POST `tasks/<id>/cancel`. Request bodies, including the
 PDF base64, use `--data @<file>` in a fresh temporary directory with mode-600
-files removed after each request. HTTP sends `User-Agent: wishpool/<version>`.
+files removed after each request. HTTP sends `User-Agent: mathesis/<version>`.
 HTTP and CLI refuse prompts over 500,000 characters or PDFs whose
 base64 exceeds 12,000,000 bytes before sending. CLI commands have a 120-second
 deadline and a cleared environment retaining only `PATH` and operator `HOME`.

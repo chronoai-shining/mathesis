@@ -10,13 +10,13 @@ use axum::{
     response::IntoResponse,
     routing::{get, post},
 };
-use serde::Deserialize;
-use wishpool_core::{
+use mathesis_core::{
     app::App,
     ids::{PersonId, SubmissionId},
     model::{ContributionMode, GrantStatus, NewContribution, TaskKind},
     ports::{ContributionFilter, TaskFilter},
 };
+use serde::Deserialize;
 
 use super::{ApiResult, AppState, Body, Path, Query};
 use crate::auth::AuthenticatedCaller;
@@ -98,7 +98,7 @@ async fn lease_task(
         LeaseBody::default()
     } else {
         serde_json::from_slice(&body).map_err(|e| {
-            crate::problems::Problem(wishpool_core::CoreError::Invalid(e.to_string()))
+            crate::problems::Problem(mathesis_core::CoreError::Invalid(e.to_string()))
         })?
     };
     let mode = body.mode.unwrap_or(ContributionMode::OwnAgent);

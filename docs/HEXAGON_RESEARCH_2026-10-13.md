@@ -1,12 +1,12 @@
-# Hexagon 调研与 Wishpool 产品建议
+# Hexagon 调研与 Mathesis 产品建议
 
-调研日期：2026-10-13。Wishpool 对照版本：`09562d157e521d1e655dd0997b1f52ca26bf3b95`。
+调研日期：2026-10-13。Mathesis 对照版本：`09562d157e521d1e655dd0997b1f52ca26bf3b95`。
 
-本文是产品调研和建议，不修改当前公开规则、作者权限或审稿流程。竞品结论来自公开官网、API 文档、实际记录和官方反馈；没有登录投稿或实测其内部处理。Wishpool 的“已有”指仓库实现与契约，不能代替生产端到端可用性验证。
+本文是产品调研和建议，不修改当前公开规则、作者权限或审稿流程。竞品结论来自公开官网、API 文档、实际记录和官方反馈；没有登录投稿或实测其内部处理。Mathesis 的“已有”指仓库实现与契约，不能代替生产端到端可用性验证。
 
 ## 判断
 
-Wishpool 的定位可以是：**发布数学研究，并获得审稿、修订与形式化验证服务。** 论文、短文和猜想构成内容入口；审稿是首要服务；CMA 承担持续的研究执行；形式化交付可以复验的证据。
+Mathesis 的定位可以是：**发布数学研究，并获得审稿、修订与形式化验证服务。** 论文、短文和猜想构成内容入口；审稿是首要服务；CMA 承担持续的研究执行；形式化交付可以复验的证据。
 
 Hexagon 已把基础存档做得相当完整。我们应补齐研究发现和学术引用的基本体验，同时把主要投入放在它明确不提供的审稿，以及从问题发现到修订和独立验证的完整交付。不要把“有 API”“有 MCP”“可链接 Lean”当作独占优势。
 
@@ -23,9 +23,9 @@ Hexagon 已把基础存档做得相当完整。我们应补齐研究发现和学
 
 公开反馈中，HTML/MathML 阅读、版本级 stewardship resources 和更细的计算用量元数据仍为 open。资源提案提到 verification certificates，但本次未从公开 API、抽查记录和官网规则核实出正在交付的完整证书服务，不能据此称其已提供审稿，也不能断言不存在任何第三方验证功能。[H10][H11][H12]
 
-## 与 Wishpool 的对照
+## 与 Mathesis 的对照
 
-| 能力 | Hexagon 公开证据 | Wishpool 当前仓库 | 建议 |
+| 能力 | Hexagon 公开证据 | Mathesis 当前仓库 | 建议 |
 |---|---|---|---|
 | 学术存档与发现 | 高级检索、分类、版本标识、源码树、BibTeX、ORCID、许可证 | 记录、PDF、版本、MSC 和作者 ORCID 字段；论文接口仅 `limit/before`；暂无同等检索和许可证选择体验 | 补齐标题/作者/摘要/MSC 检索、分类、BibTeX 和版本链接；ORCID 字段不等于认证绑定 |
 | 实质审稿 | 明确不做同行评审 | GPT Pro 阅读，CMA Codex 对照源码审计，逐命题结果、疑点、文献和反馈信 | 做成作者可以直接购买或使用的独立服务，输出可核对的报告 |
@@ -36,7 +36,7 @@ Hexagon 已把基础存档做得相当完整。我们应补齐研究发现和学
 | API 与代理 | 读 API、写 API、只读 MCP、批量自动投稿 | REST、贡献 CLI/MCP、代理认领与提交尝试 | 优势应是执行并返回受检验成果；保持现有接口兼容 |
 | 公开可信度 | 公开声明、人类理解标记、外部链接；存档不背书 | 审稿/审计/信件私有；公开展示指定数学内容与合规验证成果 | 若增加公开审稿摘要，需新的作者同意及公开投影契约；不泄露私有报告 |
 
-Wishpool 依据：`README.md`、`docs/API.md`、`docs/CONTRIBUTE.md`、`api/crates/layer2-core/src/policy.rs`、`api/crates/layer2-core/src/model/referee.rs`、`api/crates/layer1-public/src/rest.rs`、`api/crates/layer1-public/src/rest/papers.rs`、`web/src/components/MyCma.tsx`。
+Mathesis 依据：`README.md`、`docs/API.md`、`docs/CONTRIBUTE.md`、`api/crates/layer2-core/src/policy.rs`、`api/crates/layer2-core/src/model/referee.rs`、`api/crates/layer1-public/src/rest.rs`、`api/crates/layer1-public/src/rest/papers.rs`、`web/src/components/MyCma.tsx`。
 
 ## 最重要的服务：可执行、可复核的审稿
 
@@ -65,11 +65,11 @@ CMA 的价值是持续执行研究任务。作者可以从一条审稿意见启�
 
 每项任务显示范围、资源预算、运行状态、结果文件、验证结果和停止原因。作者应先看到任务和交付物；模型、workspace、profile 和账户连接放到高级设置。
 
-复用现有作者账户绑定、任务持久化、恢复、凭证隔离和付款方记录。当前工作流按步骤创建专用 agent/conversation，还没有证据表明完整的持续交互工作台已经实现。CMA v2 的受限委托凭证和 NyxID 用量回执缺口已在仓库记载；不能把估算 tokens 当实收费用，不应为了 Wishpool 产品体验自行修改 CMA 上游接口。
+复用现有作者账户绑定、任务持久化、恢复、凭证隔离和付款方记录。当前工作流按步骤创建专用 agent/conversation，还没有证据表明完整的持续交互工作台已经实现。CMA v2 的受限委托凭证和 NyxID 用量回执缺口已在仓库记载；不能把估算 tokens 当实收费用，不应为了 Mathesis 产品体验自行修改 CMA 上游接口。
 
 ## 存档与审稿的关键产品取舍
 
-目前 Wishpool 的公开记录要求至少有一项审计认可的新内容/开放问题解决，或通过审核的新猜想。未接受稿件私有，形式化探测主要在接受后运行。这个契约比一般预印本存档更窄。
+目前 Mathesis 的公开记录要求至少有一项审计认可的新内容/开放问题解决，或通过审核的新猜想。未接受稿件私有，形式化探测主要在接受后运行。这个契约比一般预印本存档更窄。
 
 若目标是承担 arXiv 式存档，建议将三件事在产品模型中分开：
 
@@ -117,4 +117,4 @@ CMA 的价值是持续执行研究任务。作者可以从一条审稿意见启�
 - [H11] Stewardship resources 提案：https://github.com/mathlake/hexagon-feedback/issues/6
 - [H12] 计算资源元数据提案：https://github.com/mathlake/hexagon-feedback/issues/1
 
-公开页面与 JSON 读取快照保存在本次任务的 `/private/tmp/wishpool-hexagon-research/`，供追溯；未复制其论文到 Wishpool、未联系竞品或作者、未提交任何外部内容。
+公开页面与 JSON 读取快照保存在本次任务的 `/private/tmp/wishpool-hexagon-research/`，供追溯；未复制其论文到 Mathesis、未联系竞品或作者、未提交任何外部内容。

@@ -75,6 +75,7 @@ async fn validates_digest_before_any_workspace_or_process_access() {
         timeout: Duration::from_secs(1),
     };
     let request = Request {
+        modules: Default::default(),
         target: "import Mathlib\ndef wishpool_target_prop : Prop := True\n".into(),
         target_digest: "wrong".into(),
         toolchain: "test".into(),
@@ -160,6 +161,7 @@ async fn real_lean_target_proof_disproof_wrong_type_and_axiom() {
     ] {
         let target = format!("import Mathlib\ndef wishpool_target_prop : Prop := {prop}\n");
         let request = Request {
+            modules: Default::default(),
             target_digest: digest(&target),
             target,
             toolchain: toolchain.clone(),
@@ -241,6 +243,7 @@ for suffix in ['ir.sig', 'ir']:
     ] {
         let target = "import Mathlib\ndef wishpool_target_prop : Prop := True\n".to_string();
         let request = Request {
+            modules: Default::default(),
             target_digest: digest(&target),
             target,
             toolchain: "fake".into(),
@@ -251,4 +254,88 @@ for suffix in ['ir.sig', 'ir']:
     }
     assert!(!workspace.join("Target.lean").exists());
     assert!(!workspace.join("Solution.lean").exists());
+}
+
+#[test]
+fn projects_validate_every_module_and_bind_the_entire_dependency_graph() {
+    let solution =
+        "import Target\nimport Result\ntheorem wishpool_solution : wishpool_target_prop := helper";
+    let modules = BTreeMap::from([
+        (
+            "Base".into(),
+            "import Mathlib\ntheorem base : True := True.intro".into(),
+        ),
+        (
+            "Result".into(),
+            "import Base\ntheorem helper : True := base".into(),
+        ),
+    ]);
+    let (verdict, order) = validate_project(solution, &modules).unwrap();
+    assert_eq!(verdict, Verdict::Proved);
+    assert_eq!(order, vec!["Base", "Result"]);
+    assert_eq!(
+        solution_digest("single", &BTreeMap::new()),
+        digest("single")
+    );
+    let hash = solution_digest(solution, &modules);
+    let mut changed = modules.clone();
+    changed.get_mut("Base").unwrap().push_str("\n-- change");
+    assert_ne!(hash, solution_digest(solution, &changed));
+    for (name, text) in [
+        ("../Escape", "import Mathlib"),
+        ("Target", "import Mathlib"),
+        ("Mathlib", "import Mathlib"),
+        ("Extra", "axiom bad : False"),
+        ("Extra", "import IO"),
+        ("Extra", "import Base Result"),
+        ("Extra", "#eval 1"),
+        ("Extra", "theorem wishpool_solution : True := True.intro"),
+        ("Extra", "import Extra"),
+        ("base", "import Mathlib"),
+    ] {
+        let mut bad = modules.clone();
+        bad.insert(name.into(), text.into());
+        assert!(validate_project(solution, &bad).is_err(), "{name}: {text}");
+    }
+    let mut cyclic = modules.clone();
+    cyclic.insert("Base".into(), "import Result".into());
+    assert!(
+        validate_project(solution, &cyclic)
+            .unwrap_err()
+            .contains("cyclic")
+    );
+    let mut shadow = modules.clone();
+    shadow.insert("BASE".into(), "import Mathlib".into());
+    assert!(validate_project(solution, &shadow).is_err());
+}
+
+#[tokio::test]
+async fn real_lean_multimodule_proof_checks_helpers_and_wrong_type() {
+    let Ok(workspace) = std::env::var("WISHPOOL_TEST_LEAN_WORKSPACE") else {
+        return;
+    };
+    let dir = tempfile::tempdir().unwrap();
+    let checker = Checker {
+        workspace: workspace.into(),
+        scratch: dir.path().into(),
+        timeout: Duration::from_secs(300),
+    };
+    let toolchain = std::fs::read_to_string(checker.workspace.join("lean-toolchain"))
+        .unwrap()
+        .trim()
+        .to_owned();
+    for (prop, expected) in [("True", Verdict::Proved), ("False", Verdict::Rejected)] {
+        let target = format!("import Mathlib\ndef wishpool_target_prop : Prop := {prop}\n");
+        let request = Request {
+            target_digest: digest(&target), target, toolchain: toolchain.clone(),
+            solution: "import Target\nimport Helpers\ntheorem wishpool_solution : wishpool_target_prop := helper\n".into(),
+            modules: BTreeMap::from([("Helpers".into(), "import Mathlib\ntheorem helper : True := True.intro\n".into())]),
+        };
+        let receipt = checker.verify(&request).await;
+        assert_eq!(receipt.verdict, expected, "{}", receipt.reason);
+        assert_eq!(
+            receipt.solution_digest,
+            solution_digest(&request.solution, &request.modules)
+        );
+    }
 }

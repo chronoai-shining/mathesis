@@ -1,3 +1,4 @@
+import { LeanWorkspace } from '../components/LeanDeposit';
 import { useCallback } from 'react';
 import type { SubmissionScope } from '../api/client';
 import { useApi } from '../api/context';
@@ -13,7 +14,7 @@ import { Link } from '../routing/router';
 const COPY: { [K in SubmissionScope]: { title: string; lede: string; empty: string } } = {
   mine: {
     title: 'My work',
-    lede: 'Papers, short notes and conjectures you have submitted, newest first. A draft waits for you to confirm its statements.',
+    lede: 'Your Lean contributions and research submissions. Track verification, read reviews, and return to work in progress.',
     empty: 'You have not submitted work yet.',
   },
   queue: {
@@ -125,6 +126,12 @@ export function SubmissionsPage({ scope }: { scope: SubmissionScope }) {
             ))}
           </ul>
         </section>
+      ) : null}
+      {scope === 'mine' && person ? (
+        <>
+          <LeanWorkspace />
+          <h2>Research submissions</h2>
+        </>
       ) : null}
       <Async state={paged.state} onRetry={paged.reload}>
         {(listing) =>

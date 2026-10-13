@@ -8,13 +8,13 @@ use axum::{
     response::IntoResponse,
     routing::{get, put},
 };
-use serde::{Deserialize, Serialize};
-use wishpool_core::{
+use mathesis_core::{
     app::App,
     ids::PersonId,
     model::{Role, Stage},
     policy::Policy,
 };
+use serde::{Deserialize, Serialize};
 
 use crate::{auth::AuthenticatedCaller, problems::Problem};
 

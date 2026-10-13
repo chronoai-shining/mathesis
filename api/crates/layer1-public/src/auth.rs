@@ -2,7 +2,7 @@ use axum::{
     extract::{FromRequestParts, OptionalFromRequestParts},
     http::request::Parts,
 };
-use wishpool_core::{CoreError, model::Caller};
+use mathesis_core::{CoreError, model::Caller};
 
 use crate::problems::Problem;
 
@@ -35,7 +35,7 @@ impl<S: Send + Sync> OptionalFromRequestParts<S> for AuthenticatedCaller {
 
 /// Set only by authentication middleware; a missing marker never permits author confirmation.
 #[derive(Debug, Clone)]
-pub struct RequestAuthentication(pub wishpool_core::model::AuthenticationMethod);
+pub struct RequestAuthentication(pub mathesis_core::model::AuthenticationMethod);
 impl<S: Send + Sync> FromRequestParts<S> for RequestAuthentication {
     type Rejection = std::convert::Infallible;
     async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
@@ -43,6 +43,6 @@ impl<S: Send + Sync> FromRequestParts<S> for RequestAuthentication {
             .extensions
             .get::<Self>()
             .cloned()
-            .unwrap_or(Self(wishpool_core::model::AuthenticationMethod::Bearer)))
+            .unwrap_or(Self(mathesis_core::model::AuthenticationMethod::Bearer)))
     }
 }

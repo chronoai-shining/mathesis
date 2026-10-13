@@ -1,4 +1,4 @@
-# Every non-secret key read by api/crates/wishpool/src/config.rs. The worker
+# Every non-secret key read by api/crates/mathesis/src/config.rs. The worker
 # deployment uses the same map and overrides WISHPOOL_ROLE.
 apiVersion: v1
 kind: ConfigMap
@@ -10,7 +10,7 @@ metadata:
     app.kubernetes.io/part-of: wishpool
 data:
   WISHPOOL_BIND: "0.0.0.0:8080"
-  WISHPOOL_PUBLIC_URL: "https://wishpool.example.org"
+  WISHPOOL_PUBLIC_URL: "https://mathesis.example.org"
   WISHPOOL_ROLE: "api"
   WISHPOOL_STORAGE: "mongo"
   WISHPOOL_MONGODB_DATABASE: "wishpool"
@@ -79,7 +79,7 @@ data:
   WISHPOOL_FORMAL_TIMEOUT_SECS: "1200"
   # Isolated verifier; empty URL uses a local credential-free subprocess.
   WISHPOOL_VERIFIER_URL: "http://wishpool-verifier:8081"
-  WISHPOOL_VERIFIER_PROGRAM: "wishpool-verifier"
+  WISHPOOL_VERIFIER_PROGRAM: "mathesis-verifier"
   WISHPOOL_VERIFIER_TIMEOUT_SECS: "1200"
   WISHPOOL_ATTEMPTS_PER_DAY: "20"
 

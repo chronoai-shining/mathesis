@@ -6,7 +6,7 @@ import { useSession } from '../auth/session';
 import { Async, Field, InlineError, SignInPrompt } from './ui';
 
 export const CMA_COPY =
-  'Wishpool pays for review during the early phase; if you like, connect your CMA account to run the Codex steps for your submissions on your own agents.';
+  'Mathesis pays for review during the early phase; if you like, connect your CMA account to run the Codex steps for your submissions on your own agents.';
 
 const STATUS_LABELS = {
   disconnected: 'Not connected',
@@ -178,7 +178,7 @@ export function CmaHistory({ attempts }: { attempts: CmaAttemptView[] }) {
         {attempts.map((attempt, index) => (
           <li key={`${attempt.step}-${attempt.attempt}-${index}`}>
             <strong>{attempt.kind ? STEP_LABELS[attempt.kind] : attempt.step}</strong> ·{' '}
-            {attempt.payer === 'author' ? 'Your agents' : 'Wishpool'} · {attempt.status}
+            {attempt.payer === 'author' ? 'Your agents' : 'Mathesis'} · {attempt.status}
             {attempt.payer === 'operator' && ATTEMPT_REASONS[attempt.reason] ? (
               <p className="hint">{ATTEMPT_REASONS[attempt.reason]}</p>
             ) : null}

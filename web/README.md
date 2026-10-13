@@ -1,4 +1,4 @@
-# wishpool web
+# Mathesis web
 
 The browser front end for wishpool: React 19, Vite 7, TypeScript (strict). It
 talks only to the public HTTP API described in [`../docs/API.md`](../docs/API.md).

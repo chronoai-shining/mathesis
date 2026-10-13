@@ -266,6 +266,15 @@ impl App {
                 at: self.ports.clock.now(),
             }
         };
+        if confirm
+            && s.analysis_visibility == Visibility::Public
+            && let SubmissionStatus::Accepted { record } = &s.status
+        {
+            // Materialize discovery identity before confirmation is committed. A
+            // crash leaves an unconfirmed file, which public projection excludes.
+            self.solve_file(record, &s.lean_statements[index].claim)
+                .await?;
+        }
         s.lean_statements[index].response = response;
         self.save(&mut s).await?;
         if !confirm {

@@ -10,12 +10,12 @@ use axum::{
     response::IntoResponse,
     routing::{post, put},
 };
-use serde::Deserialize;
-use wishpool_core::{
+use mathesis_core::{
     app::{App, FiledBy},
     ids::{ClaimId, SubmissionId},
     model::{ConjectureState, NewEndorsement, NewLetter, ProofShape, ReportDraft, Stage},
 };
+use serde::Deserialize;
 
 use super::{ApiResult, AppState, Body, Path};
 use crate::auth::AuthenticatedCaller;

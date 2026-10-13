@@ -1,4 +1,11 @@
-# wishpool
+# Mathesis
+
+An open mathematical research platform for papers, conjectures, deep review,
+and independently verified Lean contributions. Formerly Wishpool.
+
+Start with **Papers** to discover research or **Formalizations** to contribute a
+proof. Lean projects can carry up to 32 supporting modules, original authors,
+formalization contributors, source references and a Git revision.
 
 A venue for mathematicians' own papers, short notes and conjectures, with one
 submission entry and one pipeline: GPT Pro referee → Codex audit → automatic
@@ -59,7 +66,7 @@ WISHPOOL_PUBLIC_URL=http://127.0.0.1:5173 \
 WISHPOOL_AUTH_MODE=dev WISHPOOL_STORAGE=memory \
 WISHPOOL_ADMIN_SUBJECTS=dev:admin \
 WISHPOOL_TEX_BIN=$(dirname "$(command -v pdflatex)") \
-cargo run -p wishpool
+cargo run -p mathesis
 
 # Web app (proxies /api and /auth to 127.0.0.1:8080)
 cd web && npm ci && npm run dev
@@ -78,7 +85,7 @@ Machine clients in dev mode authenticate with `Authorization: Bearer dev:<name>`
 GPT Pro referees through the Oracle broker and every Codex step runs on CMA
 through NyxID: audit, advice, letter, conjecture target generation, private
 accepted-paper Lean probes and paper open-problem audits. Configure an existing
-ready CMA workspace; wishpool creates a dedicated Agent/conversation for each
+ready CMA workspace; Mathesis creates a dedicated Agent/conversation for each
 step and stops/deletes it when the step finishes or fails.
 
 For a local preview, sign in to the NyxID CLI with a user account authorized for
@@ -91,7 +98,7 @@ WISHPOOL_PUBLIC_URL=http://127.0.0.1:5173 \
 WISHPOOL_AUTH_MODE=dev WISHPOOL_STORAGE=memory \
 WISHPOOL_ORACLE=cli WISHPOOL_AGENT_BACKEND=cma \
 WISHPOOL_CMA_TRANSPORT=cli WISHPOOL_CMA_WORKSPACE=wks_YOUR_WORKSPACE \
-cargo run -p wishpool
+cargo run -p mathesis
 ```
 
 Production uses `WISHPOOL_ORACLE=http` with its separately provisioned Oracle
@@ -204,7 +211,7 @@ editors/contributors may supply reports.
 | `WISHPOOL_ADVISOR_TIMEOUT_SECS` | `1200` | advice/letter Codex deadline; maximum 3600 seconds (the worker renews its lease) |
 | `WISHPOOL_AUDIT_TIMEOUT_SECS` | `3600` | audit deadline; maximum 3600 seconds on CMA, 7200 for local fallback |
 | `WISHPOOL_LEAN_WORKSPACE` | unset | prepared Lean/Mathlib project for proof probes and conjecture targets; requires CMA or explicit local Codex |
-| `WISHPOOL_VERIFIER_PROGRAM` | `wishpool-verifier` | local verifier executable |
+| `WISHPOOL_VERIFIER_PROGRAM` | `mathesis-verifier` | local verifier executable |
 | `WISHPOOL_VERIFIER_URL` | unset | isolated verifier service base; empty selects subprocess |
 | `WISHPOOL_VERIFIER_TIMEOUT_SECS` | `1200` | verification deadline, maximum 3600 seconds |
 | `WISHPOOL_ATTEMPTS_PER_DAY` | `20` | attempts per entrant per conjecture in the preceding 24 hours |
@@ -241,11 +248,11 @@ cd web && npm test
 ## Solve with the CLI or MCP
 
 ```bash
-wishpool-contribute conjectures
-wishpool-contribute target WP-2026-0001 C1     # writes Target.lean
-wishpool-contribute attempt WP-2026-0001 C1 Solution.lean
-wishpool-contribute attempt WP-2026-0001 C1 Solution.lean --as-agent NAME
-wishpool-contribute attempt-status ATTEMPT_ID
+mathesis-contribute conjectures
+mathesis-contribute target WP-2026-0001 C1     # writes Target.lean
+mathesis-contribute attempt WP-2026-0001 C1 Solution.lean
+mathesis-contribute attempt WP-2026-0001 C1 Solution.lean --as-agent NAME
+mathesis-contribute attempt-status ATTEMPT_ID
 ```
 
 Use `POST /api/v1/me/agents {"name":"NAME"}` to register an owned agent, or
@@ -253,7 +260,7 @@ manage agents on Contribute. MCP exposes `conjectures`, `target`, `attempt`, and
 `attempt-status` alongside the existing contribution tools. MCP's `target`
 returns the exact source and digest for the agent to save as `Target.lean`.
 
-Build the local checker with `cd api && cargo build -p wishpool-verifier`, put
+Build the local checker with `cd api && cargo build -p mathesis-verifier`, put
 it on PATH (or set `WISHPOOL_VERIFIER_PROGRAM`), and set
 `WISHPOOL_LEAN_WORKSPACE` to a prepared project with pinned Lean and Mathlib.
 The verifier copies that project and never builds in the original. In production,
@@ -269,7 +276,7 @@ use fake verifiers and fake compiler executables. Review tests use fake Oracle
 and Codex backends. Mongo tests allocate their own databases.
 
 Authors can bring their own CMA account for the Codex review steps of their own
-submissions. Wishpool continues to cover the GPT Pro Oracle referee and the
+submissions. Mathesis continues to cover the GPT Pro Oracle referee and the
 operator default during the early phase; uploads never require BYOK. Each CMA
 attempt records and privately shows its payer, including an explicit operator
 fallback when author credentials or quota are refused.
@@ -279,7 +286,7 @@ To enable author CMA connections, set `WISHPOOL_CMA_BYOK_ENABLED=true` and
 CMA backend, an operator workspace/token source and `WISHPOOL_TOKEN_KEY` are
 required. Hosted donations may remain disabled. Authors consent through NyxID,
 open CMA setup, provision a Sandbox with `own_credentials`, and paste a ready
-workspace ID in “Use your own agents (optional)” on Contribute. Wishpool validates
+workspace ID in “Use your own agents (optional)” on Contribute. Mathesis validates
 ownership, readiness and the exact Sandbox profile revision. Automatic
 provisioning is a follow-up.
 
@@ -301,3 +308,13 @@ exports and attributed Lean source intake through the website, REST, OpenAPI,
 CLI and MCP. MongoDB/GridFS preserve publication inputs, source files and
 verification provenance. See [the service architecture](docs/RESEARCH_SERVICES.md)
 for current capabilities, NyxID connection requirements and verification scope.
+
+## Mathesis naming and compatibility
+
+The repository is `the-omega-institute/mathesis`; Rust packages and executables
+use `mathesis`, `mathesis-verifier` and `mathesis-contribute`. See
+[the rename notes](docs/MATHESIS_MIGRATION.md) before updating an existing deployment.
+Historical `WP-…` record ids, Lean declaration names, identity subjects, cookies,
+MongoDB database names and `WISHPOOL_*` server configuration remain compatible.
+The SDK accepts `MATHESIS_URL`, `MATHESIS_TOKEN` and `MATHESIS_NYXID_SERVICE`,
+falling back to their `WISHPOOL_*` equivalents. No domain has been purchased.

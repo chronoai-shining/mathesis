@@ -103,7 +103,10 @@ export function StatementPage({ record, claim }: { record: string; claim: string
               </section>
               {s.target ? (
                 <section>
-                  <h2>Submit an attempt</h2>
+                  <h2>Contribute a formalization</h2>
+                  <Link className="button" to={{ kind: 'submit', intake: 'lean', record, claim }}>
+                    Submit attributed Lean work
+                  </Link>
                   <p>
                     Import Target and prove wishpool_solution : wishpool_target_prop, or
                     wishpool_disproof : ¬ wishpool_target_prop.
@@ -126,6 +129,12 @@ export function StatementPage({ record, claim }: { record: string; claim: string
                         <details>
                           <summary>Solution and receipt</summary>
                           <pre>{a.solution}</pre>
+                          {Object.entries(a.modules ?? {}).map(([name, source]) => (
+                            <div key={name}>
+                              <h4>{name}.lean</h4>
+                              <pre>{source}</pre>
+                            </div>
+                          ))}
                           <pre>{JSON.stringify(a.receipt, null, 2)}</pre>
                         </details>
                       </li>

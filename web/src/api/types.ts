@@ -658,6 +658,7 @@ export type VerificationReceipt = {
   duration: number;
 };
 export type VerifiedAttempt = {
+  modules?: Record<string, string>;
   attribution?: FormalizationAttribution;
   id: string;
   entrant: Entrant;
@@ -666,6 +667,7 @@ export type VerifiedAttempt = {
   also_verified: boolean;
 };
 export type AttemptView = {
+  modules?: Record<string, string>;
   attribution?: FormalizationAttribution;
   id: string;
   record: string;
@@ -800,6 +802,9 @@ export type StatementDetail = {
 };
 
 export interface NewLeanDeposit {
+  modules?: Record<string, string>;
+  formalizers?: string[];
+  source_revision?: string;
   title: string;
   authors: string[];
   statement: string;
@@ -808,9 +813,10 @@ export interface NewLeanDeposit {
   license: string;
   solution: string;
 }
-export interface LeanDeposit extends Omit<NewLeanDeposit, 'solution'> {
+export interface LeanDeposit extends Omit<NewLeanDeposit, 'solution' | 'modules'> {
   id: string;
   owner: string;
+  modules?: Record<string, { id: string; bytes: number; sha256: string }>;
   source: { id: string; bytes: number; sha256: string };
   submitted_at: string;
   attempts: string[];
@@ -818,8 +824,27 @@ export interface LeanDeposit extends Omit<NewLeanDeposit, 'solution'> {
 }
 
 export interface FormalizationAttribution {
+  formalizers?: string[];
+  source_revision?: string;
   deposit: string;
   authors: string[];
   source_reference: Source;
   license: string;
+}
+
+export interface FormalizationOpportunity {
+  record: string;
+  claim: string;
+  title: string;
+  label: string;
+  statement: string;
+  authors: Author[];
+  kind: 'paper' | 'conjecture';
+  status: 'open' | 'verified' | 'disproved';
+  target_digest: string;
+  toolchain: string;
+  verified_count: number;
+  contributor: Entrant | null;
+  attribution: FormalizationAttribution | null;
+  receipt: VerificationReceipt | null;
 }

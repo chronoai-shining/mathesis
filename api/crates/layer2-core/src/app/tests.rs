@@ -1088,7 +1088,7 @@ async fn audit_orders_and_fences_decision_advice_letter_then_formal() {
         attempts: vec![FormalAttempt {
             claim: paper.claims[0].id.clone(),
             outcome: ProbeOutcome::Compiled,
-            theorem: Some("Wishpool.C1.main".into()),
+            theorem: Some("Mathesis.C1.main".into()),
             lean: "private source".into(),
             axioms: vec![],
             note: "private note".into(),
@@ -1192,7 +1192,7 @@ async fn audit_orders_and_fences_decision_advice_letter_then_formal() {
     assert_eq!(r["referee"]["state"]["result"]["text"], "full answer");
     let attempt = &r["formal"]["state"]["result"]["attempts"][0];
     assert_eq!(attempt["outcome"], "compiled");
-    assert_eq!(attempt["theorem"], "Wishpool.C1.main");
+    assert_eq!(attempt["theorem"], "Mathesis.C1.main");
     for field in ["lean", "note", "log", "axioms"] {
         assert!(attempt.get(field).is_none());
     }

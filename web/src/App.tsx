@@ -1,3 +1,4 @@
+import { FormalizationsPage } from './pages/Formalizations';
 import { useEffect } from 'react';
 import { SupportersPage, StatementPage } from './pages/Contributions';
 import { ConjecturePage } from './pages/Conjecture';
@@ -27,13 +28,15 @@ function titleFor(route: Route): string {
     case 'statement':
       return route.record;
     case 'home':
-      return 'wishpool';
+      return 'Mathesis';
     case 'leaderboard':
       return 'Leaderboard';
     case 'entrant':
       return 'Solver';
     case 'conjecture':
       return route.record;
+    case 'formalizations':
+      return 'Formalizations';
     case 'conjectures':
       return 'Conjectures';
     case 'papers':
@@ -87,8 +90,17 @@ function Page({ route }: { route: Route }) {
       return <PaperPage key={route.record} record={route.record} />;
     case 'policy':
       return <PolicyPage />;
+    case 'formalizations':
+      return <FormalizationsPage />;
     case 'submit':
-      return <SubmitPage />;
+      return (
+        <SubmitPage
+          key={routePath(route)}
+          initialIntake={route.intake}
+          targetRecord={route.record}
+          targetClaim={route.claim}
+        />
+      );
     case 'submissions':
       return <SubmissionsPage key="mine" scope="mine" />;
     case 'queue':
@@ -120,7 +132,7 @@ export function App() {
   const { route } = useRouter();
   useEffect(() => {
     const title = titleFor(route);
-    document.title = title === 'wishpool' ? 'wishpool' : `${title} · wishpool`;
+    document.title = title === 'Mathesis' ? 'Mathesis' : `${title} · Mathesis`;
   }, [route]);
   return (
     <>
@@ -136,9 +148,9 @@ export function App() {
           <div className="footer-identity">
             <Link to={{ kind: 'home' }} className="wordmark">
               <BrandMark />
-              wishpool
+              Mathesis
             </Link>
-            <p>Mathematical papers, short notes, and conjectures.</p>
+            <p>Mathematical research, review, and verified proofs.</p>
           </div>
           <nav aria-label="Footer">
             <Link to={{ kind: 'contribute' }}>Contribute</Link>

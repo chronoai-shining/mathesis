@@ -10,17 +10,21 @@ import { SOURCE_ACCEPT, buildNewPaper, sourceFileProblem } from '../lib/upload';
 import { LatexText } from '../components/Markdown';
 import { Link, useRouter } from '../routing/router';
 
-export function SubmitPage() {
-  const [intake, setIntake] = useState<'research' | 'lean'>('research');
+export function SubmitPage({
+  initialIntake,
+  targetRecord,
+  targetClaim,
+}: { initialIntake?: 'lean'; targetRecord?: string; targetClaim?: string } = {}) {
+  const [intake, setIntake] = useState<'research' | 'lean'>(initialIntake ?? 'research');
   const { session, person } = useSession();
   return (
     <div className="page narrow-page">
       <header className="page-head">
         <div>
-          <h1>Submit your work</h1>
+          <h1>{intake === 'lean' ? 'Contribute a formalization' : 'Submit your work'}</h1>
           <p className="lede">
-            Share a paper, a short note or a conjecture. Orchestra reviews the argument and prior
-            work, then supports deep reasoning and Lean formalization.
+            Share research or contribute a Lean proof. Orchestra supports research review and deep
+            reasoning; independent Lean verification checks formal proofs.
           </p>
           <p className="small">
             <Link to={{ kind: 'policy' }}>How work is reviewed</Link>
@@ -47,7 +51,13 @@ export function SubmitPage() {
           Lean formalization
         </button>
       </div>
-      {person ? intake === 'research' ? <SubmitForm /> : <LeanDepositForm /> : null}
+      {person ? (
+        intake === 'research' ? (
+          <SubmitForm />
+        ) : (
+          <LeanDepositForm targetRecord={targetRecord} targetClaim={targetClaim} />
+        )
+      ) : null}
     </div>
   );
 }

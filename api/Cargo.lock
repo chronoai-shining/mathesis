@@ -1584,6 +1584,111 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "47e1ffaa40ddd1f3ed91f717a33c8c0ee23fff369e3aa8772b9605cc1d22f4c3"
 
 [[package]]
+name = "mathesis"
+version = "0.1.0"
+dependencies = [
+ "aes-gcm",
+ "anyhow",
+ "async-trait",
+ "axum",
+ "axum-extra",
+ "base64 0.22.1",
+ "bson",
+ "chrono",
+ "futures",
+ "jsonwebtoken",
+ "mathesis-core",
+ "mathesis-latex",
+ "mathesis-public",
+ "mathesis-review",
+ "mathesis-verifier",
+ "mongodb",
+ "rand 0.8.8",
+ "reqwest",
+ "rsa",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "tempfile",
+ "tokio",
+ "tower",
+ "tower-http",
+ "tracing",
+ "tracing-subscriber",
+ "url",
+]
+
+[[package]]
+name = "mathesis-core"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "chrono",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "thiserror",
+ "tokio",
+ "uuid",
+]
+
+[[package]]
+name = "mathesis-latex"
+version = "0.1.0"
+dependencies = [
+ "flate2",
+ "serde",
+ "tar",
+ "tempfile",
+ "thiserror",
+ "zip",
+]
+
+[[package]]
+name = "mathesis-public"
+version = "0.1.0"
+dependencies = [
+ "axum",
+ "mathesis-core",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tower",
+ "tracing",
+]
+
+[[package]]
+name = "mathesis-review"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "axum",
+ "base64 0.22.1",
+ "mathesis-verifier",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "tempfile",
+ "thiserror",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "mathesis-verifier"
+version = "0.1.0"
+dependencies = [
+ "axum",
+ "chrono",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "tempfile",
+ "tokio",
+]
+
+[[package]]
 name = "md-5"
 version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3421,111 +3526,6 @@ name = "windows_x86_64_msvc"
 version = "0.52.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "589f6da84c646204747d1270a2a5661ea66ed1cced2631d546fdfb155959f9ec"
-
-[[package]]
-name = "wishpool"
-version = "0.1.0"
-dependencies = [
- "aes-gcm",
- "anyhow",
- "async-trait",
- "axum",
- "axum-extra",
- "base64 0.22.1",
- "bson",
- "chrono",
- "futures",
- "jsonwebtoken",
- "mongodb",
- "rand 0.8.8",
- "reqwest",
- "rsa",
- "serde",
- "serde_json",
- "sha2 0.10.9",
- "tempfile",
- "tokio",
- "tower",
- "tower-http",
- "tracing",
- "tracing-subscriber",
- "url",
- "wishpool-core",
- "wishpool-latex",
- "wishpool-public",
- "wishpool-review",
- "wishpool-verifier",
-]
-
-[[package]]
-name = "wishpool-core"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "chrono",
- "serde",
- "serde_json",
- "sha2 0.10.9",
- "thiserror",
- "tokio",
- "uuid",
-]
-
-[[package]]
-name = "wishpool-latex"
-version = "0.1.0"
-dependencies = [
- "flate2",
- "serde",
- "tar",
- "tempfile",
- "thiserror",
- "zip",
-]
-
-[[package]]
-name = "wishpool-public"
-version = "0.1.0"
-dependencies = [
- "axum",
- "serde",
- "serde_json",
- "tokio",
- "tower",
- "tracing",
- "wishpool-core",
-]
-
-[[package]]
-name = "wishpool-review"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "axum",
- "base64 0.22.1",
- "reqwest",
- "serde",
- "serde_json",
- "sha2 0.10.9",
- "tempfile",
- "thiserror",
- "tokio",
- "tracing",
- "wishpool-verifier",
-]
-
-[[package]]
-name = "wishpool-verifier"
-version = "0.1.0"
-dependencies = [
- "axum",
- "chrono",
- "serde",
- "serde_json",
- "sha2 0.10.9",
- "tempfile",
- "tokio",
-]
 
 [[package]]
 name = "wit-bindgen"

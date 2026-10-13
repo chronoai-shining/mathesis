@@ -2,11 +2,11 @@ use super::{ApiResult, AppState, Body};
 use crate::AuthenticatedCaller;
 use axum::extract::State;
 use axum::{Json, Router, routing::get};
-use std::sync::Arc;
-use wishpool_core::{
+use mathesis_core::{
     app::App,
     model::{MyCma, SetCmaWorkspace},
 };
+use std::sync::Arc;
 pub fn routes() -> Router<Arc<App>> {
     Router::new().route("/me/cma", get(status).put(workspace).delete(disconnect))
 }

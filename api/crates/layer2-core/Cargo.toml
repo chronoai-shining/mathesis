@@ -1,5 +1,5 @@
 [package]
-name = "wishpool-core"
+name = "mathesis-core"
 description = "Layer 2: domain model, admission policy, ports and application services. No I/O."
 version.workspace = true
 edition.workspace = true

@@ -28,17 +28,17 @@ export function HomePage() {
     <div className="page home">
       <section className="archive-intro" aria-labelledby="intro-heading">
         <p className="eyebrow">An open home for mathematical research</p>
-        <h1 id="intro-heading">Mathematical papers & conjectures.</h1>
+        <h1 id="intro-heading">Where mathematics takes form.</h1>
         <p className="lede">
-          Read and publish mathematical research. Get an Orchestra review, explore open conjectures,
-          and contribute Lean formalizations.
+          Publish papers and conjectures. Get a deep research review. Contribute Lean proofs that
+          others can independently check.
         </p>
         <div className="intro-actions">
           <Link to={{ kind: 'papers' }} className="button">
             Browse papers <Arrow />
           </Link>
-          <Link to={{ kind: 'submit' }} className="button button-quiet">
-            Submit research <Arrow />
+          <Link to={{ kind: 'formalizations' }} className="button button-quiet">
+            Contribute a formalization <Arrow />
           </Link>
         </div>
       </section>
@@ -117,8 +117,12 @@ export function HomePage() {
         </div>
 
         <aside className="archive-guide" aria-labelledby="authors-heading">
-          <p className="eyebrow">For authors</p>
-          <h2 id="authors-heading">What can I submit?</h2>
+          <p className="eyebrow">Take part</p>
+          <h2 id="authors-heading">Every proof builds on something.</h2>
+          <p>Bring a new result, an open question, or a formal proof of someone else’s work.</p>
+          <Link to={{ kind: 'formalizations' }} className="text-link">
+            Find a statement to formalize <Arrow />
+          </Link>
           <dl className="submission-guide">
             <div>
               <dt>Papers & short notes</dt>

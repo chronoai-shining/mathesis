@@ -4,6 +4,7 @@ export type Route =
   | { kind: 'home' }
   | { kind: 'papers' }
   | { kind: 'conjectures' }
+  | { kind: 'formalizations' }
   | { kind: 'conjecture'; record: string; claim: string }
   | { kind: 'leaderboard' }
   | { kind: 'supporters' }
@@ -11,7 +12,7 @@ export type Route =
   | { kind: 'entrant'; id: string }
   | { kind: 'paper'; record: string }
   | { kind: 'policy' }
-  | { kind: 'submit' }
+  | { kind: 'submit'; intake?: 'lean'; record?: string; claim?: string }
   | { kind: 'submissions' }
   | { kind: 'queue' }
   | { kind: 'submission'; id: string }
@@ -58,8 +59,22 @@ export function parseRoute(pathname: string, search = ''): Route {
         return { kind: 'papers' };
       case 'policy':
         return { kind: 'policy' };
-      case 'submit':
-        return { kind: 'submit' };
+      case 'formalizations':
+        return { kind: 'formalizations' };
+      case 'submit': {
+        const params = new URLSearchParams(search);
+        return {
+          kind: 'submit',
+          ...(params.get('type') === 'lean' ? { intake: 'lean' as const } : {}),
+          ...(params.get('record') && params.get('claim')
+            ? {
+                intake: 'lean' as const,
+                record: params.get('record')!,
+                claim: params.get('claim')!,
+              }
+            : {}),
+        };
+      }
       case 'submissions':
         return { kind: 'submissions' };
       case 'queue':
@@ -125,8 +140,17 @@ export function routePath(route: Route): string {
       return `/papers/${seg(route.record)}`;
     case 'policy':
       return '/policy';
-    case 'submit':
-      return '/submit';
+    case 'formalizations':
+      return '/formalizations';
+    case 'submit': {
+      const params = new URLSearchParams();
+      if (route.intake) params.set('type', route.intake);
+      if (route.record && route.claim) {
+        params.set('record', route.record);
+        params.set('claim', route.claim);
+      }
+      return `/submit${params.size ? `?${params}` : ''}`;
+    }
     case 'submissions':
       return '/submissions';
     case 'queue':

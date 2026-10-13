@@ -11,7 +11,7 @@ describe('ContributePage', () => {
     renderWithApp(<ContributePage />, fakeApi());
     const mcp = screen.getByLabelText('MCP setup command');
     expect(mcp).toHaveTextContent(
-      'claude mcp add wishpool -e WISHPOOL_NYXID_SERVICE=wishpool -- wishpool-contribute mcp',
+      'claude mcp add mathesis -e WISHPOOL_NYXID_SERVICE=mathesis -- mathesis-contribute mcp',
     );
     const cli = screen.getByLabelText('Command-line usage');
     for (const cmd of [
@@ -24,7 +24,7 @@ describe('ContributePage', () => {
       'lease <task>',
       'submit <task> <result.json>',
     ]) {
-      expect(cli).toHaveTextContent(`wishpool-contribute ${cmd}`);
+      expect(cli).toHaveTextContent(`mathesis-contribute ${cmd}`);
     }
     expect(screen.getByText('Escape judgement')).toBeInTheDocument();
     expect(screen.getByText('Conjecture probe')).toBeInTheDocument();

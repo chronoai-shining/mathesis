@@ -7,13 +7,13 @@ use axum::{
     response::IntoResponse,
     routing::{get, post},
 };
-use serde::Deserialize;
-use std::sync::Arc;
-use wishpool_core::{
+use mathesis_core::{
     app::App,
     ids::{ClaimId, RecordId},
     model::NewLeanDeposit,
 };
+use serde::Deserialize;
+use std::sync::Arc;
 pub(super) fn routes() -> Router<Arc<App>> {
     Router::new()
         .route(
@@ -22,7 +22,9 @@ pub(super) fn routes() -> Router<Arc<App>> {
                 .post(submit)
                 .layer(DefaultBodyLimit::max(8 * 1024 * 1024)),
         )
+        .route("/formalizations/opportunities", get(opportunities))
         .route("/formalizations/{id}", get(detail))
+        .route("/formalizations/{id}/project", get(project))
         .route("/formalizations/{id}/source", get(source))
         .route("/formalizations/{id}/attempts", post(verify))
 }
@@ -73,6 +75,7 @@ async fn source(
 struct Target {
     record: RecordId,
     claim: ClaimId,
+    expected_target: Option<String>,
 }
 async fn verify(
     State(app): AppState,
@@ -83,8 +86,45 @@ async fn verify(
     Ok((
         StatusCode::ACCEPTED,
         Json(
-            app.verify_lean_deposit(&c, &id, &target.record, &target.claim)
-                .await?,
+            app.verify_lean_deposit_against(
+                &c,
+                &id,
+                &target.record,
+                &target.claim,
+                target.expected_target.as_deref(),
+            )
+            .await?,
         ),
+    ))
+}
+
+async fn opportunities(
+    State(app): AppState,
+    Query(query): Query<mathesis_core::app::FormalizationQuery>,
+) -> ApiResult<impl IntoResponse> {
+    Ok(Json(app.formalization_opportunities(query).await?))
+}
+async fn project(
+    State(app): AppState,
+    AuthenticatedCaller(c): AuthenticatedCaller,
+    Path(id): Path<String>,
+) -> ApiResult<impl IntoResponse> {
+    let deposit = app.lean_deposit(&c, &id).await?;
+    let solution = app.lean_deposit_source(&c, &id).await?;
+    let modules = app.lean_deposit_modules(&c, &id).await?;
+    Ok((
+        [
+            (header::CACHE_CONTROL, "private, no-store"),
+            (
+                header::CONTENT_DISPOSITION,
+                "attachment; filename=mathesis-project.json",
+            ),
+        ],
+        Json(serde_json::json!({
+            "title": deposit.title, "authors": deposit.authors, "formalizers": deposit.formalizers,
+            "statement": deposit.statement, "source_reference": deposit.source_reference,
+            "source_revision": deposit.source_revision, "toolchain": deposit.toolchain, "license": deposit.license,
+            "solution": solution, "modules": modules
+        })),
     ))
 }

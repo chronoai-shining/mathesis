@@ -210,7 +210,7 @@ impl CodexLean {
             )
             .map_err(io_error)?;
             let lean = if input.conjecture {
-                wishpool_verifier::convert_target(&reported.text)
+                mathesis_verifier::convert_target(&reported.text)
                     .unwrap_or_else(|_| reported.text.clone())
             } else {
                 reported.text.clone()
@@ -388,7 +388,7 @@ impl Formalizer for CodexLean {
     ) -> ReviewResult<FormalOut> {
         let env = self.env().await?;
         std::fs::create_dir_all(work).map_err(io_error)?;
-        let lean = wishpool_verifier::convert_target(lean).map_err(ReviewError::Output)?;
+        let lean = mathesis_verifier::convert_target(lean).map_err(ReviewError::Output)?;
         let file = self
             .check(&env, work, claim, Some("wishpool_target_prop"), &lean, true)
             .await;
@@ -488,7 +488,7 @@ impl Formalizer for CodexLean {
                 reported.map(|f| f.theorem.trim()).filter(|t| !t.is_empty())
             };
             let lean = if input.conjecture {
-                wishpool_verifier::convert_target(&lean).unwrap_or(lean)
+                mathesis_verifier::convert_target(&lean).unwrap_or(lean)
             } else {
                 lean
             };
@@ -538,7 +538,7 @@ fn forbidden(lean: &str) -> Option<String> {
         .filter(|w| !matches!(*w, "namespace" | "section" | "end"))
         .collect::<Vec<_>>()
         .join(" ");
-    if let Some(reason) = wishpool_verifier::forbidden(&scan) {
+    if let Some(reason) = mathesis_verifier::forbidden(&scan) {
         return Some(reason);
     }
     if lean
@@ -582,7 +582,7 @@ fn forbidden(lean: &str) -> Option<String> {
 /// Scan all preceding definitions with the same proof-verification exclusions.
 fn forbidden_target(lean: &str) -> Option<String> {
     if lean.contains("def wishpool_target_prop : Prop :=") {
-        return wishpool_verifier::validate_target(lean).err();
+        return mathesis_verifier::validate_target(lean).err();
     }
     let Some(prefix) = lean.trim_end().strip_suffix(":= by sorry") else {
         return Some("the target must end with exactly `:= by sorry`".into());
@@ -755,12 +755,12 @@ mod tests {
             source_dir: None,
             main_file: None,
         };
-        let text = "import Mathlib\nnamespace Wishpool.C1\ntheorem main : True := by trivial\nend Wishpool.C1\n";
-        let mut remote = serde_json::json!({"summary":"CMA claims success","files":[{"claim":"C1","path":"lean/C1.lean","text":text,"theorem":"Wishpool.C1.main","note":"Exact statement","compiled":true,"axioms":[]}]});
+        let text = "import Mathlib\nnamespace Mathesis.C1\ntheorem main : True := by trivial\nend Mathesis.C1\n";
+        let mut remote = serde_json::json!({"summary":"CMA claims success","files":[{"claim":"C1","path":"lean/C1.lean","text":text,"theorem":"Mathesis.C1.main","note":"Exact statement","compiled":true,"axioms":[]}]});
         for (receipt, expected) in [
-            ("'Wishpool.C1.main' does not depend on any axioms", true),
+            ("'Mathesis.C1.main' does not depend on any axioms", true),
             ("error: type mismatch", false),
-            ("'Wishpool.C1.main' depends on axioms: [remoteAxiom]", false),
+            ("'Mathesis.C1.main' depends on axioms: [remoteAxiom]", false),
         ] {
             std::fs::write(
                 &program,
@@ -832,7 +832,7 @@ mod tests {
         assert!(forbidden("axiom magic : False").is_some());
         assert!(forbidden("private axiom magic : False").is_some());
         assert!(forbidden("theorem t : 1 = 1 := rfl").is_none());
-        assert!(is_name("Wishpool.C1.main'") && !is_name("t; #exit"));
+        assert!(is_name("Mathesis.C1.main'") && !is_name("t; #exit"));
     }
 
     #[test]
@@ -953,8 +953,8 @@ mod tests {
                 &env,
                 dir.path(),
                 "C1",
-                Some("Wishpool.c1"),
-                "import Mathlib\nnamespace Wishpool\ntheorem c1 : (2:ℝ) ≤ 3 := by norm_num\nend Wishpool\n",
+                Some("Mathesis.c1"),
+                "import Mathlib\nnamespace Mathesis\ntheorem c1 : (2:ℝ) ≤ 3 := by norm_num\nend Mathesis\n",
                 false,
             )
             .await;

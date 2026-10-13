@@ -312,7 +312,7 @@ impl OracleHttp {
             .extend(path);
         let client = reqwest::Client::builder()
             .timeout(Duration::from_secs(120))
-            .user_agent(concat!("wishpool/", env!("CARGO_PKG_VERSION")))
+            .user_agent(concat!("mathesis/", env!("CARGO_PKG_VERSION")))
             .redirect(reqwest::redirect::Policy::none())
             .build()
             .map_err(|e| ReviewError::Transport(e.to_string()))?;

@@ -2,6 +2,7 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
+use std::collections::{BTreeMap, BTreeSet};
 use std::{
     path::{Path, PathBuf},
     process::Stdio,
@@ -14,6 +15,8 @@ pub const OUTPUT_CAP: usize = 64 * 1024;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Request {
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub modules: BTreeMap<String, String>,
     pub target: String,
     pub target_digest: String,
     pub toolchain: String,
@@ -156,13 +159,16 @@ pub fn convert_target(text: &str) -> Result<String, String> {
     Ok(converted)
 }
 pub fn validate_solution(text: &str) -> Result<Verdict, String> {
+    validate_solution_imports(text, &["Mathlib", "Target"])
+}
+fn validate_solution_imports(text: &str, allowed: &[&str]) -> Result<Verdict, String> {
     if text.len() > 1_048_576 {
         return Err("solution exceeds 1 MB".into());
     }
     if let Some(reason) = forbidden(text) {
         return Err(reason);
     }
-    imports(text, &["Mathlib", "Target"])?;
+    imports(text, allowed)?;
     if !text.lines().any(|l| l.trim() == "import Target") {
         return Err("import Target is required".into());
     }
@@ -267,7 +273,7 @@ impl Checker {
             verdict: Verdict::Rejected,
             reason: String::new(),
             target_digest: digest(&request.target),
-            solution_digest: digest(&request.solution),
+            solution_digest: solution_digest(&request.solution, &request.modules),
             toolchain: request.toolchain.clone(),
             axioms: vec![],
             checked_at: Utc::now(),
@@ -304,7 +310,7 @@ impl Checker {
             return Err("target digest mismatch".into());
         }
         validate_target(&request.target)?;
-        let verdict = validate_solution(&request.solution)?;
+        let (verdict, modules) = validate_project(&request.solution, &request.modules)?;
         let read = |name: &str| {
             std::fs::read_to_string(self.workspace.join(name))
                 .map_err(|e| format!("workspace: {e}"))
@@ -333,14 +339,29 @@ impl Checker {
         cp.arg("-c");
         cp.arg("-R").arg(&self.workspace).arg(&work);
         capture(cp).await?;
-        for name in ["Target", "Solution", "Check"] {
+        let build_order: Vec<&str> = std::iter::once("Target")
+            .chain(modules.iter().map(String::as_str))
+            .chain(["Solution", "Check"])
+            .collect();
+        for name in &build_order {
             // Never reuse an artifact supplied by the prepared workspace.
-            for suffix in ["olean", "olean.private", "olean.server", "ilean", "lean"] {
+            for suffix in [
+                "olean",
+                "olean.private",
+                "olean.server",
+                "ilean",
+                "lean",
+                "ir",
+                "ir.sig",
+            ] {
                 let _ = std::fs::remove_file(work.join(format!("{name}.{suffix}")));
             }
         }
         std::fs::write(work.join("Target.lean"), &request.target).map_err(|e| e.to_string())?;
         std::fs::write(work.join("Solution.lean"), &request.solution).map_err(|e| e.to_string())?;
+        for (name, source) in &request.modules {
+            std::fs::write(work.join(format!("{name}.lean")), source).map_err(|e| e.to_string())?;
+        }
         let home = std::env::var_os("HOME").ok_or("operator HOME is unavailable")?;
         let lean = PathBuf::from(home)
             .join(".elan/toolchains")
@@ -384,7 +405,14 @@ impl Checker {
                 artifacts_in(&lib, &lib, &mut artifacts)?;
             }
         }
-        for name in ["Target", "Solution", "Check"] {
+        if modules.iter().any(|name| {
+            artifacts
+                .keys()
+                .any(|trusted| trusted.eq_ignore_ascii_case(name))
+        }) {
+            return Err("project modules cannot shadow trusted library modules".into());
+        }
+        for name in build_order {
             let setup = work.join(format!("{name}.setup.json"));
             std::fs::write(
                 &setup,
@@ -443,3 +471,91 @@ impl Checker {
 }
 #[cfg(test)]
 mod tests;
+
+/// Hash the entire project while preserving historical single-file receipts.
+pub fn solution_digest(solution: &str, modules: &BTreeMap<String, String>) -> String {
+    if modules.is_empty() {
+        return digest(solution);
+    }
+    format!(
+        "{:x}",
+        Sha256::digest(
+            serde_json::to_vec(&("mathesis-project-v1", solution, modules))
+                .expect("source serialization")
+        )
+    )
+}
+/// Independently validate all modules, including unused ones, before I/O.
+fn validate_project(
+    solution: &str,
+    modules: &BTreeMap<String, String>,
+) -> Result<(Verdict, Vec<String>), String> {
+    if modules.len() > 32
+        || solution.len() + modules.values().map(String::len).sum::<usize>() > 1_048_576
+    {
+        return Err("project exceeds 32 supporting modules or 1 MB total source".into());
+    }
+    let mut seen = BTreeSet::new();
+    for (name, text) in modules {
+        if name.len() > 64
+            || !name.starts_with(|c: char| c.is_ascii_uppercase())
+            || !name.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
+            || [
+                "target", "solution", "check", "mathlib", "init", "lean", "std", "lake",
+            ]
+            .contains(&name.to_ascii_lowercase().as_str())
+            || !seen.insert(name.to_ascii_lowercase())
+            || text.trim().is_empty()
+        {
+            return Err("invalid or reserved project module name".into());
+        }
+        if let Some(reason) = forbidden(text) {
+            return Err(format!("{name}: {reason}"));
+        }
+        if [
+            "wishpool_solution",
+            "wishpool_disproof",
+            "wishpool_target_prop",
+        ]
+        .iter()
+        .any(|s| text.contains(s))
+        {
+            return Err("supporting modules cannot declare the target or solution".into());
+        }
+    }
+    let allowed: Vec<&str> = ["Mathlib", "Target"]
+        .into_iter()
+        .chain(modules.keys().map(String::as_str))
+        .collect();
+    let verdict = validate_solution_imports(solution, &allowed)?;
+    let mut dependencies = BTreeMap::new();
+    for (name, text) in modules {
+        imports(text, &allowed)?;
+        let deps: BTreeSet<String> = text
+            .lines()
+            .filter_map(|line| {
+                let mut words = line.split_whitespace();
+                (words.next() == Some("import"))
+                    .then(|| words.next())
+                    .flatten()
+            })
+            .filter(|module| modules.contains_key(*module))
+            .map(str::to_owned)
+            .collect();
+        dependencies.insert(name.clone(), deps);
+    }
+    let mut order = Vec::new();
+    while !dependencies.is_empty() {
+        let next = dependencies
+            .iter()
+            .find(|(_, deps)| deps.is_empty())
+            .map(|(name, _)| name.clone())
+            .ok_or("cyclic project imports")?;
+        dependencies.remove(&next);
+        for deps in dependencies.values_mut() {
+            deps.remove(&next);
+        }
+        order.push(next);
+    }
+    Ok((verdict, order))
+}

@@ -163,7 +163,7 @@ describe('statement summary', () => {
               at: '',
               result: {
                 attempts: [
-                  { claim: 'C1', outcome: 'compiled', theorem: 'Wishpool.C1.main' },
+                  { claim: 'C1', outcome: 'compiled', theorem: 'Mathesis.C1.main' },
                   { claim: 'C2', outcome: 'failed' },
                 ],
               },
@@ -174,12 +174,12 @@ describe('statement summary', () => {
     );
     const toggle = screen.getByRole('button', { name: /^Theorem C1/ });
     expect(within(toggle).getByText('Lean ✓')).toBeVisible();
-    expect(screen.getByText('Wishpool.C1.main')).not.toBeVisible();
+    expect(screen.getByText('Mathesis.C1.main')).not.toBeVisible();
     expect(
       within(screen.getByRole('button', { name: /^Lemma C2/ })).queryByText('Lean ✓'),
     ).toBeNull();
     await userEvent.click(toggle);
-    expect(screen.getByText('Wishpool.C1.main')).toBeVisible();
+    expect(screen.getByText('Mathesis.C1.main')).toBeVisible();
     expect(screen.getByText(/Proved in Lean 4 as/)).toBeVisible();
   });
 

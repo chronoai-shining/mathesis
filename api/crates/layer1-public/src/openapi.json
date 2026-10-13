@@ -1,8 +1,8 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "Wishpool research services",
-    "version": "1.0.0",
+    "title": "Mathesis research services",
+    "version": "1.1.0",
     "description": "Research archive, private Orchestra review dossiers, Lean source intake and independent verification. Authentication is NyxID; private resources return 404 to other users. This document covers the research-service surface; see docs/API.md for staff and contribution administration."
   },
   "servers": [
@@ -526,6 +526,9 @@
                 }
               }
             }
+          },
+          "409": {
+            "description": "Target changed, incompatible attribution replay or admission limit"
           }
         },
         "parameters": [
@@ -809,6 +812,128 @@
           }
         ]
       }
+    },
+    "/api/v1/formalizations/{id}/project": {
+      "get": {
+        "operationId": "get_formalization_project",
+        "summary": "Download your complete Lean source project and attribution as reusable submission JSON.",
+        "security": [
+          {
+            "nyxid": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NewFormalization"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid NyxID identity"
+          },
+          "404": {
+            "description": "Resource unavailable or not visible to the caller"
+          },
+          "422": {
+            "description": "Invalid input",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": ""
+          }
+        ]
+      }
+    },
+    "/api/v1/formalizations/opportunities": {
+      "get": {
+        "operationId": "formalization_opportunities",
+        "summary": "Discover public confirmed Lean targets and verified contributions. Filters apply before cursor pagination; old versions, hidden work and unconfirmed targets are excluded.",
+        "security": [],
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 200
+            }
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "paper",
+                "conjecture"
+              ]
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "open",
+                "verified",
+                "disproved"
+              ]
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          },
+          {
+            "name": "before",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 250
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current public targets and verifier evidence",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FormalizationOpportunityListing"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid filters"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1024,6 +1149,33 @@
           "solution": {
             "type": "string",
             "description": "UTF-8 Lean module, at most 1 MiB in bytes. A deposit is not verification."
+          },
+          "modules": {
+            "type": "object",
+            "maxProperties": 32,
+            "propertyNames": {
+              "pattern": "^[A-Z][A-Za-z0-9_]{0,63}$"
+            },
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Flat supporting Lean module names (without .lean) to full sources. Main and supporting sources together are limited to 1 MiB. Reserved and case-colliding names are rejected. Imports may reference Mathlib, Target and these modules; no custom dependencies or build scripts."
+          },
+          "formalizers": {
+            "type": "array",
+            "maxItems": 50,
+            "items": {
+              "type": "string",
+              "maxLength": 200
+            }
+          },
+          "source_revision": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^(?:[a-fA-F0-9]{40}|[a-fA-F0-9]{64})$",
+            "description": "Reported full Git revision; not independently authenticated."
           }
         },
         "required": [
@@ -1093,6 +1245,39 @@
           },
           "revision": {
             "type": "integer"
+          },
+          "modules": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "sha256": {
+                  "type": "string"
+                },
+                "bytes": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "formalizers": {
+            "type": "array",
+            "maxItems": 50,
+            "items": {
+              "type": "string",
+              "maxLength": 200
+            }
+          },
+          "source_revision": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^(?:[a-fA-F0-9]{40}|[a-fA-F0-9]{64})$",
+            "description": "Reported full Git revision; not independently authenticated."
           }
         },
         "required": [
@@ -1129,6 +1314,10 @@
           },
           "claim": {
             "type": "string"
+          },
+          "expected_target": {
+            "type": "string",
+            "description": "SHA-256 of the target inspected by the caller. A mismatch returns 409."
           }
         },
         "required": [
@@ -1163,7 +1352,18 @@
           },
           "attribution": {
             "type": "object",
-            "description": "Reported original authors, source reference, license and deposit id, fixed when the attempt is admitted."
+            "description": "Reported original authors, formalization contributors, source, optional Git revision, license and deposit id; fixed on admission."
+          },
+          "modules": {
+            "type": "object",
+            "maxProperties": 32,
+            "propertyNames": {
+              "pattern": "^[A-Z][A-Za-z0-9_]{0,63}$"
+            },
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Flat supporting Lean module names (without .lean) to full sources. Main and supporting sources together are limited to 1 MiB. Reserved and case-colliding names are rejected. Imports may reference Mathlib, Target and these modules; no custom dependencies or build scripts."
           }
         },
         "required": [
@@ -1243,6 +1443,109 @@
           "claims_revision",
           "source_sha256",
           "review"
+        ]
+      },
+      "FormalizationOpportunity": {
+        "type": "object",
+        "properties": {
+          "record": {
+            "type": "string"
+          },
+          "claim": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "statement": {
+            "type": "string"
+          },
+          "target_digest": {
+            "type": "string"
+          },
+          "toolchain": {
+            "type": "string"
+          },
+          "authors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Author"
+            }
+          },
+          "kind": {
+            "enum": [
+              "paper",
+              "conjecture"
+            ]
+          },
+          "status": {
+            "enum": [
+              "open",
+              "verified",
+              "disproved"
+            ]
+          },
+          "verified_count": {
+            "type": "integer"
+          },
+          "contributor": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "attribution": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "receipt": {
+            "type": [
+              "object",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "record",
+          "claim",
+          "title",
+          "label",
+          "statement",
+          "target_digest",
+          "toolchain",
+          "authors",
+          "kind",
+          "status",
+          "verified_count",
+          "contributor",
+          "attribution",
+          "receipt"
+        ]
+      },
+      "FormalizationOpportunityListing": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FormalizationOpportunity"
+            }
+          },
+          "next_before": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "items",
+          "next_before"
         ]
       }
     }
