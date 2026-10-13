@@ -349,6 +349,11 @@ impl BlobStore for MemoryStores {
     async fn get(&self, id: &str) -> CoreResult<Option<Vec<u8>>> {
         Ok(self.blobs.lock().await.get(id).cloned())
     }
+
+    async fn discard(&self, id: &str) -> CoreResult<()> {
+        self.blobs.lock().await.remove(id);
+        Ok(())
+    }
 }
 
 #[async_trait]

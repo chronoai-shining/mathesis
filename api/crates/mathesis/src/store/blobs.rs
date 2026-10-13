@@ -14,6 +14,13 @@ fn gridfs(error: impl std::fmt::Display) -> CoreError {
 
 #[async_trait]
 impl BlobStore for MongoStore {
+    async fn discard(&self, id: &str) -> CoreResult<()> {
+        self.bucket()
+            .delete(Bson::String(id.to_owned()))
+            .await
+            .map_err(gridfs)
+    }
+
     async fn put(&self, bytes: &[u8], content_type: &str) -> CoreResult<BlobRef> {
         let id = new_uuid();
         let mut upload = self

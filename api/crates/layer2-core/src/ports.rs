@@ -94,8 +94,11 @@ pub trait RecordStore: Send + Sync {
 /// Opaque file storage for source archives and PDFs.
 #[async_trait]
 pub trait BlobStore: Send + Sync {
+    /// Each write allocates a fresh id, including writes of identical bytes.
     async fn put(&self, bytes: &[u8], content_type: &str) -> CoreResult<BlobRef>;
     async fn get(&self, id: &str) -> CoreResult<Option<Vec<u8>>>;
+    /// Discard a write only after the caller establishes that no saved object references it.
+    async fn discard(&self, id: &str) -> CoreResult<()>;
 }
 
 /// One statement environment read from the source.

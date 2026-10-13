@@ -443,6 +443,9 @@ funded; local elaboration and proof verification carry no CMA payer.
   deposits, with original authors, source reference, pinned toolchain and license.
   Sources live in GridFS; metadata lives in `lean_deposits`; exact retries are
   idempotent. Receiving a source is never proof verification or paper acceptance.
+  Concurrent retries discard only their own fresh source blobs after a confirmed
+  conflicting deposit is read, preserving every blob it references. Cleanup is
+  best effort and never runs after an uncertain insert outcome.
 - Deposit owners may explicitly request verification against an existing public,
   author-confirmed target. Reuse the ordinary attempt and independent verifier;
   link attempts under a revision fence. No separate acceptance route, arbitrary

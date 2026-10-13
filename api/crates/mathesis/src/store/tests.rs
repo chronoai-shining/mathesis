@@ -219,6 +219,8 @@ async fn blobs_beyond_the_document_limit() {
     assert_eq!(stored.sha256.len(), 64);
     assert_eq!(BlobStore::get(s, &stored.id).await.unwrap(), Some(big));
     assert_eq!(BlobStore::get(s, "missing").await.unwrap(), None);
+    BlobStore::discard(s, &stored.id).await.unwrap();
+    assert_eq!(BlobStore::get(s, &stored.id).await.unwrap(), None);
     db.drop().await;
 }
 

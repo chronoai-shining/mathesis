@@ -1,4 +1,5 @@
 use super::*;
+use crate::ports::BlobStore;
 
 #[tokio::test]
 async fn archive_search_filters_before_pagination_and_never_reads_private_revisions() {
@@ -334,4 +335,146 @@ async fn private_review_has_no_publication_and_retains_evidence_through_revision
     let report = w.app.review_report(&author, &paper.id).await.unwrap();
     assert_ne!(report.source_sha256, report.review.rounds[0].source_sha256);
     assert!(report.markdown().contains("Author response on version 1"));
+}
+
+#[tokio::test]
+async fn concurrent_deposit_retries_discard_only_losing_source_writes() {
+    struct RacingBlobs {
+        store: Arc<MemoryStores>,
+        barrier: tokio::sync::Barrier,
+        written: std::sync::Mutex<Vec<String>>,
+    }
+    #[async_trait::async_trait]
+    impl BlobStore for RacingBlobs {
+        async fn put(&self, bytes: &[u8], content_type: &str) -> CoreResult<BlobRef> {
+            let blob = BlobStore::put(self.store.as_ref(), bytes, content_type).await?;
+            self.written.lock().unwrap().push(blob.id.clone());
+            // All requests allocate both sources before any can win admission.
+            self.barrier.wait().await;
+            Ok(blob)
+        }
+        async fn get(&self, id: &str) -> CoreResult<Option<Vec<u8>>> {
+            BlobStore::get(self.store.as_ref(), id).await
+        }
+        async fn discard(&self, id: &str) -> CoreResult<()> {
+            BlobStore::discard(self.store.as_ref(), id).await
+        }
+    }
+    let w = World::new().await;
+    let caller = w.person("depositor", &[]).await;
+    let blobs = Arc::new(RacingBlobs {
+        store: w.stores.clone(),
+        barrier: tokio::sync::Barrier::new(8),
+        written: Default::default(),
+    });
+    let mut ports = w.stores.ports(Arc::new(SystemClock), Arc::new(FakeReader));
+    ports.blobs = blobs.clone();
+    let app = App::new(ports, Policy::default(), BTreeSet::new());
+    let body: NewLeanDeposit = serde_json::from_value(serde_json::json!({
+        "title":"Concurrent source", "authors":["Original author"],
+        "statement":"True", "source_reference":{"kind":"url","locator":"https://example.org/proof"},
+        "toolchain":"test", "license":"MIT", "solution":"import Helpers\n",
+        "modules":{"Helpers":"theorem helper : True := by trivial\n"}
+    }))
+    .unwrap();
+    let mut tasks = tokio::task::JoinSet::new();
+    for _ in 0..8 {
+        let (app, caller, body) = (app.clone(), caller.clone(), body.clone());
+        tasks.spawn(async move { app.submit_lean_deposit(&caller, body).await.unwrap() });
+    }
+    let mut deposits = vec![];
+    while let Some(result) = tasks.join_next().await {
+        deposits.push(result.unwrap());
+    }
+    assert!(deposits.iter().all(|d| d.id == deposits[0].id));
+    let written = blobs.written.lock().unwrap().clone();
+    assert_eq!(written.len(), 16);
+    let kept = [&deposits[0].source.id, &deposits[0].modules["Helpers"].id];
+    for id in written {
+        assert_eq!(
+            BlobStore::get(w.stores.as_ref(), &id)
+                .await
+                .unwrap()
+                .is_some(),
+            kept.contains(&&id),
+            "only the winner's main source and supporting module must remain"
+        );
+    }
+    assert_eq!(
+        app.lean_deposit_source(&caller, &deposits[0].id)
+            .await
+            .unwrap(),
+        body.solution
+    );
+    assert_eq!(
+        app.lean_deposit_modules(&caller, &deposits[0].id)
+            .await
+            .unwrap(),
+        body.modules
+    );
+}
+
+#[tokio::test]
+async fn deposit_cleanup_preserves_sources_after_an_uncertain_committed_insert() {
+    use crate::ports::{LeanDepositStore, Listing};
+    struct CommittedError {
+        store: Arc<MemoryStores>,
+        conflict: bool,
+    }
+    #[async_trait::async_trait]
+    impl LeanDepositStore for CommittedError {
+        async fn get(&self, id: &str) -> CoreResult<Option<LeanDeposit>> {
+            LeanDepositStore::get(self.store.as_ref(), id).await
+        }
+        async fn insert(&self, value: &LeanDeposit) -> CoreResult<()> {
+            LeanDepositStore::insert(self.store.as_ref(), value).await?;
+            if self.conflict {
+                Err(CoreError::conflict("insert replay after commit"))
+            } else {
+                Err(CoreError::Unavailable("response lost after commit".into()))
+            }
+        }
+        async fn replace(&self, value: &LeanDeposit, expected: u64) -> CoreResult<()> {
+            LeanDepositStore::replace(self.store.as_ref(), value, expected).await
+        }
+        async fn list(
+            &self,
+            owner: &PersonId,
+            limit: u32,
+            before: Option<String>,
+        ) -> CoreResult<Listing<LeanDeposit>> {
+            LeanDepositStore::list(self.store.as_ref(), owner, limit, before).await
+        }
+    }
+    for conflict in [false, true] {
+        let w = World::new().await;
+        let caller = w.person("depositor", &[]).await;
+        let mut ports = w.stores.ports(Arc::new(SystemClock), Arc::new(FakeReader));
+        ports.deposits = Arc::new(CommittedError {
+            store: w.stores.clone(),
+            conflict,
+        });
+        let app = App::new(ports, Policy::default(), BTreeSet::new());
+        let body: NewLeanDeposit = serde_json::from_value(serde_json::json!({
+            "title":"Committed source", "authors":["Original author"], "statement":"True",
+            "source_reference":{"kind":"url","locator":"https://example.org/proof"},
+            "toolchain":"test", "license":"MIT", "solution":"import Helpers\n",
+            "modules":{"Helpers":"theorem helper : True := by trivial\n"}
+        }))
+        .unwrap();
+        let first = app.submit_lean_deposit(&caller, body.clone()).await;
+        assert_eq!(first.is_ok(), conflict);
+        let saved = app
+            .submit_lean_deposit(&caller, body.clone())
+            .await
+            .unwrap();
+        assert_eq!(
+            app.lean_deposit_source(&caller, &saved.id).await.unwrap(),
+            body.solution
+        );
+        assert_eq!(
+            app.lean_deposit_modules(&caller, &saved.id).await.unwrap(),
+            body.modules
+        );
+    }
 }

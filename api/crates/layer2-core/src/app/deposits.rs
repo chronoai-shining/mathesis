@@ -58,12 +58,28 @@ impl App {
         };
         match self.ports.deposits.insert(&deposit).await {
             Ok(()) => Ok(deposit),
-            Err(CoreError::Conflict(_)) => self
-                .ports
-                .deposits
-                .get(&id)
-                .await?
-                .ok_or_else(|| CoreError::conflict("deposit admission conflict")),
+            Err(CoreError::Conflict(_)) => {
+                let existing = self
+                    .ports
+                    .deposits
+                    .get(&id)
+                    .await?
+                    .ok_or_else(|| CoreError::conflict("deposit admission conflict"))?;
+                // The durable winner is known. Discard only this request's fresh
+                // writes that it does not reference. Never clean up on an uncertain
+                // insert outcome: the database may have committed our own sources.
+                let kept: std::collections::BTreeSet<_> = std::iter::once(&existing.source.id)
+                    .chain(existing.modules.values().map(|blob| &blob.id))
+                    .collect();
+                for blob in std::iter::once(&deposit.source).chain(deposit.modules.values()) {
+                    if !kept.contains(&blob.id) {
+                        // Cleanup failure must not turn a successfully admitted
+                        // idempotent request into a failed submission.
+                        let _ = self.ports.blobs.discard(&blob.id).await;
+                    }
+                }
+                Ok(existing)
+            }
             Err(e) => Err(e),
         }
     }
