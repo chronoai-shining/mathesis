@@ -502,3 +502,6 @@ funded; local elaboration and proof verification carry no CMA payer.
   attachment / 256 KiB total; CMA gets a bounded source inventory and up to 512 KiB per
   UTF-8 file / 2 MiB total. Explicitly identify every inventory-only file; never claim
   it was read or validated. Uploaded scripts are not automatically executed.
+
+- Keep legacy review prompt bytes unchanged when no computational evidence is declared;
+  existing admitted task input digests must remain resumable across this upgrade.

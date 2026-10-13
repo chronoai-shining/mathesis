@@ -79,13 +79,15 @@ no horizontal page overflow and no browser exceptions. Preflight findings beyond
 the first five are expandable. Screenshots and raw logs remain in the isolated
 local stress-test artifact directory.
 
-- Rust workspace: **260 tests passed**, with MongoDB and local TeX enabled.
+- Rust workspace: **262 tests passed**, with MongoDB and local TeX enabled.
   Optional real Lean execution above was run separately.
 - Web: **300 tests passed**; formatting, lint, TypeScript and production build passed.
 - SDK: **3 tests passed**, formatting and clippy passed.
 - Rust clippy and cargo-deny passed. npm audit at the existing high-severity gate
   passed; the existing KaTeX dependency chain reports four low-severity advisories.
 
-The source/audit adapter now transports evidence and reports coverage explicitly.
+Regression checks also preserve the exact old referee/source prompt representation for
+manuscripts without declared evidence, protecting already admitted task identities.
+The source/audit adapter now transports declared evidence and reports coverage explicitly.
 The separate CMA connection-readiness problem documented in the previous stress
 test was not changed or represented as resolved by this work.

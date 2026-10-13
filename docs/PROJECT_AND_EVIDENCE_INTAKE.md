@@ -98,10 +98,11 @@ using the same author/staff source access rules. The review dossier exposes
 
 The PDF referee receives the inventory and complete UTF-8 evidence files up to
 64 KiB each / 256 KiB combined. Binary and oversized files are explicitly marked
-`inventory_only_binary_or_size_limit`. The Orchestra source adapter likewise sends
+`inventory_only_binary_or_size_limit`. For bundles declaring an evidence manifest, the Orchestra source adapter likewise sends
 all file hashes and a bounded text payload (512 KiB each / 2 MiB combined), including
 computational evidence. These limits describe transport coverage, not validation.
-Uploaded code is not automatically executed. Models must distinguish supplied
+Manuscripts without declared evidence retain the exact legacy prompt representation,
+so already admitted review tasks keep their input identity. Uploaded code is not automatically executed. Models must distinguish supplied
 certificates from independently checked results, and unread files from read ones.
 
 ## Long manuscripts

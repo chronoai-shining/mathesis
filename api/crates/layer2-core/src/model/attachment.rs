@@ -115,6 +115,9 @@ pub fn evidence_review_context(
     inventory: &[EvidenceAttachment],
     files: &BTreeMap<String, Vec<u8>>,
 ) -> String {
+    if inventory.is_empty() {
+        return String::new();
+    }
     let mut remaining = 256 * 1024;
     let entries: Vec<_> = inventory
         .iter()
@@ -173,5 +176,13 @@ mod tests {
         let context = evidence_review_context(&inventory, &source);
         assert!(context.contains("inventory_only_binary_or_size_limit"));
         assert!(context.contains("\"text\":null"));
+    }
+}
+
+#[cfg(test)]
+mod legacy_review_tests {
+    #[test]
+    fn empty_inventory_does_not_change_existing_prompt_digests() {
+        assert_eq!(super::evidence_review_context(&[], &Default::default()), "");
     }
 }

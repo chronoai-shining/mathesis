@@ -157,12 +157,30 @@ fn inline_source(dir: Option<&Path>) -> ReviewResult<String> {
         }
         Ok(())
     }
+    if dir.is_none() {
+        return Ok("[]".into());
+    }
     let mut files = Vec::new();
     let mut remaining = 2 * 1024 * 1024;
     if let Some(dir) = dir {
         let mut paths = Vec::new();
         visit(dir, dir, &mut paths)?;
         paths.sort();
+        if !dir.join("mathesis-evidence.json").is_file() {
+            // Preserve the exact legacy prompt representation for already admitted work.
+            let mut tex = Vec::new();
+            for path in paths
+                .iter()
+                .filter(|path| path.extension().is_some_and(|extension| extension == "tex"))
+            {
+                let text = std::fs::read_to_string(dir.join(path))
+                    .map_err(|_| invalid("paper TeX is not UTF-8"))?;
+                tex.push((path.to_string_lossy().into_owned(), text));
+            }
+            tex.sort_by(|a, b| a.0.cmp(&b.0));
+            return serde_json::to_string(&tex)
+                .map_err(|_| invalid("paper source cannot be serialized"));
+        }
         for path in paths {
             let data =
                 std::fs::read(dir.join(&path)).map_err(|_| invalid("paper source unavailable"))?;
@@ -190,10 +208,15 @@ mod evidence_tests {
         std::fs::write(dir.path().join("paper.tex"), "Paper source").unwrap();
         std::fs::write(dir.path().join("certificate.json"), r#"{"cases":41}"#).unwrap();
         std::fs::write(dir.path().join("binary.bin"), [0, 255]).unwrap();
+        std::fs::write(
+            dir.path().join("mathesis-evidence.json"),
+            r#"{"schema_version":1,"files":[]}"#,
+        )
+        .unwrap();
         let value: serde_json::Value =
             serde_json::from_str(&inline_source(Some(dir.path())).unwrap()).unwrap();
         let files = value["files"].as_array().unwrap();
-        assert_eq!(files.len(), 3);
+        assert_eq!(files.len(), 4);
         let certificate = files
             .iter()
             .find(|f| f["path"] == "certificate.json")
@@ -204,5 +227,24 @@ mod evidence_tests {
         let binary = files.iter().find(|f| f["path"] == "binary.bin").unwrap();
         assert_eq!(binary["coverage"], "inventory_only_binary_or_size_limit");
         assert!(binary["text"].is_null());
+    }
+}
+
+#[cfg(test)]
+mod legacy_input_tests {
+    use super::*;
+    #[test]
+    fn no_evidence_keeps_the_exact_admitted_source_prompt() {
+        assert_eq!(inline_source(None).unwrap(), "[]");
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(dir.path().join("b.tex"), "second").unwrap();
+        std::fs::write(dir.path().join("a.tex"), "first").unwrap();
+        std::fs::write(dir.path().join("figure.png"), [0, 255]).unwrap();
+        std::fs::create_dir(dir.path().join("a")).unwrap();
+        std::fs::write(dir.path().join("a/x.tex"), "nested").unwrap();
+        assert_eq!(
+            inline_source(Some(dir.path())).unwrap(),
+            r#"[["a.tex","first"],["a/x.tex","nested"],["b.tex","second"]]"#
+        );
     }
 }
