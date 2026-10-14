@@ -3520,6 +3520,11 @@ async fn private_followup_delivers_a_bound_conclusion_without_rewriting_the_orig
     assert_eq!(result.status, ResponseDisposition::Addressed);
     assert_eq!(w.file().await.rounds[0].audit, original);
     assert!(report.markdown().contains("matches the quantified domain"));
+    assert!(
+        report
+            .markdown()
+            .contains(&format!("Response ID: {response_id}"))
+    );
     assert!(report.review.letters.iter().all(|l| {
         l.body
             .starts_with("Your private Orchestra review is complete.")

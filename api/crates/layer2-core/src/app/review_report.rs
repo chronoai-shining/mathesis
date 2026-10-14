@@ -142,8 +142,8 @@ impl ReviewReport {
                     {
                         let _ = writeln!(
                             out,
-                            "Author response on version {}: {}\n",
-                            response.version, response.body
+                            "Author response on version {}: {}\n\nResponse ID: {} · claims revision {}\n",
+                            response.version, response.body, response.id, response.claims_revision
                         );
                         for checked in self.review.rounds.iter().filter(|r| {
                             r.version == response.version
