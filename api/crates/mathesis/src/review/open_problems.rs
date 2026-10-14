@@ -110,7 +110,7 @@ impl Worker {
                 return Ok(true);
             }
             let (mut input, _work, _) = self
-                .advisor_input(&paper, file.report.as_ref().unwrap())
+                .advisor_input(&paper, file.report.as_ref().unwrap(), 0)
                 .await
                 .map_err(Failure::Permanent)?;
             input.kind = "conjecture".into();

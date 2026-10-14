@@ -467,7 +467,11 @@ funded; local elaboration and proof verification carry no CMA payer.
   Queue reconciliation recovers a saved response after enqueue failure.
 - Review JSON schema 2 and `/review.md` include each round's source digest and author
   responses. Both use the author-safe view, including when requested by staff.
-- New rounds pin review contract 1. Re-review audits assess each admitted author
+- New rounds pin review contract 2. Contract 1 introduced re-review assessments;
+  contract 2 additionally carries bounded attachment contents and their actual
+  version-bound hashes into audit, advice and letter prompts. Earlier rounds
+  retain their original prompts, including when evidence was not transported.
+  Re-review audits assess each admitted author
   response as addressed, unresolved or not_checkable, with a concrete explanation.
   Attachment references resolve to paths and actual SHA-256 digests in that round's
   source version. Unknown/duplicate response outputs or unusable evidence cannot

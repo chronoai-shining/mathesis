@@ -1196,6 +1196,55 @@ async fn prepare_audit(w: &World) -> LeasedJob {
     job
 }
 
+#[tokio::test]
+async fn new_contract_delivers_actual_evidence_to_all_review_prompts_without_changing_legacy() {
+    let w = World::new(vec![completed("accept")], true).await;
+    let paper = w
+        .worker
+        .app
+        .upload_version(
+            &w.author,
+            &w.paper.id,
+            Upload {
+                filename: "evidence.zip".into(),
+                bytes: include_bytes!("fixtures/review-evidence.zip").to_vec(),
+            },
+            "Synthetic evidence transport test".into(),
+            Some("ai-review-2026-10-11".into()),
+        )
+        .await
+        .unwrap();
+    let report = super::super::error_reports::empty_report();
+    let (legacy, _old_work, old_source) = w.worker.advisor_input(&paper, &report, 0).await.unwrap();
+    let (v1, _v1_work, _) = w.worker.advisor_input(&paper, &report, 1).await.unwrap();
+    assert_eq!(referee_prompts::audit(&legacy), referee_prompts::audit(&v1));
+    assert!(!referee_prompts::audit(&legacy).contains("certificate-payload-for-auditor"));
+
+    let (current, _work, source) = w.worker.advisor_input(&paper, &report, 2).await.unwrap();
+    assert_eq!(source, old_source, "source bytes did not change");
+    for prompt in [
+        referee_prompts::audit(&current),
+        referee_prompts::advice(&current),
+        referee_prompts::letter(&current, None),
+    ] {
+        assert!(prompt.contains("certificate-payload-for-auditor"));
+        assert!(prompt.contains("full_text_provided"));
+        assert!(prompt.contains("inventory_only_binary_or_size_limit"));
+        for evidence in &paper.current_version().unwrap().evidence {
+            assert!(prompt.contains(&evidence.descriptor.path));
+            assert!(prompt.contains(&evidence.sha256));
+        }
+    }
+    let mut mismatched = paper;
+    mismatched.versions.last_mut().unwrap().evidence[0].sha256 = "0".repeat(64);
+    assert!(
+        w.worker
+            .advisor_input(&mismatched, &report, 2)
+            .await
+            .is_err()
+    );
+}
+
 #[tokio::test(start_paused = true)]
 async fn shutdown_releases_running_audit_without_waiting_for_lease_expiry() {
     let mut w = World::new(vec![completed("accept")], true).await;

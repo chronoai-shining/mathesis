@@ -26,10 +26,16 @@ the actual stored hashes. An unknown attachment path cannot establish `addressed
 Missing, duplicate or malformed model conclusions become explicit `not_checkable`
 entries. Extraneous model response IDs are never projected to authors.
 
-New rounds persist `review_contract: 1`. Earlier rounds deserialize as contract 0;
-their prompts retain their original bytes, including when a worker resumes an
-admitted task after upgrading. No historical conclusion is fabricated. Contract 1
-adds follow-up instructions only to audit tasks with actual author responses.
+New rounds persist `review_contract: 2`. Earlier rounds without a contract
+deserialize as contract 0. Contracts 0 and 1 retain their original prompt bytes,
+including when a worker resumes an admitted task after upgrading. No historical
+conclusion is fabricated. Contract 1 adds follow-up instructions only to audit
+tasks with actual author responses. Contract 2 additionally transports declared
+attachment text and its exact stored inventory to audit, advice and letter steps
+(512 KiB per UTF-8 file, 2 MiB total). Binary or larger attachments remain explicit
+inventory-only entries. The inventory is recomputed and compared with the stored
+source version before it is sent. A local source-directory path does not transfer
+its files to remote CMA; the bounded evidence is carried in the actual prompt.
 Advice and letter generation receive the sanitized audit through their existing
 interfaces; neither publication policy nor proof verification changes.
 

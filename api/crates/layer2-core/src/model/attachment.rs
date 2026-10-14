@@ -115,17 +115,28 @@ pub fn evidence_review_context(
     inventory: &[EvidenceAttachment],
     files: &BTreeMap<String, Vec<u8>>,
 ) -> String {
+    evidence_review_context_bounded(inventory, files, 64 * 1024, 256 * 1024)
+}
+
+/// Render declared evidence with explicit per-file and total text budgets.
+/// Inventory-only entries still retain their immutable paths and hashes.
+pub fn evidence_review_context_bounded(
+    inventory: &[EvidenceAttachment],
+    files: &BTreeMap<String, Vec<u8>>,
+    file_limit: usize,
+    total_limit: usize,
+) -> String {
     if inventory.is_empty() {
         return String::new();
     }
-    let mut remaining = 256 * 1024;
+    let mut remaining = total_limit;
     let entries: Vec<_> = inventory
         .iter()
         .map(|e| {
             let data = files.get(&e.descriptor.path);
             let text = data
                 .and_then(|b| std::str::from_utf8(b).ok())
-                .filter(|s| !s.contains('\0') && s.len() <= 64 * 1024 && s.len() <= remaining);
+                .filter(|s| !s.contains('\0') && s.len() <= file_limit && s.len() <= remaining);
             let coverage = if let Some(text) = text {
                 remaining -= text.len();
                 "full_text_provided"
@@ -168,6 +179,25 @@ mod tests {
             assert!(evidence_inventory(&files(path)).is_err());
         }
     }
+    #[test]
+    fn wider_advisor_budget_includes_text_the_pdf_referee_only_inventories() {
+        let mut source = files("evidence/certificate.json");
+        source.insert("evidence/certificate.json".into(), vec![b'x'; 70 * 1024]);
+        let inventory = evidence_inventory(&source).unwrap();
+        assert!(
+            evidence_review_context(&inventory, &source)
+                .contains("inventory_only_binary_or_size_limit")
+        );
+        assert!(
+            evidence_review_context_bounded(&inventory, &source, 512 * 1024, 2 * 1024 * 1024)
+                .contains("full_text_provided")
+        );
+        assert!(
+            evidence_review_context_bounded(&inventory, &source, 512 * 1024, 32 * 1024)
+                .contains("inventory_only_binary_or_size_limit")
+        );
+    }
+
     #[test]
     fn evidence_text_budget_is_reported_instead_of_silent_truncation() {
         let mut source = files("evidence/certificate.json");

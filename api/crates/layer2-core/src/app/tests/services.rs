@@ -300,7 +300,7 @@ async fn private_review_has_no_publication_and_retains_evidence_through_revision
             .contains("displayed convention")
     );
     assert!(round2.current().unwrap().audit.done().is_none());
-    assert_eq!(round2.current().unwrap().review_contract, 1);
+    assert_eq!(round2.current().unwrap().review_contract, 2);
     w.app
         .update_referee_round(
             &reviewer,

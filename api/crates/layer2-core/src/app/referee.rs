@@ -756,7 +756,7 @@ impl App {
     fn push_round(&self, file: &mut RefereeFile, submission: &Submission, version: u32) {
         let number = file.rounds.last().map_or(1, |r| r.number + 1);
         file.rounds.push(RefereeRound {
-            review_contract: 1,
+            review_contract: 2,
             source_sha256: submission
                 .current_version()
                 .map(|v| v.archive.sha256.clone())

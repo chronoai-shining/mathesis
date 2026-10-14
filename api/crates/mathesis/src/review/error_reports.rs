@@ -47,7 +47,7 @@ impl Worker {
                 .and_then(|r| r.referee.done())
                 .unwrap_or(&fallback);
             let (mut input, _work, _) = self
-                .advisor_input(&paper, primary)
+                .advisor_input(&paper, primary, 0)
                 .await
                 .map_err(Failure::Permanent)?;
             input.audit = review
