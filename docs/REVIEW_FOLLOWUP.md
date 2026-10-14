@@ -48,6 +48,23 @@ review's headline and status badge follow the current round, so an earlier lette
 cannot make a pending re-review appear ready. Finding titles and letter subjects
 render inline mathematics with the same renderer as manuscript titles.
 
+Each round now projects `progress` for referee, audit, advice, letter and formal
+stages. This derives from the saved steps and contains only state, recorded
+start/completion/failure times and the failure's retryability flag. It contains no
+results, error text, provider handles or input digests. Hidden advice and drafts
+remain hidden. This additive field is included in the author-safe JSON dossier
+and described in OpenAPI; no persisted round or admitted prompt changes.
+
+The author sees stage details and can refresh manually. Thirty-second polling
+continues during work, after transient fetch failures, and between saving a
+response and the worker admitting the next round. The latter is shown as
+"response saved; follow-up waiting to start" rather than completed old feedback.
+Fully settled rounds with a delivered letter stop background polling; focus
+refresh still discovers later work. Older servers without `progress` retain the
+previous polling fallback. Displayed times are recorded step times, not provider
+heartbeats or estimated completion times. A failure requests attention without
+promising an automatic retry or exposing private diagnostic text.
+
 CMA acknowledges agent stopping asynchronously. Mathesis observes the agent's
 actual `stopped` state before issuing a durable DELETE, avoiding an early
 `agent_not_stopped` response cached under that delete key. The historical private
@@ -80,3 +97,23 @@ the original body, idempotency key and task handles. In the 14 October evaluatio
 a JSON-media-type refusal was replayed under its original key; a separate direct
 HTTP diagnostic request with its own key was admitted. This is not a reason to
 rotate keys for uncertain work or to alter NyxID/CMA upstream code.
+
+## 15 October follow-up validation
+
+Local API tests: 272 passed, including MongoDB and TeX integration, lifecycle
+projection privacy and existing version/authorization checks. Frontend: 309 tests
+passed, including waiting responses before round admission, transient fetch errors,
+post-audit failures, delivered-letter fencing, polling shutdown and focus refresh.
+The contributor SDK's three tests passed. Formatting, Clippy, frontend lint/type
+checks and production build passed. The new RUSTSEC-2026-0349 advisory required
+updating rustls to 0.23.46 in both API and SDK lockfiles; cargo-deny then passed.
+No advisory exception or shared CI gate was changed.
+
+The rebuilt local API was checked against the existing real Petersen review in
+`mathesis_review_loop_20261014`: three historical rounds, two delivered letters,
+unchanged original audit, hash-matching attachment, safe exports, outsider 404s and
+idempotent response replay. An unintercepted authenticated browser check confirmed
+the new actual stage projection and its timestamps at 320 px and 1440 px, with no
+overflow or browser errors. Private review omits the post-acceptance Lean probe.
+These checks reused saved real Oracle/CMA results; they did not run a new paid
+review or establish production deployment or independent Lean verification.

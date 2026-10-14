@@ -1609,6 +1609,14 @@ legend {
   content: ' →';
   color: var(--muted);
 }
+.referee-progress > li.step-running {
+  background: var(--accent-soft);
+  box-shadow: inset 3px 0 var(--accent);
+}
+.referee-progress > li.step-failed {
+  background: var(--bad-soft);
+  box-shadow: inset 3px 0 var(--bad);
+}
 .referee-table {
   table-layout: fixed;
   margin: var(--space-3) 0 var(--space-4);

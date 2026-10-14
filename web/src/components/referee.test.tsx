@@ -611,25 +611,25 @@ describe('referee workspace', () => {
   });
 });
 
+function PollingWorkspace({ paper, isStaff }: { paper: Submission; isStaff: boolean }) {
+  const resource = useReferee(paper, isStaff);
+  return (
+    <RefereeWorkspace
+      submission={paper}
+      isStaff={isStaff}
+      isEditor={isStaff}
+      onChange={() => {}}
+      resource={resource}
+    />
+  );
+}
+
+function polling(referee: ApiClient['referee'], isStaff = true, paper = submission) {
+  const api = fakeApi({ referee });
+  return renderWithApp(<PollingWorkspace paper={paper} isStaff={isStaff} />, api);
+}
+
 describe('referee polling', () => {
-  function PollingWorkspace({ paper, isStaff }: { paper: Submission; isStaff: boolean }) {
-    const resource = useReferee(paper, isStaff);
-    return (
-      <RefereeWorkspace
-        submission={paper}
-        isStaff={isStaff}
-        isEditor={isStaff}
-        onChange={() => {}}
-        resource={resource}
-      />
-    );
-  }
-
-  function polling(referee: ApiClient['referee'], isStaff = true, paper = submission) {
-    const api = fakeApi({ referee });
-    return renderWithApp(<PollingWorkspace paper={paper} isStaff={isStaff} />, api);
-  }
-
   it('polls every 30 seconds and stops once all steps settle', async () => {
     vi.useFakeTimers();
     const referee = vi
@@ -909,4 +909,149 @@ it('does not mistake hidden author letter fields for a finished review without d
     ),
   ).toBeInTheDocument();
   expect(within(panel).queryByText('The review finished without a letter.')).toBeNull();
+});
+
+it('shows safe hidden-stage progress, survives a fetch error and stops polling after delivery', async () => {
+  vi.useFakeTimers();
+  const at = refereeRound.started_at;
+  const progress = {
+    referee: { state: 'done' as const, at },
+    audit: { state: 'done' as const, at },
+    advice: { state: 'running' as const, since: at },
+    letter: { state: 'pending' as const },
+    formal: { state: 'skipped' as const },
+  };
+  const running = { ...refereeRound, progress, advice: undefined, letter: undefined };
+  const finished = {
+    ...running,
+    progress: {
+      ...progress,
+      advice: { state: 'done' as const, at },
+      letter: { state: 'done' as const, at },
+    },
+  };
+  const referee = vi
+    .fn<ApiClient['referee']>()
+    .mockResolvedValueOnce(refereeFile({ rounds: [running] }))
+    .mockRejectedValueOnce(new Error('Connection interrupted'))
+    .mockResolvedValue(refereeFile({ rounds: [finished], letters: [feedbackLetter] }));
+  polling(referee, false);
+  await act(async () => {});
+  expect(screen.getByRole('status')).toHaveTextContent('Improvement suggestions are in progress.');
+  const timeline = screen.getByRole('list', { name: 'Review stage details' });
+  expect(within(timeline).getAllByRole('listitem')).toHaveLength(4);
+  expect(within(timeline).getByText('In progress')).toBeVisible();
+  expect(screen.queryByRole('form', { name: 'Send feedback to the author' })).toBeNull();
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(30_000);
+  });
+  expect(screen.getByRole('alert')).toHaveTextContent('Connection interrupted');
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(30_000);
+  });
+  expect(screen.getByRole('status')).toHaveTextContent('Your feedback letter is ready below.');
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(90_000);
+  });
+  expect(referee).toHaveBeenCalledTimes(3);
+  await act(async () => {
+    fireEvent.focus(window);
+  });
+  expect(referee).toHaveBeenCalledTimes(4);
+  await act(async () => {
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh review' }));
+  });
+  expect(referee).toHaveBeenCalledTimes(5);
+});
+
+it('shows a failed hidden letter without leaking its payload or claiming it is still being written', async () => {
+  const at = refereeRound.started_at;
+  workspace(
+    {
+      referee: vi.fn(async () =>
+        refereeFile({
+          rounds: [
+            {
+              ...refereeRound,
+              advice: undefined,
+              letter: undefined,
+              progress: {
+                referee: { state: 'done', at },
+                audit: { state: 'done', at },
+                advice: { state: 'done', at },
+                letter: { state: 'failed', at, retryable: false },
+                formal: { state: 'skipped' },
+              },
+            },
+          ],
+          letters: [],
+        }),
+      ),
+    },
+    author,
+  );
+  const panel = await screen.findByRole('region', { name: 'Orchestra review' });
+  expect(await within(panel).findByText(/Feedback letter needs attention/)).toBeVisible();
+  expect(within(panel).queryByText(/has not been delivered yet/)).toBeNull();
+});
+
+it('keeps polling a saved response before the worker admits its next round', async () => {
+  vi.useFakeTimers();
+  const at = refereeRound.started_at;
+  const progress = {
+    referee: { state: 'done' as const, at },
+    audit: { state: 'done' as const, at },
+    advice: { state: 'done' as const, at },
+    letter: { state: 'done' as const, at },
+    formal: { state: 'skipped' as const },
+  };
+  const round = { ...refereeRound, progress };
+  const response = {
+    id: 'waiting-response',
+    round: 1,
+    concern: 0,
+    version: round.version,
+    claims_revision: round.claims_revision,
+    body: 'Please recheck the supplied evidence.',
+    author: author.id,
+    at,
+  };
+  const referee = vi
+    .fn<ApiClient['referee']>()
+    .mockResolvedValueOnce(
+      refereeFile({ rounds: [round], letters: [feedbackLetter], finding_responses: [response] }),
+    )
+    .mockResolvedValue(
+      refereeFile({
+        rounds: [
+          round,
+          {
+            ...queuedRound,
+            number: 2,
+            response_ids: [response.id],
+            progress: {
+              ...progress,
+              referee: { state: 'running', since: at },
+              audit: { state: 'pending' },
+              advice: { state: 'pending' },
+              letter: { state: 'pending' },
+            },
+          },
+        ],
+        letters: [feedbackLetter],
+        finding_responses: [response],
+      }),
+    );
+  polling(referee, false, {
+    ...submission,
+    purpose: 'review_only',
+    status: { state: 'review_complete' },
+  });
+  await act(async () => {});
+  expect(screen.getByRole('status')).toHaveTextContent('A follow-up review is waiting to start.');
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(30_000);
+  });
+  expect(referee).toHaveBeenCalledTimes(2);
+  expect(screen.getByRole('status')).toHaveTextContent('Referee report is in progress.');
 });

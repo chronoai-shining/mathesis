@@ -275,3 +275,38 @@ it('keeps a private re-review pending until its own letter is delivered', () => 
   expect(screen.getByRole('heading', { name: 'Your private review is ready' })).toBeVisible();
   expect(screen.queryByRole('list', { name: 'Review progress' })).toBeNull();
 });
+
+it('keeps a completed but undelivered letter pending and shows post-decision failures', () => {
+  const at = refereeRound.started_at;
+  const progress = {
+    referee: { state: 'done' as const, at },
+    audit: { state: 'done' as const, at },
+    advice: { state: 'done' as const, at },
+    letter: { state: 'done' as const, at },
+    formal: { state: 'skipped' as const },
+  };
+  const paper = {
+    ...submission,
+    purpose: 'review_only' as const,
+    status: { state: 'review_complete' as const },
+  };
+  const round = { ...audited(), progress, letter: undefined, number: 2 };
+  const { rerender } = render(
+    <PaperStanding submission={paper} round={round} letters={[feedbackLetter]} />,
+  );
+  expect(screen.queryByText('Your private review is ready')).toBeNull();
+  expect(screen.getByRole('status')).toHaveTextContent(
+    'No feedback letter has been delivered for this round.',
+  );
+  rerender(
+    <PaperStanding
+      submission={accepted}
+      round={{
+        ...round,
+        progress: { ...progress, letter: { state: 'failed', at, retryable: true } },
+      }}
+    />,
+  );
+  expect(screen.getByRole('heading', { name: 'Accepted' })).toBeVisible();
+  expect(screen.getByRole('status')).toHaveTextContent('Feedback letter needs attention.');
+});

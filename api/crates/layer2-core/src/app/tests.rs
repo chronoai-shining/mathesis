@@ -1193,6 +1193,11 @@ async fn audit_orders_and_fences_decision_advice_letter_then_formal() {
     let r = &author_view["rounds"][0];
     assert!(r.get("advice").is_none());
     assert!(r.get("letter").is_none());
+    for stage in ["referee", "audit", "advice", "letter", "formal"] {
+        assert_eq!(r["progress"][stage]["state"], "done");
+        assert!(r["progress"][stage]["at"].is_string());
+        assert_eq!(r["progress"][stage].as_object().unwrap().len(), 2);
+    }
     assert!(r["referee"].get("engine").is_none());
     assert_eq!(r["audit"]["state"]["result"]["verdict"], "major_revision");
     assert_eq!(r["referee"]["state"]["result"]["text"], "full answer");

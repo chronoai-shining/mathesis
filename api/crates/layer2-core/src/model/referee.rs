@@ -505,6 +505,8 @@ pub struct RefereeView {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct RefereeRoundView {
+    /// Payload-free lifecycle information, safe even for hidden advice and drafts.
+    pub progress: RoundProgress,
     pub response_ids: Vec<String>,
     pub source_sha256: String,
     pub number: u32,
@@ -518,6 +520,41 @@ pub struct RefereeRoundView {
     pub formal: Step<FormalProbeView>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub letter: Option<Step<LetterDraft>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct RoundProgress {
+    pub referee: StageProgress,
+    pub audit: StageProgress,
+    pub advice: StageProgress,
+    pub letter: StageProgress,
+    pub formal: StageProgress,
+}
+
+/// No provider identifiers, free-form errors, prompts or model results belong here.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(tag = "state", rename_all = "snake_case")]
+pub enum StageProgress {
+    Pending,
+    Running { since: DateTime<Utc> },
+    Done { at: DateTime<Utc> },
+    Failed { at: DateTime<Utc>, retryable: bool },
+    Skipped,
+}
+
+impl<T> From<&Step<T>> for StageProgress {
+    fn from(step: &Step<T>) -> Self {
+        match &step.state {
+            StepState::Pending => Self::Pending,
+            StepState::Running { since, .. } => Self::Running { since: *since },
+            StepState::Done { at, .. } => Self::Done { at: *at },
+            StepState::Failed { at, retryable, .. } => Self::Failed {
+                at: *at,
+                retryable: *retryable,
+            },
+            StepState::Skipped { .. } => Self::Skipped,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -624,6 +661,13 @@ impl RefereeFile {
                 .rounds
                 .into_iter()
                 .map(|r| RefereeRoundView {
+                    progress: RoundProgress {
+                        referee: (&r.referee).into(),
+                        audit: (&r.audit).into(),
+                        advice: (&r.advice).into(),
+                        letter: (&r.letter).into(),
+                        formal: (&r.formal).into(),
+                    },
                     response_ids: r
                         .recheck_requests
                         .iter()
@@ -696,6 +740,56 @@ pub struct AgentStepUpdate {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn progress_never_exposes_payloads_or_provider_details() {
+        let at = "2026-10-15T00:00:00Z".parse::<DateTime<Utc>>().unwrap();
+        for (state, expected) in [
+            (StepState::Pending, serde_json::json!({"state": "pending"})),
+            (
+                StepState::Running {
+                    task: Some("private-task".into()),
+                    queue_position: Some(42),
+                    since: at,
+                },
+                serde_json::json!({"state": "running", "since": at}),
+            ),
+            (
+                StepState::Done {
+                    result: "private-draft",
+                    at,
+                },
+                serde_json::json!({"state": "done", "at": at}),
+            ),
+            (
+                StepState::Failed {
+                    reason: "private-provider-error".into(),
+                    detail: Some("private-path".into()),
+                    retryable: true,
+                    at,
+                },
+                serde_json::json!({"state": "failed", "at": at, "retryable": true}),
+            ),
+            (
+                StepState::Skipped {
+                    reason: "private-reason".into(),
+                },
+                serde_json::json!({"state": "skipped"}),
+            ),
+        ] {
+            let step = Step {
+                engine: Some("private-engine".into()),
+                client_ref: Some("private-ref".into()),
+                input_digest: Some("private-digest".into()),
+                state,
+                ..Step::pending()
+            };
+            assert_eq!(
+                serde_json::to_value(StageProgress::from(&step)).unwrap(),
+                expected
+            );
+        }
+    }
 
     #[test]
     fn letter_assessments_round_trip_and_older_letters_remain_valid() {

@@ -7,6 +7,7 @@ import { useApi } from '../api/context';
 import { usePolicy } from '../api/policy';
 import { useAsync } from '../api/useAsync';
 import { useReferee } from '../api/useReferee';
+import { hasWaitingResponse } from '../lib/reviewProgress';
 import type { Decision, PolicyDocument, RejectReason, Submission } from '../api/types';
 import { hasRole, useSession } from '../auth/session';
 import { AnalysisView, ConjectureList } from '../components/Analysis';
@@ -143,6 +144,7 @@ export function Workspace({
   const analysis = useAsync(reviewed ? loadAnalysis : null);
   const preview = decision.value ?? s.decision ?? null;
   const current = s.versions[s.versions.length - 1];
+  const awaitingRecheck = hasWaitingResponse(referee.value, s);
   const currentReview = [...(referee.value?.rounds ?? [])]
     .reverse()
     .find((r) => r.version === current?.number && r.claims_revision === s.claims_revision);
@@ -160,8 +162,11 @@ export function Workspace({
               {s.purpose === 'review_only' ? 'Private review' : SUBMISSION_KIND_LABELS[s.kind]}
             </span>
             {s.status.state === 'review_complete' &&
-            currentReview &&
-            !referee.value?.letters.some((letter) => letter.round === currentReview.number) ? (
+            (awaitingRecheck ||
+              (currentReview &&
+                !referee.value?.letters.some(
+                  (letter) => letter.round === currentReview.number,
+                ))) ? (
               <Badge tone="accent">Review in progress</Badge>
             ) : (
               <SubmissionStatusBadge status={s.status} />
@@ -200,6 +205,7 @@ export function Workspace({
             submission={s}
             round={currentReview}
             letters={referee.value?.letters}
+            awaitingRecheck={awaitingRecheck}
             onRevise={isAuthor && !showRevisionForm ? () => setRevising(true) : undefined}
           />
         ) : null}

@@ -37,7 +37,8 @@ pub use referee::{
     ImprovementKind, LetterDraft, MAX_LETTER_CHARS, NewFindingResponse, NewLetter, ProbeOutcome,
     ProbeOutcomeView, Recommendation, RefereeAudit, RefereeClaim, RefereeConcern, RefereeFile,
     RefereeReport, RefereeRound, RefereeRoundView, RefereeView, ResponseAssessment,
-    ResponseDisposition, ReviewEvidenceReference, RoundUpdate, Severity, Step, StepState,
+    ResponseDisposition, ReviewEvidenceReference, RoundProgress, RoundUpdate, Severity,
+    StageProgress, Step, StepState,
 };
 pub use review::*;
 pub use search::*;

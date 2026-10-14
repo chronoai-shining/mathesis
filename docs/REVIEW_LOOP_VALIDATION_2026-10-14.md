@@ -189,13 +189,13 @@ Final live assertions passed:
 
 ## Cleanup observation and remaining operating limits
 
-Five of the six review agents have been observed deleted. The second advice agent
-`agt_6d20d26dd7594f2aa58887a94ed9e4c1` remains `ready` after CMA acknowledged its
-stop request with 202; replaying the exact stop body/key returns the same receipt.
-Its response is complete. Mathesis retains one cleanup-only queue job, deferring
-30 seconds without consuming retries or rerunning the review. It must observe
-`stopped` before issuing DELETE, and deleted/404 before recording removal. This
-remaining asynchronous provider lifecycle is not represented as successful cleanup.
+At the original observation, five of six agents were deleted and the second
+advice agent was still awaiting asynchronous cleanup. A follow-up observation on
+15 October (Asia/Singapore) confirmed all six persisted agent steps have
+`deleted: true`, no recorded failure, and the dedicated database has no remaining
+review jobs. The existing worker completed cleanup without a new review or a
+manual database mutation. The previous pending agent was
+`agt_6d20d26dd7594f2aa58887a94ed9e4c1`.
 
 The complete review-and-response delivery loop is demonstrated in this local
 evaluation. Production rollout, broad latency/load characterization, an automated

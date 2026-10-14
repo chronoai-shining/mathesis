@@ -138,6 +138,8 @@ export type Step<T> = {
   state: StepState<T>;
 };
 export type RefereeRound = {
+  /** Safe lifecycle projection; older servers may omit it. */
+  progress?: Record<'referee' | 'audit' | 'advice' | 'letter' | 'formal', StageProgress>;
   source_sha256?: string;
   response_ids?: string[];
   number: number;
@@ -153,6 +155,11 @@ export type RefereeRound = {
   /** Drafts are staff-only; authors read sent letters. */
   letter?: Step<LetterDraft>;
 };
+export type StageProgress =
+  | { state: 'pending' | 'skipped' }
+  | { state: 'running'; since: string }
+  | { state: 'done'; at: string }
+  | { state: 'failed'; at: string; retryable: boolean };
 export type FeedbackLetter = {
   round?: number;
   assessment?: Recommendation | null;

@@ -275,6 +275,10 @@ from `develop`. No force pushes to either.
   statement, outcome and theorem name afterwards; no second letter is needed.
   A compiled probe is not a recorded formalization; publishing files needs the
   author's agreement.
+- Author-safe rounds include payload-free stage progress: state, recorded times and
+  retryability, including hidden advice and letter stages. Results, free-form errors
+  and provider metadata never enter this progress projection. Only an actual delivered
+  letter establishes delivery; queued author replies remain visibly awaiting re-review.
 - Staff receive full review history. Submitter and linked co-authors receive
   reports, audits, sent letters and projected Lean outcomes through the existing
   referee GET; advice, drafts, provider metadata and Lean files remain private.

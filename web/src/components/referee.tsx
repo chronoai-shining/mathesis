@@ -1,5 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { ReviewFindings } from './ReviewFindings';
+import { ReviewProgress } from './ReviewProgress';
+import { hasWaitingResponse, RECHECK_WAITING, reviewProgressText } from '../lib/reviewProgress';
 import { useApi } from '../api/context';
 import type { RefereeResource } from '../api/useReferee';
 import type {
@@ -43,6 +45,10 @@ export function RefereeWorkspace(props: WorkspaceProps & { resource: RefereeReso
   const { submission, isStaff, isEditor, resource } = props;
   const api = useApi();
   const { reload, active } = resource;
+  const includeFormal =
+    submission.purpose !== 'review_only' &&
+    submission.kind !== 'conjecture' &&
+    submission.status.state === 'accepted';
 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
@@ -74,18 +80,29 @@ export function RefereeWorkspace(props: WorkspaceProps & { resource: RefereeReso
             return (
               <>
                 <p className="review-status" role="status">
-                  {current
-                    ? roundStatus(
-                        current,
-                        file.letters.filter((l) => l.round === current.number),
-                      )
-                    : 'Confirm your statements to start the review.'}
+                  {hasWaitingResponse(file, submission)
+                    ? RECHECK_WAITING
+                    : current
+                      ? roundStatus(
+                          current,
+                          file.letters.filter((l) => l.round === current.number),
+                          includeFormal,
+                        )
+                      : 'Confirm your statements to start the review.'}
                 </p>
+                {current ? <ReviewProgress round={current} includeFormal={includeFormal} /> : null}
                 <p className="small muted">
                   Your review checks the argument, examines prior work and identifies gaps. Respond
                   to a finding below to request a recheck against your confirmed source.
                 </p>
                 <div className="button-row">
+                  <button
+                    type="button"
+                    className="button button-quiet button-small"
+                    onClick={reload}
+                  >
+                    Refresh review
+                  </button>
                   <a
                     className="button button-quiet button-small"
                     href={`/api/v1/submissions/${encodeURIComponent(submission.id)}/review`}
@@ -160,7 +177,7 @@ export function RefereeWorkspace(props: WorkspaceProps & { resource: RefereeReso
           return (
             <>
               <p className="review-status" role="status">
-                {current ? roundStatus(current, sent) : 'No review has started.'}
+                {current ? roundStatus(current, sent, includeFormal) : 'No review has started.'}
               </p>
               <ReviewFindings submission={submission} file={file} onChange={resource.replace} />
               {current ? (
@@ -238,7 +255,13 @@ const STEP_NAMES = {
 } as const;
 
 /** One sentence: where the latest review stands and what the editor does next. */
-function roundStatus(round: RefereeRound, sent: readonly FeedbackLetter[]): string {
+function roundStatus(
+  round: RefereeRound,
+  sent: readonly FeedbackLetter[],
+  includeFormal: boolean,
+): string {
+  const progressText = reviewProgressText(round, sent, includeFormal);
+  if (progressText) return progressText;
   const last = sent[sent.length - 1];
   if (last) return `Feedback sent to the authors on ${formatDay(last.sent_at)}.`;
   // Author projections omit drafts and advice. Their absence is not a failed delivery.

@@ -1779,6 +1779,34 @@
                           }
                         }
                       }
+                    },
+                    "progress": {
+                      "type": "object",
+                      "description": "Payload-free recorded lifecycle of each review stage; available to authors. No advice, draft text, provider identifiers or error details. A delivered letter is recorded separately in letters.",
+                      "required": [
+                        "referee",
+                        "audit",
+                        "advice",
+                        "letter",
+                        "formal"
+                      ],
+                      "properties": {
+                        "referee": {
+                          "$ref": "#/components/schemas/ReviewStageProgress"
+                        },
+                        "audit": {
+                          "$ref": "#/components/schemas/ReviewStageProgress"
+                        },
+                        "advice": {
+                          "$ref": "#/components/schemas/ReviewStageProgress"
+                        },
+                        "letter": {
+                          "$ref": "#/components/schemas/ReviewStageProgress"
+                        },
+                        "formal": {
+                          "$ref": "#/components/schemas/ReviewStageProgress"
+                        }
+                      }
                     }
                   }
                 }
@@ -2103,6 +2131,80 @@
           }
         },
         "description": "Reviewer judgment, never an execution or Lean receipt. Attachment digests come from the stored source, not the model."
+      },
+      "ReviewStageProgress": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "state"
+            ],
+            "properties": {
+              "state": {
+                "enum": [
+                  "pending",
+                  "skipped"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "state",
+              "since"
+            ],
+            "properties": {
+              "state": {
+                "const": "running"
+              },
+              "since": {
+                "type": "string",
+                "format": "date-time"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "state",
+              "at"
+            ],
+            "properties": {
+              "state": {
+                "const": "done"
+              },
+              "at": {
+                "type": "string",
+                "format": "date-time"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "state",
+              "at",
+              "retryable"
+            ],
+            "properties": {
+              "state": {
+                "const": "failed"
+              },
+              "at": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "retryable": {
+                "type": "boolean"
+              }
+            }
+          }
+        ]
       }
     }
   }
