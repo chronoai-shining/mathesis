@@ -34,10 +34,11 @@ impl Worker {
     pub(super) async fn cleanup_agents(
         &self,
         job: &LeasedJob,
-    ) -> Result<(), super::worker::Failure> {
+    ) -> Result<bool, super::worker::Failure> {
         let Some(client) = self.advisor.as_ref().and_then(|a| a.managed_client()) else {
-            return Ok(());
+            return Ok(false);
         };
+        let mut pending = false;
         let paper = self
             .app
             .submission(&self.auditor_account, &job.submission)
@@ -103,9 +104,12 @@ impl Worker {
                 if let Err(error) = client.cancel(&store).await {
                     tracing::warn!(%error,"CMA cleanup will be retried on the next paper job");
                 }
+                if let Some(progress) = store.load().await.map_err(super::worker::model_failure)? {
+                    pending |= progress["agent_id"].is_string() && progress["deleted"] != true;
+                }
             }
         }
-        Ok(())
+        Ok(pending)
     }
 
     pub(super) fn agent_store(

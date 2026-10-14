@@ -96,6 +96,7 @@ struct FakeAdvisor {
     propose: AtomicBool,
     audits: AtomicUsize,
     known: bool,
+    followup_concern: bool,
     audit_delay: Duration,
     audit_failures: AtomicUsize,
     reclaim_during_audit: Option<Arc<MemoryJobs>>,
@@ -236,6 +237,21 @@ impl Advisor for FakeAdvisor {
         );
         assert!(!input.referee.text.is_empty());
         Ok(AuditOut {
+            concerns: if self.followup_concern && input.followup.is_none() {
+                vec![mathesis_review::referee_prompts::AuditedConcernOut {
+                    concern: "The domain of the compactness argument needs clarification.".into(),
+                    note: "Clarify the boundary convention.".into(),
+                    status: "confirmed".into(), basis: "offline".into(),
+                    evidence: "The displayed hypotheses do not specify the boundary convention.".into(),
+                    ..Default::default()
+                }]
+            } else { vec![] },
+            response_assessments: input.followup.as_ref().map(|f| f.response_ids.iter().map(|id|
+                mathesis_review::referee_prompts::ResponseAssessmentOut {
+                    response_id: id.clone(), status: "addressed".into(),
+                    explanation: "The author's stated convention matches the quantified domain in the source.".into(),
+                    evidence_paths: vec![],
+                }).collect()).unwrap_or_default(),
             verdict: "major_revision".into(),
             summary: "The argument is correct and carries new content.".into(),
             claims: input
@@ -1628,6 +1644,21 @@ impl mathesis_review::cma::Transport for ManagedTransport {
             json!({"status":"completed","output":[{"type":"message","role":"assistant","content":[{"type":"output_text","text":answer}]}]})
         } else if path.ends_with("/controls") {
             json!({"target_active":false,"target":{}})
+        } else if method == "GET" && path.starts_with("api/v1/agents/") {
+            if self
+                .calls
+                .lock()
+                .await
+                .iter()
+                .any(|(method, p)| method == "DELETE" && p == path)
+            {
+                return Ok(mathesis_review::cma::TransportReply {
+                    status: 404,
+                    body: json!({"code":"not_found"}).to_string(),
+                    response_id: None,
+                });
+            }
+            json!({"status":"stopped"})
         } else {
             json!(null)
         };
@@ -3325,4 +3356,95 @@ async fn review_only_worker_delivers_private_letter_without_publication_or_lean_
     assert_eq!(advisor.advice.load(Ordering::SeqCst), 1);
     assert_eq!(advisor.letters.load(Ordering::SeqCst), 1);
     assert_eq!(w.formalizer.calls.load(Ordering::SeqCst), 0);
+}
+
+#[tokio::test]
+async fn private_followup_delivers_a_bound_conclusion_without_rewriting_the_original_audit() {
+    use mathesis_core::{
+        model::{NewFindingResponse, ResponseDisposition, SubmissionPurpose, Visibility},
+        ports::SubmissionStore,
+    };
+    let mut w = World::new(
+        vec![completed("major_revision"), completed("minor_revision")],
+        true,
+    )
+    .await;
+    let mut paper = w
+        .worker
+        .app
+        .submission(&w.author, &w.paper.id)
+        .await
+        .unwrap();
+    let revision = paper.revision;
+    paper.purpose = SubmissionPurpose::ReviewOnly;
+    paper.analysis_visibility = Visibility::Private;
+    paper.revision += 1;
+    w.stores.replace(&paper, revision).await.unwrap();
+    w.worker.advisor = Some(Arc::new(FakeAdvisor {
+        followup_concern: true,
+        ..Default::default()
+    }));
+    w.run_round().await;
+    let original = w.file().await.current().unwrap().audit.clone();
+    assert_eq!(original.done().unwrap().concerns.len(), 1);
+    let response = NewFindingResponse {
+        round: 1,
+        concern: 0,
+        version: 1,
+        claims_revision: paper.claims_revision,
+        body: "The convention is explicit in the quantified domain; please recheck it.".into(),
+    };
+    let view = w
+        .worker
+        .app
+        .respond_to_finding(&w.author, &paper.id, response.clone())
+        .await
+        .unwrap();
+    let response_id = &view.finding_responses[0].id;
+    w.run_round().await;
+    let report = w
+        .worker
+        .app
+        .review_report(&w.author, &paper.id)
+        .await
+        .unwrap();
+    assert_eq!(report.review.letters.len(), 2);
+    assert_eq!(report.review.rounds.len(), 2);
+    let result = &report.review.rounds[1]
+        .audit
+        .done()
+        .unwrap()
+        .response_assessments[0];
+    assert_eq!(&result.response_id, response_id);
+    assert_eq!(result.status, ResponseDisposition::Addressed);
+    assert_eq!(w.file().await.rounds[0].audit, original);
+    assert!(report.markdown().contains("matches the quantified domain"));
+    assert!(report.review.letters.iter().all(|l| {
+        l.body
+            .starts_with("Your private Orchestra review is complete.")
+    }));
+    assert!(
+        report
+            .review
+            .rounds
+            .iter()
+            .all(|r| r.advice.is_none() && r.letter.is_none())
+    );
+    assert!(
+        w.worker
+            .app
+            .submission(&w.author, &paper.id)
+            .await
+            .unwrap()
+            .decision
+            .is_none()
+    );
+    assert_eq!(w.oracle.submitted.load(Ordering::SeqCst), 2);
+    w.worker
+        .app
+        .respond_to_finding(&w.author, &paper.id, response)
+        .await
+        .unwrap();
+    assert!(!w.worker.referee_job(&w.job().await).await.unwrap());
+    assert_eq!(w.oracle.submitted.load(Ordering::SeqCst), 2);
 }

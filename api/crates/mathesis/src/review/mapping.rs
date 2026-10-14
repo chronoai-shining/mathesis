@@ -639,13 +639,75 @@ pub(crate) fn audit(
             " {dropped} unusable readings, concerns or unsupported sources were dropped."
         ));
     }
+    if raw.response_assessments.iter().any(|r| {
+        input
+            .followup
+            .as_ref()
+            .is_none_or(|f| !f.response_ids.contains(&r.response_id))
+    }) {
+        summary.push_str(" Unrequested response assessments were discarded.");
+    }
     Ok(RefereeAudit {
+        response_assessments: map_response_assessments(
+            &raw.response_assessments,
+            input.followup.as_ref(),
+        ),
         verdict,
         agrees_with_referee: raw.agrees_with_referee,
         summary,
         claims: readings,
         concerns,
     })
+}
+
+fn map_response_assessments(
+    raw: &[mathesis_review::referee_prompts::ResponseAssessmentOut],
+    followup: Option<&mathesis_review::advisor::FollowupInput>,
+) -> Vec<mathesis_core::model::ResponseAssessment> {
+    use mathesis_core::model::{
+        EvidenceAttachment, ResponseAssessment, ResponseDisposition, ReviewEvidenceReference,
+    };
+    let Some(input) = followup else {
+        return vec![];
+    };
+    let inventory: Vec<EvidenceAttachment> = input
+        .evidence
+        .iter()
+        .filter_map(|e| serde_json::from_value(e.clone()).ok())
+        .collect();
+    input.response_ids.iter().map(|id| {
+        let mut fallback = ResponseAssessment {
+            response_id: id.clone(),
+            status: ResponseDisposition::NotCheckable,
+            explanation: "The reviewer supplied no usable, unique assessment of this response. The original finding is not marked addressed.".into(),
+            evidence: vec![],
+        };
+        let matches: Vec<_> = raw.iter().filter(|r| &r.response_id == id).collect();
+        let [r] = matches.as_slice() else { return fallback; };
+        if r.explanation.trim().is_empty() || r.explanation.chars().count() > 8000 || r.evidence_paths.len() > 100 {
+            return fallback;
+        }
+        let status = match r.status.as_str() {
+            "addressed" => ResponseDisposition::Addressed,
+            "unresolved" => ResponseDisposition::Unresolved,
+            "not_checkable" => ResponseDisposition::NotCheckable,
+            _ => return fallback,
+        };
+        let mut seen = std::collections::BTreeSet::new();
+        for path in &r.evidence_paths {
+            let Some(file) = inventory.iter().find(|e| &e.descriptor.path == path) else {
+                fallback.evidence.clear();
+                fallback.explanation = "The reviewer cited an attachment absent from this source version. This response remains unchecked.".into();
+                return fallback;
+            };
+            if seen.insert(path) {
+                fallback.evidence.push(ReviewEvidenceReference { path: path.clone(), sha256: file.sha256.clone() });
+            }
+        }
+        fallback.status = status;
+        fallback.explanation = r.explanation.clone();
+        fallback
+    }).collect()
 }
 
 pub(crate) fn referee_out(
@@ -1145,6 +1207,7 @@ mod audit_tests {
     fn audit_drops_invented_sources_ids_and_witnesses_and_marks_offline_limits() {
         let claims = super::referee_tests::claims();
         let input = AdvisorInput {
+            followup: None,
             kind: "paper".into(),
             title: "Paper".into(),
             abstract_text: String::new(),
@@ -1334,6 +1397,7 @@ mod conjecture_tests {
     fn conjecture_audit_requires_opened_source_identity_and_matching_evidence() {
         let claims = super::referee_tests::claims();
         let input = AdvisorInput {
+            followup: None,
             kind: "conjecture".into(),
             title: "Question".into(),
             abstract_text: String::new(),
@@ -1457,4 +1521,55 @@ pub(super) fn faithfulness(
         mismatch: out.mismatch,
         regenerated,
     })
+}
+
+#[cfg(test)]
+mod response_assessment_tests {
+    use super::map_response_assessments;
+    use mathesis_core::model::ResponseDisposition;
+    use mathesis_review::{advisor::FollowupInput, referee_prompts::ResponseAssessmentOut};
+    #[test]
+    fn responses_require_unique_conclusions_and_current_attachment_paths() {
+        let input = FollowupInput {
+            response_ids: vec!["reply".into()],
+            evidence: vec![
+                serde_json::json!({"path":"data/witness.json", "kind":"certificate", "description":"Finite witness", "claims":[], "bytes":3, "sha256":"actual-source-digest"}),
+            ],
+        };
+        let valid = ResponseAssessmentOut {
+            response_id: "reply".into(),
+            status: "addressed".into(),
+            explanation: "The displayed calculation handles the boundary case.".into(),
+            evidence_paths: vec!["data/witness.json".into()],
+        };
+        let result = map_response_assessments(std::slice::from_ref(&valid), Some(&input));
+        assert_eq!(result[0].status, ResponseDisposition::Addressed);
+        assert_eq!(result[0].evidence[0].sha256, "actual-source-digest");
+        for invalid in [
+            vec![],
+            vec![valid.clone(), valid.clone()],
+            vec![ResponseAssessmentOut {
+                response_id: "invented".into(),
+                ..valid.clone()
+            }],
+            vec![ResponseAssessmentOut {
+                evidence_paths: vec!["previous-version.json".into()],
+                ..valid.clone()
+            }],
+            vec![ResponseAssessmentOut {
+                explanation: " ".into(),
+                ..valid.clone()
+            }],
+            vec![ResponseAssessmentOut {
+                status: "verified".into(),
+                ..valid.clone()
+            }],
+        ] {
+            let result = map_response_assessments(&invalid, Some(&input));
+            assert_eq!(result.len(), 1);
+            assert_eq!(result[0].status, ResponseDisposition::NotCheckable);
+            assert!(result[0].evidence.is_empty());
+        }
+        assert!(map_response_assessments(&[valid], None).is_empty());
+    }
 }

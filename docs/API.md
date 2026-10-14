@@ -453,6 +453,12 @@ type RefereeReport = {
   text: string;                     // original, complete Oracle answer
 };
 type RefereeAudit = {
+  response_assessments?: {
+    response_id: string;            // exact author response admitted into this round
+    status: "addressed" | "unresolved" | "not_checkable";
+    explanation: string;           // reviewer reasoning, never an execution/proof receipt
+    evidence: { path: string; sha256: string }[]; // server-bound current-version attachments
+  }[];
   verdict: "accept" | "minor_revision" | "major_revision" | "reject";
   agrees_with_referee: boolean;
   summary: string;

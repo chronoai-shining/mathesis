@@ -235,3 +235,13 @@ describe('standing in the workspace', () => {
     expect(referee).toHaveBeenCalledTimes(4);
   });
 });
+
+it('does not infer active letter writing from the author projection', () => {
+  render(<PaperStanding submission={submission} round={{ ...audited(), letter: undefined }} />);
+  expect(
+    screen.getByText(
+      'The source audit is complete. The feedback letter has not been delivered yet.',
+    ),
+  ).toBeInTheDocument();
+  expect(screen.queryByText('The letter is being written.')).toBeNull();
+});

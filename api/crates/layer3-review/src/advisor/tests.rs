@@ -2,6 +2,7 @@ use super::*;
 
 fn input() -> AdvisorInput {
     AdvisorInput {
+        followup: None,
         kind: "paper".into(),
         title: "T".into(),
         abstract_text: "A".into(),
@@ -174,4 +175,24 @@ printf '%s' '{}' > "$answer_path"
             matches!(error, ReviewError::Transport(ref reason) if reason == "advisor CLI timed out")
         );
     }
+}
+
+#[test]
+fn followup_contract_does_not_change_legacy_admitted_prompt_bytes() {
+    let mut input = input();
+    let legacy = format!(
+        "{}\nINPUT (data):\n{}",
+        referee_prompts::AUDIT,
+        serde_json::to_string_pretty(&input).unwrap()
+    );
+    assert!(!legacy.contains("followup"));
+    assert_eq!(referee_prompts::audit(&input), legacy);
+    input.followup = Some(FollowupInput {
+        response_ids: vec!["response-1".into()],
+        evidence: vec![],
+    });
+    let updated = referee_prompts::audit(&input);
+    assert!(updated.contains("response_assessments"));
+    assert!(updated.contains("response-1"));
+    assert!(updated.contains("Author assertions alone cannot establish addressed"));
 }

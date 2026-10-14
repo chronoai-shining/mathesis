@@ -42,6 +42,12 @@ export type AuditedClaim = {
   referee_agreed: boolean;
 };
 export type RefereeAudit = {
+  response_assessments?: {
+    response_id: string;
+    status: 'addressed' | 'unresolved' | 'not_checkable';
+    explanation: string;
+    evidence: { path: string; sha256: string }[];
+  }[];
   verdict: Recommendation;
   agrees_with_referee: boolean;
   summary: string;

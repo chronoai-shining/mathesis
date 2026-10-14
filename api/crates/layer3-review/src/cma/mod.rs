@@ -114,6 +114,7 @@ pub struct RunState {
     pub answer: Option<String>,
     pub failure: Option<String>,
     pub typed_failure: Option<FailureKind>,
+    /// Legacy wire name: stop was acknowledged; actual stopping is asynchronous.
     pub stopped: bool,
     pub deleted: bool,
     /// Original revision-bound control intent survives an uncertain POST.
@@ -520,6 +521,29 @@ impl Client {
             if *flag {
                 continue;
             }
+            if method == "DELETE" {
+                // A 202 stop receipt is not a stopped agent. In particular, do not
+                // cache an agent_not_stopped refusal under the durable delete key.
+                match self
+                    .cleanup_request("GET", format!("api/v1/agents/{agent}"), None, None)
+                    .await
+                {
+                    Ok(v) if v["status"] == "stopped" => {}
+                    Ok(v) if v["status"] == "deleted" => {
+                        *flag = true;
+                        continue;
+                    }
+                    Err(ReviewError::Provider { status: 404, .. }) => {
+                        *flag = true;
+                        continue;
+                    }
+                    Ok(_) => continue,
+                    Err(e) => {
+                        tracing::warn!(%e, "CMA stop is not yet observable");
+                        continue;
+                    }
+                }
+            }
             match self
                 .cleanup_request(
                     method,
@@ -529,6 +553,19 @@ impl Client {
                 )
                 .await
             {
+                Ok(_) if method == "DELETE" => {
+                    // Deletion may itself be asynchronous. Replays use the same
+                    // key until absence is observed; never discard the saved handle.
+                    match self
+                        .cleanup_request("GET", format!("api/v1/agents/{agent}"), None, None)
+                        .await
+                    {
+                        Err(ReviewError::Provider { status: 404, .. }) => *flag = true,
+                        Ok(v) if v["status"] == "deleted" => *flag = true,
+                        Ok(_) => {}
+                        Err(e) => tracing::warn!(%e, "CMA deletion is not yet observable"),
+                    }
+                }
                 Ok(_) | Err(ReviewError::Provider { status: 404, .. }) => *flag = true,
                 Err(e) => tracing::warn!(%e, "CMA agent cleanup failed"),
             }

@@ -889,3 +889,24 @@ it('shows private review completion without requesting a publication decision', 
     screen.getByText('Advanced: compute settings and history').closest('details'),
   ).not.toHaveAttribute('open');
 });
+
+it('does not mistake hidden author letter fields for a finished review without delivery', async () => {
+  workspace(
+    {
+      referee: vi.fn(async () =>
+        refereeFile({
+          letters: [],
+          rounds: [{ ...refereeRound, advice: undefined, letter: undefined }],
+        }),
+      ),
+    },
+    author,
+  );
+  const panel = await screen.findByRole('region', { name: 'Orchestra review' });
+  expect(
+    await within(panel).findByText(
+      'The source audit is complete. The feedback letter has not been delivered yet.',
+    ),
+  ).toBeInTheDocument();
+  expect(within(panel).queryByText('The review finished without a letter.')).toBeNull();
+});

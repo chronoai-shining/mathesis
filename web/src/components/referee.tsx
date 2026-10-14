@@ -241,6 +241,10 @@ const STEP_NAMES = {
 function roundStatus(round: RefereeRound, sent: readonly FeedbackLetter[]): string {
   const last = sent[sent.length - 1];
   if (last) return `Feedback sent to the authors on ${formatDay(last.sent_at)}.`;
+  // Author projections omit drafts and advice. Their absence is not a failed delivery.
+  if (!round.letter && round.audit?.state.state === 'done') {
+    return 'The source audit is complete. The feedback letter has not been delivered yet.';
+  }
   const steps = [
     ['referee', round.referee],
     ['audit', round.audit],

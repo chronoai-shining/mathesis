@@ -34,6 +34,12 @@ export function ReviewFindings({
           <h4>
             Round {round.number} · source version {round.version}
           </h4>
+          {round.source_sha256 ? (
+            <p className="hint">
+              Source SHA-256:{' '}
+              <code style={{ overflowWrap: 'anywhere' }}>{round.source_sha256}</code>
+            </p>
+          ) : null}
           {round.audit?.state.state === 'done' &&
             round.audit.state.result.concerns.map((finding, index) => {
               const responses = (file.finding_responses ?? []).filter(
@@ -65,16 +71,24 @@ export function ReviewFindings({
                     <p className="hint">No separate evidence was recorded for this finding.</p>
                   )}
                   {responses.map((response) => {
-                    const checked = file.rounds.find(
-                      (r) =>
-                        r.version === response.version &&
-                        r.claims_revision === response.claims_revision &&
-                        r.response_ids?.includes(response.id) &&
-                        r.audit?.state.state === 'done',
-                    );
+                    const checked = [...file.rounds]
+                      .reverse()
+                      .find(
+                        (r) =>
+                          r.version === response.version &&
+                          r.claims_revision === response.claims_revision &&
+                          r.response_ids?.includes(response.id) &&
+                          r.audit?.state.state === 'done',
+                      );
                     const current =
                       submission.versions.at(-1)?.number === response.version &&
                       submission.claims_revision === response.claims_revision;
+                    const assessment =
+                      checked?.audit?.state.state === 'done'
+                        ? checked.audit.state.result.response_assessments?.find(
+                            (a) => a.response_id === response.id,
+                          )
+                        : undefined;
                     return (
                       <div className="finding-response" key={response.id}>
                         <p className="small">
@@ -82,12 +96,50 @@ export function ReviewFindings({
                           <DateText iso={response.at} />
                         </p>
                         <Markdown text={response.body} />
+                        {assessment ? (
+                          <div className="finding-evidence">
+                            <p className="small">
+                              <strong>
+                                {assessment.status === 'addressed'
+                                  ? 'Addressed in this review'
+                                  : assessment.status === 'unresolved'
+                                    ? 'Concern remains'
+                                    : 'Further evidence needed'}
+                              </strong>{' '}
+                              · round {checked!.number} · version {response.version}
+                            </p>
+                            <Markdown text={assessment.explanation} />
+                            {assessment.evidence.length ? (
+                              <ul>
+                                {assessment.evidence.map((e) => (
+                                  <li key={e.path}>
+                                    <a
+                                      href={`/api/v1/submissions/${encodeURIComponent(submission.id)}/evidence?version=${response.version}&path=${encodeURIComponent(e.path)}`}
+                                    >
+                                      {e.path}
+                                    </a>
+                                    <p className="hint">
+                                      SHA-256:{' '}
+                                      <code style={{ overflowWrap: 'anywhere' }}>{e.sha256}</code>
+                                    </p>
+                                  </li>
+                                ))}
+                              </ul>
+                            ) : null}
+                            <p className="hint">
+                              Reviewer conclusion on this source version; not an independent proof
+                              or execution receipt.
+                            </p>
+                          </div>
+                        ) : null}
                         <p className="hint">
-                          {checked
-                            ? `Re-reviewed in round ${checked.number}. Read that audit for the conclusion.`
-                            : current
-                              ? 'Re-review requested. A new audit will address this response.'
-                              : 'This response belongs to an earlier source or statement revision.'}
+                          {!current
+                            ? 'This response belongs to an earlier source or statement revision.'
+                            : checked && !assessment
+                              ? `Re-reviewed in round ${checked.number}. Read that audit for the conclusion.`
+                              : !checked
+                                ? 'Re-review requested. A new audit will address this response.'
+                                : null}
                         </p>
                       </div>
                     );

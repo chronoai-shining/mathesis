@@ -439,7 +439,39 @@ impl Worker {
             let mut audit = round.audit.clone();
             if let (Some(report), Some(advisor)) = (round.referee.done(), &self.advisor) {
                 match self.advisor_input(submission, report).await {
-                    Ok((input, _work, source)) => {
+                    Ok((mut input, _work, source)) => {
+                        if round.review_contract >= 1 {
+                            let evidence: serde_json::Value = serde_json::from_str(
+                                &self
+                                    .app
+                                    .recheck_evidence(&self.auditor_account, &submission.id)
+                                    .await?,
+                            )
+                            .map_err(|_| {
+                                Failure::Permanent("invalid stored re-review evidence".into())
+                            })?;
+                            let response_ids: Vec<_> = evidence
+                                .as_array()
+                                .into_iter()
+                                .flatten()
+                                .filter_map(|e| {
+                                    e["author_response"]["id"].as_str().map(str::to_owned)
+                                })
+                                .collect();
+                            if !response_ids.is_empty() {
+                                input.followup = Some(mathesis_review::advisor::FollowupInput {
+                                    response_ids,
+                                    evidence: submission
+                                        .current_version()
+                                        .into_iter()
+                                        .flat_map(|v| &v.evidence)
+                                        .map(|e| {
+                                            serde_json::to_value(e).expect("evidence serialization")
+                                        })
+                                        .collect(),
+                                });
+                            }
+                        }
                         audit.engine = Some(advisor.engine().into());
                         audit.model = Some(advisor.model().into());
                         audit.input_digest =
@@ -1069,6 +1101,7 @@ impl Worker {
             std::fs::write(path, bytes).map_err(|e| e.to_string())?;
         }
         let mut input = AdvisorInput {
+            followup: None,
             kind: serde_json::to_value(paper.kind)
                 .unwrap()
                 .as_str()

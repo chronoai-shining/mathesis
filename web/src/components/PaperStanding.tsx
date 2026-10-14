@@ -125,7 +125,9 @@ export function PaperStanding({
               ))}
             </ol>
             <p role="status" className="standing-summary">
-              {PROGRESS_TEXT[Math.min(step, PROGRESS_TEXT.length - 1)]}
+              {step === 3 && !round?.letter
+                ? 'The source audit is complete. The feedback letter has not been delivered yet.'
+                : PROGRESS_TEXT[Math.min(step, PROGRESS_TEXT.length - 1)]}
             </p>
           </>
         )

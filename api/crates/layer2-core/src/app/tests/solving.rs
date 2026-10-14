@@ -472,6 +472,7 @@ async fn paper_problem_policy_excludes_private_settled_and_failed_audit_candidat
             .any(|c| c.record == record)
     );
     let audit = |reading| RefereeAudit {
+        response_assessments: vec![],
         verdict: Recommendation::Accept,
         agrees_with_referee: true,
         summary: "PRIVATE_AUDIT".into(),

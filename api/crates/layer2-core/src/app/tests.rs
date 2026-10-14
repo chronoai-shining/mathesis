@@ -1005,6 +1005,7 @@ fn audit_for(
     known: Option<String>,
 ) -> RefereeAudit {
     RefereeAudit {
+        response_assessments: vec![],
         verdict,
         agrees_with_referee: false,
         summary: "The main argument was checked against the source.".into(),
@@ -2038,6 +2039,7 @@ async fn displayed_conjecture(w: &World, author: &Caller, reviewer: &Caller) -> 
         .await
         .unwrap();
     let audit = RefereeAudit {
+        response_assessments: vec![],
         verdict: Recommendation::Accept,
         agrees_with_referee: true,
         summary: "PRIVATE_AUDIT_SUMMARY".into(),

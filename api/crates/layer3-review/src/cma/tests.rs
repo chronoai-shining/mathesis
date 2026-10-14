@@ -22,6 +22,7 @@ type Call = (String, String, Option<Value>, Option<String>);
 struct Fake {
     calls: Mutex<Vec<Call>>,
     replies: Mutex<VecDeque<ReviewResult<TransportReply>>>,
+    agent_observations: Mutex<VecDeque<ReviewResult<TransportReply>>>,
 }
 #[async_trait]
 impl Transport for Fake {
@@ -36,6 +37,29 @@ impl Transport for Fake {
             .lock()
             .await
             .push((method.into(), path.into(), body, key.map(str::to_owned)));
+        if method == "GET" && path.starts_with("api/v1/agents/") && !path.ends_with("/controls") {
+            let deleted = self
+                .calls
+                .lock()
+                .await
+                .iter()
+                .any(|c| c.0 == "DELETE" && c.1 == path);
+            return self
+                .agent_observations
+                .lock()
+                .await
+                .pop_front()
+                .unwrap_or_else(|| {
+                    if deleted {
+                        Err(ReviewError::Provider {
+                            status: 404,
+                            body: "not_found".into(),
+                        })
+                    } else {
+                        reply(json!({"status":"stopped"}))
+                    }
+                });
+        }
         self.replies
             .lock()
             .await
@@ -73,6 +97,7 @@ fn client(replies: Vec<ReviewResult<TransportReply>>) -> (Client, Arc<Fake>) {
     let transport = Arc::new(Fake {
         calls: Mutex::new(vec![]),
         replies: Mutex::new(replies.into()),
+        agent_observations: Mutex::new(VecDeque::new()),
     });
     (
         Client {
@@ -112,7 +137,7 @@ async fn creates_polls_returns_json_and_cleans_up_once() {
         answer
     );
     let calls = fake.calls.lock().await;
-    assert_eq!(calls.len(), 6);
+    assert_eq!(calls.len(), 8);
     assert_eq!(calls[0].1, "api/v1/workspaces/wks_test/agents");
     assert_eq!(
         calls[0].2.as_ref().unwrap()["agent_profile"],
@@ -120,7 +145,8 @@ async fn creates_polls_returns_json_and_cleans_up_once() {
     );
     assert_eq!(calls[1].2.as_ref().unwrap()["stream"], true);
     assert_eq!(calls[4].2, Some(json!({})));
-    assert_eq!(calls[5].0, "DELETE");
+    assert_eq!(calls[5].0, "GET");
+    assert_eq!(calls[6].0, "DELETE");
     assert!(calls.iter().filter(|c| c.0 != "GET").all(|c| c.3.is_some()));
 }
 #[tokio::test]
@@ -205,7 +231,7 @@ async fn cancelled_active_turn_observes_control_revision_then_stops_and_deletes(
         Some(json!({"turn_sequence":42,"expected_agent_revision":17,"command":{"type":"cancel"}}))
     );
     assert!(calls[2].1.ends_with("/stop"));
-    assert_eq!(calls[3].0, "DELETE");
+    assert_eq!(calls[4].0, "DELETE");
 }
 #[tokio::test]
 async fn queued_cancel_uses_the_documented_command_receipt() {
@@ -259,8 +285,8 @@ async fn malformed_final_and_failed_turns_are_cleaned_up() {
                 .is_err()
         );
         let calls = fake.calls.lock().await;
-        assert!(calls[calls.len() - 2].1.ends_with("/stop"));
-        assert_eq!(calls.last().unwrap().0, "DELETE");
+        assert!(calls[calls.len() - 4].1.ends_with("/stop"));
+        assert_eq!(calls[calls.len() - 2].0, "DELETE");
     }
 }
 #[tokio::test]
@@ -470,7 +496,7 @@ async fn expired_uncertain_creation_is_recovered_with_original_profile_before_cl
         Some("wishpool:paper:r1:audit:a0:create")
     );
     assert!(calls[1].1.ends_with("/stop"));
-    assert_eq!(calls[2].0, "DELETE");
+    assert_eq!(calls[3].0, "DELETE");
     let state: RunState = serde_json::from_value(store.load().await.unwrap().unwrap()).unwrap();
     assert!(state.deleted);
 }
@@ -500,9 +526,9 @@ async fn changed_inputs_fail_without_resubmission_and_cleanup_the_saved_agent() 
             .contains("inputs changed")
     );
     let calls = fake.calls.lock().await;
-    assert_eq!(calls.len(), 2);
+    assert_eq!(calls.len(), 4);
     assert!(calls[0].1.ends_with("/stop"));
-    assert_eq!(calls[1].0, "DELETE");
+    assert_eq!(calls[2].0, "DELETE");
 }
 
 #[tokio::test]
@@ -655,4 +681,75 @@ async fn terminal_agent_failure_retains_typed_reason_across_restarts() {
         Err(ReviewError::CmaRefusal(FailureKind::CauseUnknown))
     ));
     assert_eq!(fake.calls.lock().await.len(), calls);
+}
+
+#[tokio::test]
+async fn asynchronous_stop_defers_delete_until_observed_and_retains_the_answer() {
+    let store = Memory::default();
+    store
+        .save(
+            serde_json::to_value(RunState {
+                agent_id: Some("agt_stopping".into()),
+                answer: Some("{\"summary\":\"done\"}".into()),
+                ..Default::default()
+            })
+            .unwrap(),
+        )
+        .await
+        .unwrap();
+    let (client, fake) = client(vec![accepted(), accepted()]);
+    fake.agent_observations.lock().await.extend([
+        reply(json!({"status":"starting"})),
+        reply(json!({"status":"stopped"})),
+    ]);
+    client.cancel(&store).await.unwrap();
+    let first: RunState = serde_json::from_value(store.load().await.unwrap().unwrap()).unwrap();
+    assert!(first.stopped && !first.deleted);
+    assert!(fake.calls.lock().await.iter().all(|c| c.0 != "DELETE"));
+    client.cancel(&store).await.unwrap();
+    let second: RunState = serde_json::from_value(store.load().await.unwrap().unwrap()).unwrap();
+    assert!(second.deleted);
+    assert_eq!(second.answer, first.answer);
+    assert!(second.failure.is_none());
+    let calls = fake.calls.lock().await;
+    assert_eq!(calls.iter().filter(|c| c.1.ends_with("/stop")).count(), 1);
+    assert_eq!(calls.iter().filter(|c| c.0 == "DELETE").count(), 1);
+}
+
+#[tokio::test]
+async fn delete_acknowledgment_keeps_the_handle_until_absence_is_observed() {
+    let store = Memory::default();
+    store
+        .save(
+            serde_json::to_value(RunState {
+                agent_id: Some("agt_deleting".into()),
+                answer: Some("{}".into()),
+                ..Default::default()
+            })
+            .unwrap(),
+        )
+        .await
+        .unwrap();
+    let (client, fake) = client(vec![accepted(), accepted(), accepted()]);
+    fake.agent_observations.lock().await.extend([
+        reply(json!({"status":"stopped"})),
+        reply(json!({"status":"stopped"})),
+        reply(json!({"status":"stopped"})),
+        Err(ReviewError::Provider {
+            status: 404,
+            body: "not_found".into(),
+        }),
+    ]);
+    client.cancel(&store).await.unwrap();
+    let first: RunState = serde_json::from_value(store.load().await.unwrap().unwrap()).unwrap();
+    assert!(!first.deleted);
+    assert_eq!(first.agent_id.as_deref(), Some("agt_deleting"));
+    client.cancel(&store).await.unwrap();
+    let last: RunState = serde_json::from_value(store.load().await.unwrap().unwrap()).unwrap();
+    assert!(last.deleted);
+    assert_eq!(last.answer, first.answer);
+    let calls = fake.calls.lock().await;
+    let deletes: Vec<_> = calls.iter().filter(|c| c.0 == "DELETE").collect();
+    assert_eq!(deletes.len(), 2);
+    assert_eq!(deletes[0], deletes[1]);
 }

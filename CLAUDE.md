@@ -464,6 +464,14 @@ funded; local elaboration and proof verification carry no CMA payer.
   Queue reconciliation recovers a saved response after enqueue failure.
 - Review JSON schema 2 and `/review.md` include each round's source digest and author
   responses. Both use the author-safe view, including when requested by staff.
+- New rounds pin review contract 1. Re-review audits assess each admitted author
+  response as addressed, unresolved or not_checkable, with a concrete explanation.
+  Attachment references resolve to paths and actual SHA-256 digests in that round's
+  source version. Unknown/duplicate response outputs or unusable evidence cannot
+  establish addressed. Missing model conclusions become explicitly not_checkable.
+  These are reviewer judgments, never execution or Lean receipts; old findings stay
+  immutable. Legacy rounds retain their admitted prompt bytes and receive no fabricated
+  retrospective conclusions.
 - Public verified attempts offer a JSON verification bundle: exact confirmed target,
   solution/modules, pinned toolchain, attribution, source/claim identity and receipt.
   Current public visibility and target validity are checked on export. Rechecking
@@ -502,6 +510,9 @@ funded; local elaboration and proof verification carry no CMA payer.
   attachment / 256 KiB total; CMA gets a bounded source inventory and up to 512 KiB per
   UTF-8 file / 2 MiB total. Explicitly identify every inventory-only file; never claim
   it was read or validated. Uploaded scripts are not automatically executed.
+
+- See `docs/REVIEW_FOLLOWUP.md` for version-bound response assessments and asynchronous
+  CMA cleanup. A stop acknowledgment does not imply that an agent can yet be deleted.
 
 - Keep legacy review prompt bytes unchanged when no computational evidence is declared;
   existing admitted task input digests must remain resumable across this upgrade.

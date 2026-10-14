@@ -1757,7 +1757,30 @@
                 "type": "array",
                 "items": {
                   "type": "object",
-                  "description": "Version/claims-revision-bound report, audit and author-visible formalization outcomes. No provider identifiers, prompts, advice or private proof files."
+                  "description": "Version/claims-revision-bound report, audit and author-visible formalization outcomes. No provider identifiers, prompts, advice or private proof files.",
+                  "properties": {
+                    "audit": {
+                      "type": "object",
+                      "properties": {
+                        "state": {
+                          "type": "object",
+                          "properties": {
+                            "result": {
+                              "type": "object",
+                              "properties": {
+                                "response_assessments": {
+                                  "type": "array",
+                                  "items": {
+                                    "$ref": "#/components/schemas/ResponseAssessment"
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
                 }
               },
               "letters": {
@@ -2034,6 +2057,52 @@
           "sha256",
           "bytes"
         ]
+      },
+      "ResponseAssessment": {
+        "type": "object",
+        "required": [
+          "response_id",
+          "status",
+          "explanation",
+          "evidence"
+        ],
+        "properties": {
+          "response_id": {
+            "type": "string",
+            "description": "Exact author response admitted into this round on this source version and claims revision"
+          },
+          "status": {
+            "enum": [
+              "addressed",
+              "unresolved",
+              "not_checkable"
+            ]
+          },
+          "explanation": {
+            "type": "string",
+            "maxLength": 8000
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "path",
+                "sha256"
+              ],
+              "properties": {
+                "path": {
+                  "type": "string"
+                },
+                "sha256": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                }
+              }
+            }
+          }
+        },
+        "description": "Reviewer judgment, never an execution or Lean receipt. Attachment digests come from the stored source, not the model."
       }
     }
   }

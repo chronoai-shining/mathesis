@@ -55,7 +55,7 @@ impl From<CoreError> for Failure {
     }
 }
 
-fn model_failure(error: mathesis_review::ReviewError) -> Failure {
+pub(super) fn model_failure(error: mathesis_review::ReviewError) -> Failure {
     match error {
         mathesis_review::ReviewError::PersistenceFence => Failure::Transient(error.to_string()),
         mathesis_review::ReviewError::Transport(e) => Failure::Transient(e),
@@ -122,7 +122,26 @@ impl Worker {
         .await;
         let settled = match result {
             Ok(true) => Ok(()),
-            Ok(false) => self.jobs.complete(&job).await,
+            Ok(false) => {
+                // A delivered review can still own an asynchronously stopping agent.
+                // Keep its original job without consuming retry attempts or rerunning review.
+                if job.kind == JobKind::Referee {
+                    match self.cleanup_agents(&job).await {
+                        Ok(true) => self.jobs.defer(&job, Duration::from_secs(30)).await,
+                        Ok(false) => self.jobs.complete(&job).await,
+                        Err(Failure::Permanent(reason)) => {
+                            tracing::warn!(reason, "review cleanup cannot continue");
+                            self.jobs.complete(&job).await
+                        }
+                        Err(error) => {
+                            tracing::warn!(?error, "review cleanup will be resumed");
+                            self.jobs.defer(&job, Duration::from_secs(30)).await
+                        }
+                    }
+                } else {
+                    self.jobs.complete(&job).await
+                }
+            }
             Err(Failure::Permanent(reason)) => {
                 tracing::warn!(reason, "job abandoned");
                 self.jobs.complete(&job).await

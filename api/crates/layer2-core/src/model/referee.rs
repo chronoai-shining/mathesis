@@ -118,11 +118,37 @@ pub struct AuditedConcern {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RefereeAudit {
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub response_assessments: Vec<ResponseAssessment>,
     pub verdict: Recommendation,
     pub agrees_with_referee: bool,
     pub summary: String,
     pub claims: Vec<AuditedClaim>,
     pub concerns: Vec<AuditedConcern>,
+}
+
+/// A source-bound reviewer conclusion, never an independent verification receipt.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ResponseDisposition {
+    Addressed,
+    Unresolved,
+    NotCheckable,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ReviewEvidenceReference {
+    pub path: String,
+    pub sha256: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ResponseAssessment {
+    pub response_id: String,
+    pub status: ResponseDisposition,
+    pub explanation: String,
+    #[serde(default)]
+    pub evidence: Vec<ReviewEvidenceReference>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -341,6 +367,9 @@ impl<T> Step<T> {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RefereeRound {
+    /// Pin new audit output contracts; old admitted prompts retain their exact bytes.
+    #[serde(default)]
+    pub review_contract: u32,
     #[serde(default)]
     pub source_sha256: String,
     #[serde(default)]

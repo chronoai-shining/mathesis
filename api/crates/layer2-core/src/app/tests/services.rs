@@ -300,6 +300,91 @@ async fn private_review_has_no_publication_and_retains_evidence_through_revision
             .contains("displayed convention")
     );
     assert!(round2.current().unwrap().audit.done().is_none());
+    assert_eq!(round2.current().unwrap().review_contract, 1);
+    w.app
+        .update_referee_round(
+            &reviewer,
+            &paper.id,
+            2,
+            RoundUpdate::Referee(round2.rounds[0].referee.clone()),
+        )
+        .await
+        .unwrap();
+    let mut recheck = audit_for(
+        &paper,
+        Recommendation::MinorRevision,
+        Correctness::Correct,
+        ProofShape::Content,
+        None,
+    );
+    assert!(
+        w.app
+            .update_referee_round(
+                &reviewer,
+                &paper.id,
+                2,
+                RoundUpdate::Audit(done_step(recheck.clone()))
+            )
+            .await
+            .is_err()
+    );
+    recheck.response_assessments.push(ResponseAssessment {
+        response_id: replay.finding_responses[0].id.clone(),
+        status: ResponseDisposition::Addressed,
+        explanation: "The explicit convention establishes the zero case.".into(),
+        evidence: vec![],
+    });
+    for bad in [
+        ResponseAssessment {
+            response_id: "invented".into(),
+            ..recheck.response_assessments[0].clone()
+        },
+        ResponseAssessment {
+            evidence: vec![ReviewEvidenceReference {
+                path: "missing.json".into(),
+                sha256: "invented".into(),
+            }],
+            ..recheck.response_assessments[0].clone()
+        },
+    ] {
+        let mut invalid = recheck.clone();
+        invalid.response_assessments = vec![bad];
+        assert!(
+            w.app
+                .update_referee_round(
+                    &reviewer,
+                    &paper.id,
+                    2,
+                    RoundUpdate::Audit(done_step(invalid))
+                )
+                .await
+                .is_err()
+        );
+    }
+    w.app
+        .update_referee_round(
+            &reviewer,
+            &paper.id,
+            2,
+            RoundUpdate::Audit(done_step(recheck)),
+        )
+        .await
+        .unwrap();
+    let export = w.app.review_report(&author, &paper.id).await.unwrap();
+    assert!(
+        export
+            .markdown()
+            .contains("explicit convention establishes")
+    );
+    assert!(
+        export
+            .markdown()
+            .contains("Reviewer conclusion on version 1: Addressed")
+    );
+    assert_eq!(
+        export.review.rounds[0].audit.done().unwrap().concerns[0].status,
+        ConcernStatus::Confirmed
+    );
     w.app.reconcile_private_rechecks().await.unwrap();
     let revised = w
         .app

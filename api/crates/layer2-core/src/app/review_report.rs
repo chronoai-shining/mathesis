@@ -156,6 +156,24 @@ impl ReviewReport {
                                 "Re-reviewed in round {}. Read that audit for its conclusion; this does not automatically mark the original finding resolved.\n",
                                 checked.number
                             );
+                            if let Some(assessment) = checked.audit.done().and_then(|a| {
+                                a.response_assessments
+                                    .iter()
+                                    .find(|a| a.response_id == response.id)
+                            }) {
+                                let _ = writeln!(
+                                    out,
+                                    "Reviewer conclusion on version {}: {:?}\n\n{}\n\nThis is review feedback, not an independent verification receipt.\n",
+                                    checked.version, assessment.status, assessment.explanation
+                                );
+                                for evidence in &assessment.evidence {
+                                    let _ = writeln!(
+                                        out,
+                                        "- Attachment: {} · SHA-256 {}\n",
+                                        evidence.path, evidence.sha256
+                                    );
+                                }
+                            }
                         }
                     }
                 }

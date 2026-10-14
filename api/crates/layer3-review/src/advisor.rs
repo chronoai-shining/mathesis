@@ -17,6 +17,8 @@ use crate::{
 
 #[derive(Debug, Clone, Serialize)]
 pub struct AdvisorInput {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub followup: Option<FollowupInput>,
     pub kind: String,
     pub title: String,
     pub abstract_text: String,
@@ -29,6 +31,13 @@ pub struct AdvisorInput {
     #[serde(skip)]
     pub source_dir: Option<PathBuf>,
     pub main_file: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct FollowupInput {
+    pub response_ids: Vec<String>,
+    /// Version-bound attachment inventory supplied by the caller, never model-authored.
+    pub evidence: Vec<serde_json::Value>,
 }
 
 #[async_trait]

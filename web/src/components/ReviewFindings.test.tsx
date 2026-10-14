@@ -84,3 +84,94 @@ it('distinguishes re-reviewed responses from resolved findings', async () => {
   ).toBeInTheDocument();
   expect(screen.queryByText('Resolved')).toBeNull();
 });
+
+it('shows the response conclusion with version-bound evidence without claiming proof verification', async () => {
+  const response = {
+    id: 'reply',
+    round: 1,
+    concern: 0,
+    version: refereeRound.version,
+    claims_revision: refereeRound.claims_revision,
+    body: 'The attachment covers the zero case.',
+    author: author.id,
+    at: refereeRound.started_at,
+  };
+  const file = refereeFile({
+    finding_responses: [response],
+    rounds: [
+      refereeRound,
+      {
+        ...refereeRound,
+        number: 2,
+        response_ids: ['reply'],
+        audit: {
+          attempts: 1,
+          state: {
+            state: 'done',
+            at: refereeRound.started_at,
+            result: {
+              ...refereeAudit,
+              response_assessments: [
+                {
+                  response_id: 'reply',
+                  status: 'addressed',
+                  explanation: 'The zero-case calculation gives equality.',
+                  evidence: [{ path: 'evidence/cases 1.json', sha256: 'a'.repeat(64) }],
+                },
+              ],
+            },
+          },
+        },
+      },
+    ],
+  });
+  renderWithApp(
+    <ReviewFindings
+      submission={{ ...submission, claims_revision: response.claims_revision }}
+      file={file}
+      onChange={vi.fn()}
+    />,
+    fakeApi({}, author),
+  );
+  await userEvent.click(await screen.findByText('R1-A1'));
+  expect(screen.getByText('Addressed in this review')).toBeInTheDocument();
+  expect(screen.getByText('The zero-case calculation gives equality.')).toBeInTheDocument();
+  expect(screen.getByRole('link', { name: 'evidence/cases 1.json' })).toHaveAttribute(
+    'href',
+    `/api/v1/submissions/${encodeURIComponent(submission.id)}/evidence?version=${response.version}&path=evidence%2Fcases%201.json`,
+  );
+  expect(screen.getByText(/not an independent proof or execution receipt/)).toBeInTheDocument();
+  expect(screen.queryByText('Resolved')).toBeNull();
+});
+
+it('keeps an older source conclusion visibly historical', async () => {
+  const response = {
+    id: 'old',
+    round: 1,
+    concern: 0,
+    version: refereeRound.version,
+    claims_revision: refereeRound.claims_revision,
+    body: 'Old response',
+    author: author.id,
+    at: refereeRound.started_at,
+  };
+  const file = refereeFile({
+    finding_responses: [response],
+    rounds: [refereeRound, { ...refereeRound, number: 2, response_ids: ['old'] }],
+  });
+  renderWithApp(
+    <ReviewFindings
+      submission={{ ...submission, claims_revision: response.claims_revision + 1 }}
+      file={file}
+      onChange={vi.fn()}
+    />,
+    fakeApi({}, author),
+  );
+  await userEvent.click(await screen.findByText('R1-A1'));
+  expect(
+    screen.getByText('This response belongs to an earlier source or statement revision.'),
+  ).toBeInTheDocument();
+  expect(
+    screen.queryByText('Re-reviewed in round 2. Read that audit for the conclusion.'),
+  ).toBeNull();
+});

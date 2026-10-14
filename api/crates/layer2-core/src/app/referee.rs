@@ -294,6 +294,7 @@ impl App {
         caller.require(Role::Reviewer)?;
         let submission = self.submission(caller, id).await?;
         let (mut file, stored) = self.referee_file(id).await?;
+        let responses = file.finding_responses.clone();
         let round = file
             .rounds
             .iter_mut()
@@ -344,6 +345,52 @@ impl App {
                     if ids.len() != submission.claims.len() || ids.len() != audit.claims.len() {
                         return Err(CoreError::invalid(
                             "audit must cover every confirmed statement exactly once",
+                        ));
+                    }
+                    let expected: BTreeSet<_> = responses
+                        .iter()
+                        .filter(|r| {
+                            r.version == round.version
+                                && r.claims_revision == round.claims_revision
+                                && round
+                                    .recheck_requests
+                                    .contains(&format!("finding-response:{}", r.id))
+                        })
+                        .map(|r| r.id.as_str())
+                        .collect();
+                    let mut assessed = BTreeSet::new();
+                    for result in &audit.response_assessments {
+                        if !expected.contains(result.response_id.as_str())
+                            || !assessed.insert(result.response_id.as_str())
+                        {
+                            return Err(CoreError::invalid(
+                                "unknown or duplicate review response assessment",
+                            ));
+                        }
+                        crate::model::require_text(
+                            "response assessment explanation",
+                            &result.explanation,
+                            8000,
+                        )?;
+                        let mut paths = BTreeSet::new();
+                        for evidence in &result.evidence {
+                            if !paths.insert(&evidence.path)
+                                || !submission.current_version().is_some_and(|v| {
+                                    v.evidence.iter().any(|e| {
+                                        e.descriptor.path == evidence.path
+                                            && e.sha256 == evidence.sha256
+                                    })
+                                })
+                            {
+                                return Err(CoreError::invalid(
+                                    "review evidence must match this source version",
+                                ));
+                            }
+                        }
+                    }
+                    if round.review_contract >= 1 && assessed != expected {
+                        return Err(CoreError::invalid(
+                            "audit must assess every admitted author response",
                         ));
                     }
                 }
@@ -709,6 +756,7 @@ impl App {
     fn push_round(&self, file: &mut RefereeFile, submission: &Submission, version: u32) {
         let number = file.rounds.last().map_or(1, |r| r.number + 1);
         file.rounds.push(RefereeRound {
+            review_contract: 1,
             source_sha256: submission
                 .current_version()
                 .map(|v| v.archive.sha256.clone())

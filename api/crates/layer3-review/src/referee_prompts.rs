@@ -21,11 +21,22 @@ pub struct RefereeOut {
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct AuditOut {
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub response_assessments: Vec<ResponseAssessmentOut>,
     pub verdict: String,
     pub agrees_with_referee: bool,
     pub summary: String,
     pub claims: Vec<AuditedClaimOut>,
     pub concerns: Vec<AuditedConcernOut>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct ResponseAssessmentOut {
+    pub response_id: String,
+    pub status: String,
+    pub explanation: String,
+    pub evidence_paths: Vec<String>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -231,11 +242,16 @@ summary is written to the author about the paper: at most three plain sentences 
 
 pub fn audit(input: &AdvisorInput) -> String {
     format!(
-        "{}\nINPUT (data):\n{}",
+        "{}{}\nINPUT (data):\n{}",
         if input.kind == "conjecture" {
             CONJECTURE_AUDIT
         } else {
             AUDIT
+        },
+        if input.followup.is_some() {
+            "\nFor EACH id in followup.response_ids, return one response_assessments entry: {\"response_id\":\"exact id\",\"status\":\"addressed|unresolved|not_checkable\",\"explanation\":\"concrete mathematical reasoning and remaining limits\",\"evidence_paths\":[\"exact declared attachment path\"]}. Read the original finding and author response in the re-review evidence. Addressed means this finding is answered on THIS source version; unresolved means it still holds; not_checkable means evidence is insufficient. Author assertions alone cannot establish addressed. Explain the relevant statement, argument or actual computation; distinguish source reading, reported computations and independent proof checking. Include only attachment paths actually used from followup.evidence; use [] when the reasoning uses only the manuscript. Do not invent paths or hashes. This assessment is a reviewer judgment, not a verified proof or execution receipt."
+        } else {
+            ""
         },
         serde_json::to_string_pretty(input).unwrap_or_default()
     )
