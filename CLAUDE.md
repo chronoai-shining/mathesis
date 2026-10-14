@@ -181,6 +181,9 @@ sdk/contribute/    the contributors' CLI and MCP server.
 - Stage reports are append-only. Accepted records are immutable.
 - Machine work (compiling, S2 leads, S3 proposals) is a durable, leased job.
   A worker restart must not lose or duplicate admitted work.
+- Normal worker shutdown drops local work and its heartbeat before releasing
+  the leased job without spending a retry. Remote task identities are retained;
+  failed release or process crashes recover through ordinary lease expiry.
 
 ## 7. Identity and security
 

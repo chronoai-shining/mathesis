@@ -1197,6 +1197,58 @@ async fn prepare_audit(w: &World) -> LeasedJob {
 }
 
 #[tokio::test(start_paused = true)]
+async fn shutdown_releases_running_audit_without_waiting_for_lease_expiry() {
+    let mut w = World::new(vec![completed("accept")], true).await;
+    let job = prepare_audit(&w).await;
+    w.worker.advisor = Some(Arc::new(FakeAdvisor {
+        audit_delay: Duration::from_secs(41 * 60),
+        ..Default::default()
+    }));
+    let (shutdown_tx, mut shutdown_rx) = tokio::sync::watch::channel(false);
+    let started = tokio::time::Instant::now();
+    let signal = async {
+        tokio::time::sleep(Duration::from_secs(60)).await;
+        shutdown_tx.send(true).unwrap();
+    };
+    tokio::join!(
+        w.worker
+            .handle_until_shutdown(job.clone(), &mut shutdown_rx),
+        signal
+    );
+    assert_eq!(started.elapsed(), Duration::from_secs(60));
+    let before = w.file().await;
+    assert!(matches!(
+        before.current().unwrap().audit.state,
+        StepState::Running { .. }
+    ));
+    assert!(!w.jobs.renew(&job).await.unwrap());
+    let replacement = w
+        .jobs
+        .claim()
+        .await
+        .unwrap()
+        .expect("immediately resumable");
+    assert_ne!(replacement.lease, job.lease);
+    assert_eq!(
+        replacement.attempts, job.attempts,
+        "shutdown spends no retry"
+    );
+    w.worker.advisor = Some(w.advisor.clone());
+    assert!(w.worker.referee_job(&replacement).await.unwrap());
+    let after = w.file().await;
+    assert!(after.current().unwrap().audit.done().is_some());
+    assert_eq!(
+        after.current().unwrap().referee,
+        before.current().unwrap().referee
+    );
+    assert_eq!(w.oracle.submitted.load(Ordering::SeqCst), 1);
+    // Cancellation cannot leave a late audit write or a detached heartbeat.
+    let revision = after.revision;
+    tokio::time::advance(Duration::from_secs(3600)).await;
+    assert_eq!(w.file().await.revision, revision);
+}
+
+#[tokio::test(start_paused = true)]
 async fn heartbeat_allows_audit_to_finish_past_the_original_lease() {
     let mut w = World::new(vec![completed("accept")], true).await;
     let advisor = Arc::new(FakeAdvisor {

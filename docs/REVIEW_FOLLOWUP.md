@@ -50,6 +50,13 @@ spending retry attempts. The saved answer and original payer remain unchanged.
 Missing agents count as already removed. Cleanup failures retain durable progress
 and never substitute another payer's credentials.
 
+On normal worker shutdown, Mathesis cancels the local polling operation and its
+lease heartbeat before releasing that job back to the queue. The next worker can
+resume immediately with the same admitted provider handles, without spending a
+retry. If releasing the lease fails, ordinary lease expiry remains the recovery
+path. A process crash still relies on that expiry; shutdown does not cancel the
+remote review or create a replacement task.
+
 ## Operating the real review loop
 
 API `/readyz` currently checks database readiness only. It is not evidence that

@@ -79,7 +79,7 @@ impl Worker {
                 break;
             }
             match self.jobs.claim().await {
-                Ok(Some(job)) => self.handle(job).await,
+                Ok(Some(job)) => self.handle_until_shutdown(job, &mut shutdown).await,
                 Ok(None) => {
                     tokio::select! {
                         _ = tokio::time::sleep(IDLE_POLL) => {}
@@ -93,6 +93,27 @@ impl Worker {
             }
         }
         tracing::info!("paper worker stopped");
+    }
+
+    pub(super) async fn handle_until_shutdown(
+        &self,
+        job: LeasedJob,
+        shutdown: &mut watch::Receiver<bool>,
+    ) {
+        // Drop the local operation and its heartbeat before releasing ownership.
+        // Provider work keeps its durable IDs and resumes under the next lease.
+        let interrupted = tokio::select! {
+            biased;
+            _ = shutdown.wait_for(|requested| *requested) => true,
+            _ = self.handle(job.clone()) => false,
+        };
+        if interrupted {
+            if let Err(error) = self.jobs.defer(&job, Duration::ZERO).await {
+                tracing::warn!(%error, "could not release job on shutdown; lease expiry will recover it");
+            } else {
+                tracing::info!(submission = %job.submission, "job released on shutdown; admitted work retained");
+            }
+        }
     }
 
     pub(super) async fn handle(&self, job: LeasedJob) {
