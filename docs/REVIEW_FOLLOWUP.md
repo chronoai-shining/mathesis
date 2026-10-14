@@ -43,7 +43,10 @@ interfaces; neither publication policy nor proof verification changes.
 
 An author projection hides advice and letter drafts. Their absence means the
 letter has not been delivered, not that the review has finished without one.
-The progress card and review panel use the same wording for this case.
+The progress card and review panel use the same wording for this case. A private
+review's headline and status badge follow the current round, so an earlier letter
+cannot make a pending re-review appear ready. Finding titles and letter subjects
+render inline mathematics with the same renderer as manuscript titles.
 
 CMA acknowledges agent stopping asynchronously. Mathesis observes the agent's
 actual `stopped` state before issuing a durable DELETE, avoiding an early

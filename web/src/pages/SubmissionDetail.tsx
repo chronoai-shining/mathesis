@@ -159,7 +159,13 @@ export function Workspace({
             <span>
               {s.purpose === 'review_only' ? 'Private review' : SUBMISSION_KIND_LABELS[s.kind]}
             </span>
-            <SubmissionStatusBadge status={s.status} />
+            {s.status.state === 'review_complete' &&
+            currentReview &&
+            !referee.value?.letters.some((letter) => letter.round === currentReview.number) ? (
+              <Badge tone="accent">Review in progress</Badge>
+            ) : (
+              <SubmissionStatusBadge status={s.status} />
+            )}
             <span>
               Version {current?.number ?? 1} · <DateText iso={s.created_at} />
             </span>
@@ -193,6 +199,7 @@ export function Workspace({
           <PaperStanding
             submission={s}
             round={currentReview}
+            letters={referee.value?.letters}
             onRevise={isAuthor && !showRevisionForm ? () => setRevising(true) : undefined}
           />
         ) : null}

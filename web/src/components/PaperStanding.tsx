@@ -34,6 +34,7 @@ const PROGRESS_TEXT = [
 export function PaperStanding({
   submission,
   round,
+  letters = [],
   onRevise,
 }: {
   submission: Submission;
@@ -46,9 +47,24 @@ export function PaperStanding({
   const audit = round?.audit?.state.state === 'done' ? round.audit.state.result : undefined;
   const probe = round?.formal?.state.state === 'done' ? round.formal.state.result : undefined;
   const failed = [round?.referee, round?.audit].some((s) => s?.state.state === 'failed');
+  const delivered =
+    round !== undefined &&
+    (round.letter?.state.state === 'done' ||
+      letters.some((letter) => letter.round === round.number));
+  const privatePending = status.state === 'review_complete' && round !== undefined && !delivered;
   const headline =
     status.state === 'review_complete'
-      ? 'Your private review is ready'
+      ? !round
+        ? 'Private Orchestra review'
+        : privatePending
+          ? failed
+            ? 'Your review needs attention'
+            : audit
+              ? 'Your source audit is ready'
+              : round.response_ids?.length
+                ? 'Your response is being reviewed'
+                : 'Your private review is in progress'
+          : 'Your private review is ready'
       : status.state === 'accepted'
         ? submission.kind === 'conjecture'
           ? 'Displayed'
@@ -105,7 +121,7 @@ export function PaperStanding({
         ) : null}
       </div>
 
-      {status.state === 'in_review' ? (
+      {status.state === 'in_review' || privatePending ? (
         failed ? (
           <p role="status">The review could not finish. Please try again later.</p>
         ) : (

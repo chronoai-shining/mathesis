@@ -245,3 +245,33 @@ it('does not infer active letter writing from the author projection', () => {
   ).toBeInTheDocument();
   expect(screen.queryByText('The letter is being written.')).toBeNull();
 });
+
+it('keeps a private re-review pending until its own letter is delivered', () => {
+  const paper = {
+    ...submission,
+    purpose: 'review_only' as const,
+    status: { state: 'review_complete' as const },
+  };
+  const followup = { ...queuedRound, number: 2, response_ids: ['response-1'] };
+  const { rerender } = render(
+    <PaperStanding submission={paper} round={followup} letters={[feedbackLetter]} />,
+  );
+  expect(screen.getByRole('heading', { name: 'Your response is being reviewed' })).toBeVisible();
+  expect(screen.getByRole('list', { name: 'Review progress' })).toBeVisible();
+  expect(screen.queryByText('Your private review is ready')).toBeNull();
+  const checked = { ...audited(), number: 2, letter: undefined };
+  rerender(<PaperStanding submission={paper} round={checked} letters={[feedbackLetter]} />);
+  expect(screen.getByRole('heading', { name: 'Your source audit is ready' })).toBeVisible();
+  expect(screen.getByRole('status')).toHaveTextContent(
+    'The feedback letter has not been delivered yet.',
+  );
+  rerender(
+    <PaperStanding
+      submission={paper}
+      round={checked}
+      letters={[feedbackLetter, { ...feedbackLetter, round: 2 }]}
+    />,
+  );
+  expect(screen.getByRole('heading', { name: 'Your private review is ready' })).toBeVisible();
+  expect(screen.queryByRole('list', { name: 'Review progress' })).toBeNull();
+});

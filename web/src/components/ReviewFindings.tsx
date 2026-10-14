@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react';
 import type { RefereeFile, RefereeRound, Submission } from '../api/types';
 import { useApi } from '../api/context';
 import { useSession } from '../auth/session';
-import { Markdown } from './Markdown';
+import { InlineLatex, Markdown } from './Markdown';
 import { DateText, Field, InlineError } from './ui';
 
 export function ReviewFindings({
@@ -51,7 +51,7 @@ export function ReviewFindings({
                     <strong>
                       R{round.number}-A{index + 1}
                     </strong>{' '}
-                    · {finding.status.replace('_', ' ')} · {finding.concern}
+                    · {finding.status.replace('_', ' ')} · <InlineLatex source={finding.concern} />
                   </summary>
                   {finding.location ? (
                     <p className="small">Reported location: {finding.location}</p>

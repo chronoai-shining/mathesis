@@ -28,7 +28,7 @@ import {
   isOpenKind,
 } from '../lib/labels';
 import { ClaimRef } from './claims';
-import { Markdown } from './Markdown';
+import { InlineLatex, Markdown } from './Markdown';
 import { Async, Badge, DateText, Field, InlineError } from './ui';
 
 type WorkspaceProps = {
@@ -892,7 +892,9 @@ function LetterText({ letter }: { letter: LetterDraft }) {
   return (
     <>
       <p>
-        <strong>{letter.subject}</strong>
+        <strong>
+          <InlineLatex source={letter.subject} />
+        </strong>
       </p>
       <Markdown text={letter.body} lineBreaks />
       {letter.note ? (
@@ -949,7 +951,7 @@ function SentLetters({
           {authorView ? (
             <>
               <h3>
-                {letter.subject}
+                <InlineLatex source={letter.subject} />
                 {letter.assessment ? (
                   <>
                     {' '}
@@ -967,7 +969,9 @@ function SentLetters({
           ) : (
             <details className="history">
               <summary>
-                <strong>{letter.subject}</strong>
+                <strong>
+                  <InlineLatex source={letter.subject} />
+                </strong>
                 {letter.assessment ? (
                   <>
                     {' '}
