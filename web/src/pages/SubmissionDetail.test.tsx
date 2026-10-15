@@ -96,9 +96,7 @@ describe('paper workspace', () => {
     await user.selectOptions(within(form).getByLabelText('Kind of C2'), 'proposition');
     await user.selectOptions(within(form).getByLabelText('Role of C3'), 'main');
     await user.click(within(form).getByRole('checkbox', { name: 'Exclude C4' }));
-    await user.click(
-      screen.getByRole('button', { name: 'Check statements and start Orchestra review' }),
-    );
+    await user.click(screen.getByRole('button', { name: 'Start review with these statements' }));
 
     expect(confirmClaims).toHaveBeenCalledWith('sub-draft', [
       { id: 'C1', kind: 'theorem', role: 'main', depends_on: ['C2'] },
@@ -168,7 +166,7 @@ describe('paper workspace', () => {
     );
     renderWithApp(<SubmissionDetailPage id="sub-draft" />, api);
     await userEvent.click(
-      await screen.findByRole('button', { name: 'Check statements and start Orchestra review' }),
+      await screen.findByRole('button', { name: 'Start review with these statements' }),
     );
     expect(await screen.findByText('claim dependencies contain a cycle')).toBeInTheDocument();
   });
