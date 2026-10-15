@@ -243,7 +243,7 @@ export function ConfirmStatements({
           aria-label="Start review with these statements"
           disabled={busy}
         >
-          {busy ? 'Starting review…' : 'Confirm statements and start review'}
+          {busy ? 'Starting review…' : 'Start review'}
         </button>
       </div>
       <InlineError error={error} />
