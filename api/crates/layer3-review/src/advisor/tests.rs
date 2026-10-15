@@ -2,6 +2,7 @@ use super::*;
 
 fn input() -> AdvisorInput {
     AdvisorInput {
+        knowledge: None,
         review_method: None,
         confirmed_claims: None,
         followup: None,

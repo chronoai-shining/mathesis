@@ -37,6 +37,7 @@ fn checked(
     current: bool,
 ) -> mathesis_core::model::AuditedClaim {
     let input = AdvisorInput {
+        knowledge: None,
         review_method: current.then(|| mathesis_core::model::REVIEW_METHOD.into()),
         confirmed_claims: current.then(|| serde_json::json!([statement])),
         followup: None,
@@ -154,4 +155,17 @@ fn conjecture_content_has_no_live_proof_witness_and_requires_supported_search() 
     assert!(reading.supports_content(true));
     reading.literature = EvidenceStatus::Insufficient;
     assert!(!reading.supports_content(true));
+}
+
+#[test]
+fn model_cannot_assert_the_system_knowledge_admission_gate() {
+    let mut raw = method();
+    raw["knowledge"] = serde_json::json!({"receipt_ids":["fabricated"],"complete":true,"audited_relation":"unknown"});
+    assert!(
+        checked(&claim(), Some(raw), true)
+            .methodology
+            .unwrap()
+            .knowledge
+            .is_none()
+    );
 }

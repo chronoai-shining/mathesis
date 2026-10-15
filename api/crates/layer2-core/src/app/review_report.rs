@@ -17,6 +17,7 @@ pub struct ReviewReport {
     pub source_sha256: String,
     pub evidence_by_version: std::collections::BTreeMap<u32, Vec<EvidenceAttachment>>,
     pub status: SubmissionStatus,
+    pub decision: Option<crate::policy::Decision>,
     pub claims: Vec<Claim>,
     pub review: RefereeView,
 }
@@ -61,6 +62,7 @@ impl App {
             source_sha256: version.map_or_else(String::new, |v| v.archive.sha256.clone()),
             claims_revision: submission.claims_revision,
             status: submission.status.clone(),
+            decision: submission.decision.clone(),
             claims: submission.claims.clone(),
             review: file.view(false),
         })
@@ -75,6 +77,9 @@ impl ReviewReport {
             "# Orchestra review — {}\n\nSubmission: {} · Current version: {}\n\nSource SHA-256: {}\n\nReview focus: {}\n\nModel review is research feedback, not a Lean proof certificate. Each round below identifies its own source.\n",
             self.title, self.submission, self.version, self.source_sha256, self.review_scope
         );
+        if let Some(crate::policy::Decision::Pending { detail, .. }) = &self.decision {
+            let _ = writeln!(out, "Publication decision pending: {detail}\n");
+        }
         for (version, files) in &self.evidence_by_version {
             if files.is_empty() {
                 continue;
@@ -104,6 +109,53 @@ impl ReviewReport {
                     round.review_contract, round.claims_revision
                 );
             }
+            if round.knowledge_contract > 0 {
+                let _ = writeln!(
+                    out,
+                    "### Required knowledge queries\n\nCompletion covers only the recorded bounded plan, never all mathematical knowledge. No match is not evidence of global novelty.\n"
+                );
+                for event in &round.knowledge_events {
+                    if let KnowledgeEvent::QueryCompleted { receipt } = event {
+                        let _ = writeln!(
+                            out,
+                            "#### Query {} — statement {}\n\nState: {:?} · retryable: {}\n\nSnapshot: {}\n\nIndex: {}\n\nRequest digest: {}\n\nQuery: {}\n\nStarted: {} · completed: {}\n",
+                            receipt.id,
+                            receipt.subject.claim,
+                            receipt.state,
+                            receipt.retryable,
+                            receipt.snapshot.as_deref().unwrap_or("unavailable"),
+                            receipt.index_revision.as_deref().unwrap_or("unavailable"),
+                            receipt.request_digest,
+                            receipt.query,
+                            receipt.started_at,
+                            receipt.completed_at
+                        );
+                        for scope in &receipt.scopes {
+                            let _ = writeln!(out, "Scope: {scope}\n");
+                        }
+                        for limit in &receipt.limits {
+                            let _ = writeln!(out, "Query limitation: {limit}\n");
+                        }
+                        if let Some(response) = &receipt.response {
+                            let _ = writeln!(
+                                out,
+                                "Saved response SHA-256: {} · {} bytes\n",
+                                response.sha256, response.bytes
+                            );
+                        }
+                        for source in &receipt.returned {
+                            let _ = writeln!(
+                                out,
+                                "Returned candidate: {} · {}\n\nStatement identity: {} · type digest: {}\n",
+                                source.module_path,
+                                source.declaration_name_key,
+                                source.statement_id,
+                                source.type_digest
+                            );
+                        }
+                    }
+                }
+            }
             if let Some(report) = round.referee.done() {
                 let _ = writeln!(out, "### Referee report\n\n{}\n", report.summary);
                 for c in &report.concerns {
@@ -126,6 +178,57 @@ impl ReviewReport {
                     }
                     for witness in &c.witnesses {
                         let _ = writeln!(out, "Audited witness: {witness}\n");
+                    }
+                    if let Some(coverage) = &c.coverage {
+                        let _ = writeln!(
+                            out,
+                            "Knowledge relation: {:?} · qualification: {:?}\n\n{}\n\nReceipts: {}\n",
+                            coverage.relation,
+                            coverage.qualification,
+                            coverage.summary,
+                            coverage.receipt_ids.join(", ")
+                        );
+                        if let Some(binding) = &coverage.binding {
+                            let _ = writeln!(
+                                out,
+                                "Joint premise relation: {:?}\n\n{}\n",
+                                binding.relation, binding.argument
+                            );
+                            for premise in &binding.premises {
+                                let _ = writeln!(
+                                    out,
+                                    "Joint premise: {} · {} · {}\n",
+                                    premise.module_path,
+                                    premise.declaration_name_key,
+                                    premise.statement_id
+                                );
+                            }
+                            for parameter in &binding.parameters {
+                                let _ = writeln!(
+                                    out,
+                                    "Parameter: {} → {}\n",
+                                    parameter.parameter, parameter.expression
+                                );
+                            }
+                            for hypothesis in &binding.hypotheses {
+                                let _ = writeln!(
+                                    out,
+                                    "Required hypothesis: {}\n\nDischarge: {}\n",
+                                    hypothesis.hypothesis,
+                                    if hypothesis.argument.trim().is_empty() {
+                                        "Unresolved"
+                                    } else {
+                                        &hypothesis.argument
+                                    }
+                                );
+                            }
+                            for obligation in &binding.unresolved {
+                                let _ = writeln!(out, "Unresolved obligation: {obligation}\n");
+                            }
+                        }
+                        for limit in &coverage.limits {
+                            let _ = writeln!(out, "Comparison limitation: {limit}\n");
+                        }
                     }
                     if let Some(method) = &c.methodology {
                         let _ = writeln!(

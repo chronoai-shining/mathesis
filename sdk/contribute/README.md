@@ -11,6 +11,7 @@ export MATHESIS_NYXID_SERVICE=mathesis
 mathesis-contribute papers 'prime gaps'
 mathesis-contribute paper WP-2026-0001
 mathesis-contribute review <submission-id>
+mathesis-contribute knowledge-response <submission-id> <receipt-id>
 mathesis-contribute submit-formalization <deposit.json>
 mathesis-contribute formalization <deposit-id>
 mathesis-contribute verify-formalization <deposit-id> WP-2026-0001 C1
@@ -28,7 +29,7 @@ token in `MATHESIS_TOKEN` for private/mutation operations. Public discovery does
 not require a token. Do not commit token values into MCP configuration files.
 
 The MCP tools include `papers` (query, author, MSC, kind, limit, cursor), `paper`,
-`review`, `submit-formalization`, `formalization`, `verify-formalization`, plus
+`review`, `knowledge-response` (submission `id` and saved `receipt`), `submit-formalization`, `formalization`, `verify-formalization`, plus
 existing conjecture, target, attempt, error-report and leased contribution
 tools. Reading a review requires author/staff identity. A formalization deposit
 is private and unverified until the ordinary verifier checks a confirmed target.

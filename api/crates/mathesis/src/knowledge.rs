@@ -16,6 +16,22 @@ use serde::Deserialize;
 
 use crate::store::{MongoStore, knowledge::KnowledgeSnapshot};
 
+#[derive(Debug, Clone)]
+pub(crate) struct IndexPin {
+    pub publication: PublicationIdentity,
+    pub revision: String,
+}
+
+#[async_trait::async_trait]
+pub(crate) trait KnowledgeSource: Send + Sync {
+    async fn pin(&self) -> CoreResult<IndexPin>;
+    async fn query(
+        &self,
+        revision: &str,
+        query: &str,
+    ) -> CoreResult<knowledge::index::SourceQueryResult>;
+}
+
 const PROJECTION_FILES: &[&str] = &[
     "SHA256SUMS",
     "release-manifest.v1.json",
@@ -206,7 +222,15 @@ pub(crate) async fn import(
 pub(crate) struct Knowledge {
     pub configured_revision: String,
     store: MongoStore,
-    cache: tokio::sync::Mutex<Option<Arc<SearchIndex>>>,
+    cache: tokio::sync::Mutex<IndexCache>,
+}
+
+#[derive(Default)]
+struct IndexCache {
+    loaded: Option<Arc<SearchIndex>>,
+    /// Kept in the cache, never moved into a caller's future. Cancelling a
+    /// review while indexing must not start another concurrent full rebuild.
+    loading: Option<tokio::task::JoinHandle<CoreResult<Arc<SearchIndex>>>>,
 }
 
 impl Knowledge {
@@ -214,22 +238,120 @@ impl Knowledge {
         Self {
             configured_revision,
             store,
-            cache: tokio::sync::Mutex::new(None),
+            cache: tokio::sync::Mutex::new(IndexCache::default()),
         }
     }
 
     pub(crate) async fn index(&self, revision: &str) -> CoreResult<Arc<SearchIndex>> {
         let mut cache = self.cache.lock().await;
-        if let Some(index) = cache.as_ref().filter(|i| i.identity().1 == revision) {
-            return Ok(index.clone());
+        loop {
+            if let Some(index) = cache.loaded.as_ref().filter(|i| i.identity().1 == revision) {
+                return Ok(index.clone());
+            }
+            if cache.loading.is_none() {
+                let store = self.store.clone();
+                let revision = revision.to_owned();
+                cache.loading = Some(tokio::spawn(async move {
+                    let source = store.load_knowledge_index(&revision).await?;
+                    let index = tokio::task::spawn_blocking(move || SearchIndex::new(source))
+                        .await
+                        .map_err(|_| {
+                            CoreError::Unavailable("knowledge index worker failed".into())
+                        })?
+                        .map_err(|e| CoreError::Unavailable(e.to_string()))?;
+                    Ok(Arc::new(index))
+                }));
+            }
+            // Await the handle by mutable reference. Dropping this future leaves
+            // the original job handle in the cache for the next caller to join.
+            let result = cache.loading.as_mut().expect("index load admitted").await;
+            cache.loading = None;
+            cache.loaded = Some(
+                result
+                    .map_err(|_| CoreError::Unavailable("knowledge load task failed".into()))??,
+            );
         }
-        let source = self.store.load_knowledge_index(revision).await?;
-        let index = tokio::task::spawn_blocking(move || SearchIndex::new(source))
+    }
+}
+
+#[async_trait::async_trait]
+impl KnowledgeSource for Knowledge {
+    async fn pin(&self) -> CoreResult<IndexPin> {
+        let stored = self
+            .store
+            .knowledge_snapshot(&self.configured_revision)
+            .await?
+            .ok_or_else(|| {
+                CoreError::Unavailable("configured knowledge index is not stored".into())
+            })?;
+        Ok(IndexPin {
+            publication: stored.publication,
+            revision: stored.id,
+        })
+    }
+
+    async fn query(
+        &self,
+        revision: &str,
+        query: &str,
+    ) -> CoreResult<knowledge::index::SourceQueryResult> {
+        let index = self.index(revision).await?;
+        let query = query.to_owned();
+        tokio::task::spawn_blocking(move || index.search(&query, None, 6))
             .await
-            .map_err(|_| CoreError::Unavailable("knowledge index worker failed".into()))?
-            .map_err(|e| CoreError::Unavailable(e.to_string()))?;
-        let index = Arc::new(index);
-        *cache = Some(index.clone());
-        Ok(index)
+            .map_err(|_| CoreError::Unavailable("knowledge search worker failed".into()))?
+            .map_err(|e| CoreError::Unavailable(e.to_string()))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn interrupted_reader_resumes_the_original_index_load() {
+        let Ok(uri) = std::env::var("WISHPOOL_TEST_MONGODB_URI") else {
+            return;
+        };
+        let database = format!(
+            "mathesis_knowledge_cache_{}",
+            mathesis_core::ids::new_uuid()
+        );
+        let store = MongoStore::connect(&uri, &database).await.unwrap();
+        let publication = PublicationIdentity {
+            bundle_digest: knowledge::sha256(b"cache fixture"),
+            source_commit: "a".repeat(40),
+            source_tree: "b".repeat(40),
+        };
+        let index = SourceIndex::build(publication, vec![], |_| unreachable!()).unwrap();
+        let revision = index.revision.clone();
+        let service = Knowledge::new(store.clone(), revision.clone());
+        let release = Arc::new(tokio::sync::Notify::new());
+        let ready = release.clone();
+        let calls = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        let called = calls.clone();
+        service.cache.lock().await.loading = Some(tokio::spawn(async move {
+            called.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+            ready.notified().await;
+            Ok(Arc::new(SearchIndex::new(index).unwrap()))
+        }));
+        assert!(
+            tokio::time::timeout(
+                std::time::Duration::from_millis(20),
+                service.index(&revision)
+            )
+            .await
+            .is_err()
+        );
+        assert!(service.cache.lock().await.loading.is_some());
+        release.notify_one();
+        let first = service.index(&revision).await.unwrap();
+        let replay = service.index(&revision).await.unwrap();
+        assert!(Arc::ptr_eq(&first, &replay));
+        assert_eq!(calls.load(std::sync::atomic::Ordering::SeqCst), 1);
+        let client = mongodb::Client::with_uri_str(&uri).await.unwrap();
+        client.database(&database).drop().await.unwrap();
+        client.shutdown().await;
+        store.shutdown().await;
     }
 }

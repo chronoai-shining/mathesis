@@ -32,6 +32,7 @@ export type Recommendation = 'accept' | 'minor_revision' | 'major_revision' | 'r
 export type Severity = 'major' | 'minor';
 export type Correctness = 'correct' | 'gap' | 'error' | 'not_checked';
 export type AuditedClaim = {
+  coverage?: ClaimCoverage;
   methodology?: MethodologyReading;
   conjecture?: ConjectureReading;
   claim: string;
@@ -139,6 +140,8 @@ export type Step<T> = {
   state: StepState<T>;
 };
 export type RefereeRound = {
+  knowledge_contract?: number;
+  knowledge_events?: KnowledgeEvent[];
   review_contract?: number;
   review_method?: string;
   /** Safe lifecycle projection; older servers may omit it. */
@@ -401,6 +404,11 @@ export type PriorWork = { claim: string; source: Source; relation: PriorRelation
 export type ProofShape = 'bind_only' | 'content' | 'undetermined';
 export type EvidenceStatus = 'supported' | 'unsupported' | 'insufficient';
 export type MethodologyReading = {
+  knowledge?: {
+    receipt_ids: string[];
+    complete: boolean;
+    audited_relation: CoverageRelation | null;
+  };
   baseline: { statement: string; location: string; source: string | null }[];
   searched: string[];
   literature: EvidenceStatus;
@@ -976,3 +984,66 @@ export interface EvidenceAttachment {
   bytes: number;
   sha256: string;
 }
+
+// Private knowledge evidence; a query hit is a candidate, not an entailment proof.
+export type CoverageRelation = 'unknown' | 'candidate' | 'covered' | 'refuted';
+export type CoverageSubject = {
+  submission: string;
+  version: number;
+  claims_revision: number;
+  round: number;
+  claim: string;
+  source_digest: string;
+  claim_digest: string;
+};
+export type KnowledgeDeclarationRef = {
+  snapshot: string;
+  module_path: string;
+  declaration_name_key: string;
+  statement_id: string;
+  type_digest: string;
+};
+export type KnowledgeQueryIntent = {
+  id: string;
+  subject: CoverageSubject;
+  snapshot: string | null;
+  index_revision: string | null;
+  request_digest: string;
+  query: string;
+  scopes: string[];
+  admitted_at: string;
+};
+export type KnowledgeQueryReceipt = Omit<KnowledgeQueryIntent, 'admitted_at'> & {
+  protocol: string;
+  state: 'complete' | 'partial' | 'timeout' | 'unavailable' | 'invalid_publication';
+  response?: { id: string; bytes: number; sha256: string };
+  returned: KnowledgeDeclarationRef[];
+  limits: string[];
+  retryable: boolean;
+  started_at: string;
+  completed_at: string;
+};
+export type ClaimCoverage = {
+  subject: CoverageSubject;
+  receipt_ids: string[];
+  relation: CoverageRelation;
+  qualification:
+    | { level: 'candidate' }
+    | { level: 'source_audited'; auditor: string; audit_id: string }
+    | { level: 'certificate_claim'; protocol: string; artifact_digest: string };
+  summary: string;
+  limits: string[];
+  binding: null | {
+    premises: KnowledgeDeclarationRef[];
+    relation: 'equivalent' | 'instance' | 'implies' | 'refutes' | 'proof_use';
+    parameters: { parameter: string; expression: string }[];
+    hypotheses: { hypothesis: string; argument: string }[];
+    argument: string;
+    unresolved: string[];
+    source_lineage: string[];
+  };
+};
+export type KnowledgeEvent =
+  | { event: 'query_admitted'; intent: KnowledgeQueryIntent }
+  | { event: 'query_completed'; receipt: KnowledgeQueryReceipt }
+  | { event: 'coverage_assessed'; assessment: ClaimCoverage; at: string };

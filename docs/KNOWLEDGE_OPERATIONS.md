@@ -80,7 +80,26 @@ already using an older immutable index may finish with their own `Arc`; a
 round's durable pin must determine subsequent lookups. Mongo/GridFS remains the
 authority, and no private manuscript text is inserted into this public index.
 
-At this stage the importer, diagnostic query and durable review-event services
-are implemented. Connecting those services to leased Oracle/CMA review steps,
-comparison mapping, policy and author presentation is tracked separately in
-`CAPABILITY_DELIVERY.md`. Importing a snapshot alone does not close issue #4.
+Set `WISHPOOL_KNOWLEDGE_INDEX=sha256:<exact index revision>` on the Mongo-backed
+review worker after importing that index. Memory deployments cannot configure it.
+New rounds pin the first admitted snapshot (including an unavailable admission)
+before any Oracle request. Each confirmed claim gets a real top-six source query;
+responses are stored under the existing lease and revision fences. Later process
+restarts reuse completed receipts and the original prompt. A cold index load
+continues in its retained cache task if a caller is cancelled; retrying does not
+start duplicate rebuilds. Query and snapshot-admission deadlines are 120 and 30
+seconds respectively. Source/index corruption has a separate failure state.
+
+The prompt projection is capped at 800,000 serialized bytes including metadata;
+source clipping and omitted payloads are explicit. A comparison cannot use an
+omitted source or invent a receipt/declaration identity. Incomplete required
+knowledge leaves publication pending; advice and a private letter still run.
+After fixing configuration, availability or publication validation, use the
+existing staff restart action on the same manuscript version. This creates a new
+round without rewriting previous receipts or model task identities. Unavailable
+sources do not trigger upstream Lean or upstream publication changes.
+
+This increment uses raw confirmed-statement term queries against checked full
+source text. Semantic reformulations, extra CMA queries and measured end-to-end
+quality remain in `CAPABILITY_DELIVERY.md`; do not claim those are delivered by
+an importer or query receipt. Real CMA review evidence is still required.

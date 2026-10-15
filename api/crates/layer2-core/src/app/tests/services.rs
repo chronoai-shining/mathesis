@@ -251,6 +251,19 @@ async fn private_review_has_no_publication_and_retains_evidence_through_revision
     let report = w.app.review_report(&author, &paper.id).await.unwrap();
     assert!(report.markdown().contains("left side is 0"));
     assert!(report.markdown().contains(REVIEW_METHOD));
+    assert!(report.decision.is_none());
+    assert!(report.markdown().contains("Required knowledge queries"));
+    assert!(report.markdown().contains("Knowledge relation: Unknown"));
+    assert!(report.markdown().contains("Saved response SHA-256"));
+    let json = serde_json::to_value(&report).unwrap();
+    assert_eq!(json["review"]["rounds"][0]["knowledge_contract"], 1);
+    assert!(
+        json["review"]["rounds"][0]["knowledge_events"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|e| e["event"] == "coverage_assessed")
+    );
     assert_eq!(report.review.rounds[0].review_contract, REVIEW_CONTRACT);
     assert_eq!(
         report.review.rounds[0].review_method.as_deref(),

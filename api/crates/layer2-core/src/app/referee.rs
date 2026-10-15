@@ -295,6 +295,14 @@ impl App {
         let submission = self.submission(caller, id).await?;
         let (mut file, stored) = self.referee_file(id).await?;
         let responses = file.finding_responses.clone();
+        let knowledge_receipts = file
+            .knowledge_events
+            .iter()
+            .filter_map(|event| match event {
+                crate::model::KnowledgeEvent::QueryCompleted { receipt } => Some(receipt.clone()),
+                _ => None,
+            })
+            .collect::<Vec<_>>();
         let round = file
             .rounds
             .iter_mut()
@@ -307,6 +315,27 @@ impl App {
                 "the paper version or statements changed since the round started",
             ));
         }
+        let knowledge_pending = round.knowledge_contract > 0
+            && submission.status == SubmissionStatus::InReview
+            && [Stage::Literature, Stage::Escape].iter().all(|stage| {
+                submission.latest_report(*stage).is_some_and(|report| {
+                    report.evidence.iter().any(|e| {
+                        e.kind == "referee_audit"
+                            && e.locator
+                                == format!(
+                                    "referee-audit:{id}:r{number}:v{}:c{}",
+                                    round.version, round.claims_revision
+                                )
+                    })
+                })
+            })
+            && matches!(
+                &submission.decision,
+                Some(crate::policy::Decision::Pending {
+                    awaiting: Stage::Literature,
+                    ..
+                })
+            );
         let known: BTreeSet<&ClaimId> = submission.claims.iter().map(|c| &c.id).collect();
         let check = |claims: Vec<&ClaimId>| -> CoreResult<()> {
             match claims.into_iter().find(|c| !known.contains(c)) {
@@ -349,6 +378,39 @@ impl App {
                     }
                     if round.review_contract >= crate::model::REVIEW_CONTRACT {
                         for reading in &audit.claims {
+                            if let Some(coverage) = &reading.coverage {
+                                if submission.involves(&caller.person) {
+                                    return Err(CoreError::forbidden(
+                                        "authors cannot file their own knowledge review",
+                                    ));
+                                }
+                                coverage.validate(&knowledge_receipts)?;
+                                if coverage.subject.submission != *id
+                                    || coverage.subject.round != number
+                                    || coverage.subject.version != round.version
+                                    || coverage.subject.claims_revision != round.claims_revision
+                                    || coverage.subject.claim != reading.claim
+                                {
+                                    return Err(CoreError::invalid(
+                                        "coverage audit belongs to another review input",
+                                    ));
+                                }
+                                if let crate::model::CoverageQualification::SourceAudited {
+                                    auditor,
+                                    audit_id,
+                                } = &coverage.qualification
+                                    && (auditor != &caller.person
+                                        || audit_id
+                                            != &format!(
+                                                "referee-audit:{id}:r{number}:v{}:c{}",
+                                                round.version, round.claims_revision
+                                            ))
+                                {
+                                    return Err(CoreError::invalid(
+                                        "coverage source audit identity mismatch",
+                                    ));
+                                }
+                            }
                             let claim = submission.claim(&reading.claim).expect("validated claim");
                             let method = reading.methodology.as_ref().ok_or_else(|| CoreError::invalid("this review contract requires a methodology assessment for every statement"))?;
                             method.validate(claim.kind.is_open())?;
@@ -415,6 +477,16 @@ impl App {
                         ));
                     }
                 }
+                if let Some(audit) = step.done() {
+                    for coverage in audit.claims.iter().filter_map(|r| r.coverage.as_ref()) {
+                        file.knowledge_events.push(
+                            crate::model::KnowledgeEvent::CoverageAssessed {
+                                assessment: coverage.clone(),
+                                at: self.ports.clock.now(),
+                            },
+                        );
+                    }
+                }
                 round.audit = step;
             }
             RoundUpdate::Advice(step) => {
@@ -425,12 +497,13 @@ impl App {
                     }
                     if !matches!(step.state, StepState::Skipped { .. })
                         && (round.audit.done().is_none()
-                            || !matches!(
-                                submission.status,
-                                SubmissionStatus::Accepted { .. }
-                                    | SubmissionStatus::NotAccepted
-                                    | SubmissionStatus::ReviewComplete
-                            ))
+                            || !(knowledge_pending
+                                || matches!(
+                                    submission.status,
+                                    SubmissionStatus::Accepted { .. }
+                                        | SubmissionStatus::NotAccepted
+                                        | SubmissionStatus::ReviewComplete
+                                )))
                     {
                         return Err(CoreError::conflict(
                             "advice must wait for the audited decision",
@@ -503,12 +576,13 @@ impl App {
                 }
                 if let Some(letter) = step.done() {
                     if round.audit.done().is_none()
-                        || !matches!(
-                            submission.status,
-                            SubmissionStatus::Accepted { .. }
-                                | SubmissionStatus::NotAccepted
-                                | SubmissionStatus::ReviewComplete
-                        )
+                        || !(knowledge_pending
+                            || matches!(
+                                submission.status,
+                                SubmissionStatus::Accepted { .. }
+                                    | SubmissionStatus::NotAccepted
+                                    | SubmissionStatus::ReviewComplete
+                            ))
                     {
                         return Err(CoreError::conflict(
                             "the letter requires the audited decision",
@@ -545,6 +619,13 @@ impl App {
                             } else {
                                 format!("Your paper is not accepted. {reasons}")
                             }
+                        }
+                        SubmissionStatus::InReview if knowledge_pending => {
+                            let detail = match &submission.decision {
+                                Some(crate::policy::Decision::Pending { detail, .. }) => detail.as_str(),
+                                _ => unreachable!("knowledge pending is derived from the decision"),
+                            };
+                            format!("Your publication decision is pending further knowledge evidence. {detail}")
                         }
                         _ => return Err(CoreError::conflict("the decision has not been applied")),
                     };
@@ -655,8 +736,18 @@ impl App {
                     let carries = reading.correctness == Correctness::Correct
                         && reading.shape == Some(ProofShape::Content)
                         && !reading.witnesses.is_empty();
+                    let mut methodology = reading.methodology.clone();
+                    if round.knowledge_contract > 0 {
+                        let method = methodology.get_or_insert_with(|| {
+                            crate::model::MethodologyReading::insufficient(
+                                "No usable knowledge comparison was returned.",
+                            )
+                        });
+                        method.knowledge =
+                            Some(super::knowledge::knowledge_admission(&file, round, reading));
+                    }
                     EscapeAssessment {
-                        methodology: reading.methodology.clone(),
+                        methodology,
                         conjecture: reading.conjecture.clone(),
                         correctness: Some(reading.correctness),
                         claim: c.id.clone(),
@@ -755,6 +846,29 @@ impl App {
             self.save(&mut submission).await?;
             return Ok(submission);
         }
+        if round.knowledge_contract > 0 {
+            let endorsements = self.ports.endorsements.for_submission(id).await?;
+            let decision = self.policy.decide(&submission, &endorsements);
+            if matches!(
+                &decision,
+                crate::policy::Decision::Pending {
+                    awaiting: Stage::Literature,
+                    ..
+                }
+            ) && round.audit.done().is_some_and(|audit| {
+                audit.claims.iter().any(|reading| {
+                    !super::knowledge::knowledge_admission(&file, round, reading).sufficient()
+                })
+            }) {
+                // Preserve the pending decision so advice and a private letter can
+                // explain the missing evidence without publishing or rejecting.
+                if submission.decision.as_ref() != Some(&decision) {
+                    submission.decision = Some(decision);
+                    self.save(&mut submission).await?;
+                }
+                return Ok(submission);
+            }
+        }
         self.apply_decision(caller, submission).await
     }
 
@@ -803,6 +917,7 @@ impl App {
     fn push_round(&self, file: &mut RefereeFile, submission: &Submission, version: u32) {
         let number = file.rounds.last().map_or(1, |r| r.number + 1);
         file.rounds.push(RefereeRound {
+            knowledge_contract: 1,
             review_contract: crate::model::REVIEW_CONTRACT,
             source_sha256: submission
                 .current_version()

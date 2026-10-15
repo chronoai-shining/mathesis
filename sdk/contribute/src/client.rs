@@ -195,6 +195,13 @@ impl Client {
     pub fn review(&self, id: &str) -> ApiResult<Value> {
         self.get(&format!("/submissions/{}/review", segment(id)))
     }
+    pub fn knowledge_response(&self, id: &str, receipt: &str) -> ApiResult<Value> {
+        self.get(&format!(
+            "/submissions/{}/referee/knowledge/{}",
+            segment(id),
+            segment(receipt)
+        ))
+    }
     pub fn respond_review(&self, id: &str, body: &Value) -> ApiResult<Value> {
         self.post(
             &format!("/submissions/{}/review/responses", segment(id)),

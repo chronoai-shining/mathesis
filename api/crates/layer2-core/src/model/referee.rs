@@ -89,6 +89,8 @@ pub enum ConcernStatus {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AuditedClaim {
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub coverage: Option<super::ClaimCoverage>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub methodology: Option<super::MethodologyReading>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub conjecture: Option<super::ConjectureReading>,
@@ -369,6 +371,10 @@ impl<T> Step<T> {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RefereeRound {
+    /// Independent knowledge protocol pin; absent historical rounds keep their
+    /// original prompt bytes and never receive fabricated search receipts.
+    #[serde(default)]
+    pub knowledge_contract: u32,
     /// Pin new audit output contracts; old admitted prompts retain their exact bytes.
     #[serde(default)]
     pub review_contract: u32,
@@ -512,6 +518,8 @@ pub struct RefereeView {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct RefereeRoundView {
+    #[serde(default)]
+    pub knowledge_contract: u32,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub knowledge_events: Vec<super::KnowledgeEvent>,
     pub review_contract: u32,
@@ -673,6 +681,7 @@ impl RefereeFile {
                 .rounds
                 .into_iter()
                 .map(|r| RefereeRoundView {
+                    knowledge_contract: r.knowledge_contract,
                     knowledge_events: self
                         .knowledge_events
                         .iter()

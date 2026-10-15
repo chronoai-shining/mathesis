@@ -18,6 +18,7 @@ const RECONCILE_INTERVAL: Duration = Duration::from_secs(60);
 const LEASE_HEARTBEAT: Duration = Duration::from_secs(5 * 60);
 
 pub struct Worker {
+    pub knowledge: Option<Arc<dyn crate::knowledge::KnowledgeSource>>,
     pub review_concurrency: usize,
     pub cma_factory: Option<Arc<crate::cma_tokens::CmaFactory>>,
     pub app: Arc<App>,

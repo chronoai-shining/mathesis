@@ -309,3 +309,105 @@ async fn completed_query_requires_the_actual_immutable_response_bytes() {
         .await
         .unwrap();
 }
+
+// Core service fixtures supply real stored synthetic query bytes and append
+// both admission and completion. Retrieval itself is exercised by worker tests.
+pub(super) async fn with_comparisons(
+    w: &World,
+    reviewer: &Caller,
+    paper: &Submission,
+    mut audit: RefereeAudit,
+) -> RefereeAudit {
+    use sha2::{Digest, Sha256};
+    let hash = |s: &[u8]| format!("sha256:{:x}", Sha256::digest(s));
+    for reading in &mut audit.claims {
+        let subject = w
+            .app
+            .knowledge_subject(reviewer, &paper.id, 1, &reading.claim)
+            .await
+            .unwrap();
+        let query = paper.claim(&reading.claim).unwrap().statement.clone();
+        let scopes = vec!["explicit synthetic source fixture".to_owned()];
+        let snapshot = Some(hash(b"test-publication"));
+        let index_revision = Some(hash(b"test-index"));
+        let intent = KnowledgeQueryIntent {
+            id: format!("fixture:{}:{}", paper.id, reading.claim),
+            request_digest: KnowledgeQueryReceipt::request_digest(
+                &subject,
+                &snapshot,
+                &index_revision,
+                &query,
+                &scopes,
+            ),
+            subject: subject.clone(),
+            snapshot: snapshot.clone(),
+            index_revision: index_revision.clone(),
+            query: query.clone(),
+            scopes: scopes.clone(),
+            admitted_at: w.app.ports.clock.now(),
+        };
+        w.app
+            .record_knowledge_event(
+                reviewer,
+                &paper.id,
+                KnowledgeEvent::QueryAdmitted {
+                    intent: intent.clone(),
+                },
+            )
+            .await
+            .unwrap();
+        let response = w
+            .app
+            .ports
+            .blobs
+            .put(
+                br#"{"fixture":"empty bounded source search","hits":[]}"#,
+                "application/json",
+            )
+            .await
+            .unwrap();
+        let receipt = KnowledgeQueryReceipt {
+            id: intent.id.clone(),
+            protocol: KNOWLEDGE_QUERY_PROTOCOL.into(),
+            subject: subject.clone(),
+            snapshot,
+            index_revision,
+            request_digest: intent.request_digest,
+            query,
+            scopes,
+            state: KnowledgeQueryState::Complete,
+            response: Some(response),
+            returned: vec![],
+            limits: vec!["Synthetic fixture only.".into()],
+            retryable: false,
+            started_at: intent.admitted_at,
+            completed_at: w.app.ports.clock.now(),
+        };
+        w.app
+            .record_knowledge_event(
+                reviewer,
+                &paper.id,
+                KnowledgeEvent::QueryCompleted { receipt },
+            )
+            .await
+            .unwrap();
+        reading.coverage = Some(ClaimCoverage {
+            subject,
+            receipt_ids: vec![intent.id],
+            relation: CoverageRelation::Unknown,
+            qualification: CoverageQualification::SourceAudited {
+                auditor: reviewer.person.clone(),
+                audit_id: format!(
+                    "referee-audit:{}:r1:v{}:c{}",
+                    paper.id,
+                    paper.current_version().unwrap().number,
+                    paper.claims_revision
+                ),
+            },
+            binding: None,
+            summary: "No matching source in this test fixture.".into(),
+            limits: vec!["Not a claim of global novelty.".into()],
+        });
+    }
+    audit
+}
