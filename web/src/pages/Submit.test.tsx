@@ -88,7 +88,7 @@ describe('SubmitPage', () => {
       new File(['\\documentclass{article}'], 'paper.tex', { type: 'application/x-tex' }),
     );
     await user.upload(
-      screen.getByLabelText('PDF reading copy (optional)'),
+      screen.getByLabelText('PDF manuscript or reading copy (optional)'),
       new File(['%PDF-1.7'], 'paper.pdf', { type: 'application/pdf' }),
     );
     await user.click(screen.getByRole('checkbox', { name: /I agree that the source/ }));
@@ -116,14 +116,31 @@ describe('SubmitPage', () => {
     const user = userEvent.setup();
     const file = new File(['\\documentclass{article}'], 'anonymous.tex');
     await user.upload(await screen.findByLabelText('LaTeX source'), file);
+    await user.type(screen.getByLabelText('Name'), 'Ada Example');
+    await user.type(screen.getByLabelText('Affiliation'), 'University of Example');
+    await user.type(screen.getByLabelText('ORCID'), '0000-0002-1825-0097');
     await user.type(
-      screen.getByLabelText('Authors (optional)'),
-      '  Ada Example  \n\nBenoit Example',
+      screen.getByLabelText('Google Scholar'),
+      'https://scholar.google.com/citations?user=abc',
     );
+    await user.type(screen.getByLabelText('Personal website'), 'https://example.edu/~ada');
+    await user.click(screen.getByRole('button', { name: 'Add another author' }));
+    await user.type(screen.getAllByLabelText('Name')[1]!, 'Benoit Example');
     await user.click(screen.getByRole('checkbox', { name: /I agree that the source/ }));
     await user.click(screen.getByRole('button', { name: 'Upload and read statements' }));
     expect(createSubmission).toHaveBeenCalledWith(
-      expect.objectContaining({ authors: [{ name: 'Ada Example' }, { name: 'Benoit Example' }] }),
+      expect.objectContaining({
+        authors: [
+          {
+            name: 'Ada Example',
+            affiliation: 'University of Example',
+            orcid: '0000-0002-1825-0097',
+            google_scholar: 'https://scholar.google.com/citations?user=abc',
+            website: 'https://example.edu/~ada',
+          },
+          { name: 'Benoit Example' },
+        ],
+      }),
       file,
     );
   });

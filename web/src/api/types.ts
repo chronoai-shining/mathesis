@@ -262,7 +262,14 @@ export type NewPaper = {
   doi?: string | null;
   open_to_contributors?: boolean;
 };
-export type Author = { name: string; person?: string; orcid?: string; affiliation?: string };
+export type Author = {
+  name: string;
+  person?: string;
+  orcid?: string;
+  affiliation?: string;
+  google_scholar?: string;
+  website?: string;
+};
 
 export type SourceKind =
   'doi' | 'arxiv' | 'hexagon' | 'zenodo' | 'oeis' | 'url' | 'personal' | 'named_work';

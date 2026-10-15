@@ -193,6 +193,8 @@ impl App {
                     person: None,
                     orcid: None,
                     affiliation: None,
+                    google_scholar: None,
+                    website: None,
                 })
                 .collect()
         } else {

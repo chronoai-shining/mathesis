@@ -158,7 +158,7 @@ type NewPaper = {
   doi?: string | null;         // persistent identifier, when the paper already has one
   open_to_contributors?: boolean;
 };
-type Author = { name: string; person?: string; orcid?: string; affiliation?: string };
+type Author = { name: string; person?: string; orcid?: string; affiliation?: string; google_scholar?: string; website?: string };
 
 type ClaimKind = "theorem" | "proposition" | "lemma" | "corollary" | "claim" | "conjecture" | "question";
 type Claim = { id: string /* C1, C2, … */; kind: ClaimKind; label: string; latex_label?: string;
