@@ -1030,3 +1030,191 @@ async fn knowledge_capability_boundary_is_public_and_never_claims_an_unavailable
         "no_admitted_coverage_checker"
     );
 }
+
+#[tokio::test]
+async fn binding_routes_hide_private_inspections_reject_client_verdicts_and_enforce_revocation() {
+    use mathesis_core::ports::Clock;
+    use mathesis_core::{
+        ids::SubmissionId,
+        model::*,
+        ports::{RefereeStore, SubmissionStore},
+    };
+    let stores = Arc::new(MemoryStores::default());
+    let app = App::new(
+        stores.ports(Arc::new(SystemClock), Arc::new(OneTheorem)),
+        Policy::default(),
+        BTreeSet::new(),
+    );
+    let router =
+        crate::router(app.clone()).layer(middleware::from_fn_with_state(app.clone(), test_auth));
+    let (_, uploaded, _) = upload(&router, "author", b"paper").await;
+    let id = SubmissionId::from(uploaded["id"].as_str().unwrap());
+    let mut paper = SubmissionStore::get(stores.as_ref(), &id)
+        .await
+        .unwrap()
+        .unwrap();
+    paper.status = SubmissionStatus::Accepted {
+        record: "WP-2026-0001".into(),
+    };
+    paper.claims = paper.extracted.clone();
+    paper.claims_revision = 1;
+    paper.analysis_visibility = Visibility::Public;
+    paper.open_to_contributors = true;
+    SubmissionStore::replace(stores.as_ref(), &paper, paper.revision)
+        .await
+        .unwrap();
+    let hash = |v: &[u8]| {
+        format!(
+            "sha256:{}",
+            lean_solution_digest(std::str::from_utf8(v).unwrap(), &Default::default())
+        )
+    };
+    let claim = &paper.claims[0];
+    let target = BindingTarget {
+        subject: CoverageSubject {
+            submission: id.clone(),
+            version: 1,
+            claims_revision: paper.claims_revision,
+            round: 1,
+            claim: claim.id.clone(),
+            source_digest: format!("sha256:{}", paper.current_version().unwrap().archive.sha256),
+            claim_digest: hash(&serde_json::to_vec(claim).unwrap()),
+        },
+        statement: claim.statement.clone(),
+        sources: vec![KnowledgeDeclarationRef {
+            snapshot: hash(b"snapshot"),
+            module_path: "Fixture.lean".into(),
+            declaration_name_key: "premise".into(),
+            statement_id: hash(b"premise"),
+            type_digest: hash(b"type"),
+        }],
+    };
+    let b = BindingBoard {
+        id: "board".into(),
+        target: target.clone(),
+        context: "Explicit public fixture".into(),
+        license: BINDING_LICENSE.into(),
+        consent: BINDING_SHARING_CONSENT.into(),
+        authorized_by: "author".into(),
+        authorized_at: SystemClock.now(),
+        receipt_ids: vec!["PRIVATE query id".into()],
+        events: vec![BindingEvent::Audited {
+            audit: BindingAudit {
+                request: "fixture".into(),
+                contribution: "fixture".into(),
+                auditor: "auditor".into(),
+                verdict: BindingVerdict::Unclear,
+                reason: "PRIVATE manuscript audit".into(),
+                evidence: "PRIVATE calculations".into(),
+                inspected_sources: vec![],
+                evidence_complete: false,
+                at: SystemClock.now(),
+            },
+        }],
+    };
+    let mut file = RefereeFile::new(id.clone());
+    file.binding_boards.push(b);
+    RefereeStore::insert(stores.as_ref(), &file).await.unwrap();
+    let private = format!("/submissions/{id}/bindings");
+    let public = format!("/bindings/{id}/board");
+    assert_eq!(
+        call(&router, "GET", &private, None, None).await.0,
+        StatusCode::UNAUTHORIZED
+    );
+    assert_eq!(
+        call(&router, "GET", &private, Some("outsider"), None)
+            .await
+            .0,
+        StatusCode::NOT_FOUND
+    );
+    let (status, body, _) = call(&router, "GET", &private, Some("author"), None).await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(body.to_string().contains("PRIVATE manuscript"));
+    let (status, body, _) = call(&router, "GET", &public, None, None).await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(!body.to_string().contains("PRIVATE"));
+    let input = serde_json::json!({"binding":{"premises":target.sources,"relation":"implies","parameters":[],"hypotheses":[],"argument":"Engineering fixture argument","unresolved":[],"source_lineage":[]},"license":BINDING_LICENSE,"consent":BINDING_CONTRIBUTION_CONSENT});
+    let mut forged = input.clone();
+    forged["verdict"] = serde_json::json!("supported");
+    assert_eq!(
+        call(
+            &router,
+            "POST",
+            &format!("{public}/contributions"),
+            Some("outsider"),
+            Some(forged)
+        )
+        .await
+        .0,
+        StatusCode::UNPROCESSABLE_ENTITY
+    );
+    assert_eq!(
+        call(
+            &router,
+            "POST",
+            &format!("{public}/contributions"),
+            Some("author"),
+            Some(input.clone())
+        )
+        .await
+        .0,
+        StatusCode::FORBIDDEN
+    );
+    assert_eq!(
+        call(
+            &router,
+            "POST",
+            &format!("{public}/contributions"),
+            Some("outsider"),
+            Some(input.clone())
+        )
+        .await
+        .0,
+        StatusCode::OK
+    );
+    let (_, profile, _) = call(&router, "GET", "/binding-contributors/outsider", None, None).await;
+    assert_eq!(profile["items"].as_array().unwrap().len(), 1);
+    assert_eq!(profile["items"][0]["credited"], false);
+    assert_eq!(
+        call(
+            &router,
+            "POST",
+            &format!("{private}/board/revoke"),
+            Some("outsider"),
+            Some(serde_json::json!({"reason":"no authority"}))
+        )
+        .await
+        .0,
+        StatusCode::NOT_FOUND
+    );
+    assert_eq!(
+        call(
+            &router,
+            "POST",
+            &format!("{private}/board/revoke"),
+            Some("author"),
+            Some(serde_json::json!({"reason":"Author revokes sharing"}))
+        )
+        .await
+        .0,
+        StatusCode::OK
+    );
+    assert_eq!(
+        call(&router, "GET", &public, None, None).await.0,
+        StatusCode::NOT_FOUND
+    );
+    assert_eq!(
+        call(
+            &router,
+            "POST",
+            &format!("{public}/contributions"),
+            Some("outsider"),
+            Some(input)
+        )
+        .await
+        .0,
+        StatusCode::NOT_FOUND
+    );
+    let (_, profile, _) = call(&router, "GET", "/binding-contributors/outsider", None, None).await;
+    assert!(profile["items"].as_array().unwrap().is_empty());
+}

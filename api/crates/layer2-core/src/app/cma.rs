@@ -157,6 +157,13 @@ impl App {
                 "research authorization expired or changed",
             ));
         }
+        if let Some(board) = logical_step
+            .strip_prefix("binding:")
+            .and_then(|s| s.split(':').next())
+            && !self.binding_active(caller, id, board).await?
+        {
+            return Err(CoreError::conflict("binding sharing authorization changed"));
+        }
         if let Some(attempt) = file
             .agent_steps
             .get(key)

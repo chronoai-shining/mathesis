@@ -18,6 +18,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{auth::AuthenticatedCaller, problems::Problem};
 
+mod bindings;
 mod cma;
 mod deposits;
 mod network;
@@ -47,6 +48,7 @@ pub(crate) fn routes() -> Router<Arc<App>> {
         .merge(papers::routes())
         .merge(review::routes())
         .merge(research::routes())
+        .merge(bindings::routes())
         .merge(network::routes())
         .merge(cma::routes())
         .merge(deposits::routes())

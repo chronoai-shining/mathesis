@@ -167,6 +167,7 @@ const STEP_LABELS = {
   problem_audit: 'Paper problem audit',
   target_faithfulness: 'Target faithfulness audit',
   error_report_audit: 'Error report audit',
+  binding_audit: 'Independent binding inspection',
   venue_attempt: 'Venue agent attempt',
   legacy_unknown: 'Earlier CMA step',
 };

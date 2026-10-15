@@ -1519,3 +1519,98 @@ async fn research_attempt_sources_survive_offline_collection_from_gridfs_history
     assert!(BlobStore::get(store, &module.id).await.unwrap().is_some());
     db.drop().await;
 }
+
+#[tokio::test]
+async fn binding_global_admission_is_atomic_idempotent_and_expires() {
+    let Some(db) = TestDb::open().await else {
+        return;
+    };
+    let s = &db.store;
+    let person = PersonId::from("binding-person");
+    let now = Utc::now();
+    let outcomes = futures::future::join_all((0..8).map(|n| {
+        let key = format!("summary-{n}:request");
+        let person = person.clone();
+        async move { RefereeStore::admit_binding_submission(s, &person, &key, now).await }
+    }))
+    .await;
+    assert_eq!(outcomes.iter().filter(|r| r.is_ok()).count(), 5);
+    let first = outcomes.iter().position(|r| r.is_ok()).unwrap();
+    RefereeStore::admit_binding_submission(s, &person, &format!("summary-{first}:request"), now)
+        .await
+        .unwrap();
+    assert!(
+        RefereeStore::admit_binding_submission(s, &person, "different-summary", now)
+            .await
+            .is_err()
+    );
+    RefereeStore::admit_binding_submission(
+        s,
+        &person,
+        "different-summary",
+        now + chrono::Duration::hours(25),
+    )
+    .await
+    .unwrap();
+    db.drop().await;
+}
+#[tokio::test]
+async fn binding_directory_projects_small_metadata_from_checksumming_gridfs_history() {
+    let Some(db) = TestDb::open().await else {
+        return;
+    };
+    let s = &db.store;
+    let mut file = RefereeFile::new("binding-history".into());
+    file.binding_boards.push(BindingBoard {
+        id: "board".into(),
+        target: BindingTarget {
+            subject: CoverageSubject {
+                submission: file.id.clone(),
+                version: 1,
+                claims_revision: 1,
+                round: 1,
+                claim: "C1".into(),
+                source_digest: "fixture".into(),
+                claim_digest: "fixture".into(),
+            },
+            statement: "Authorized fixture".into(),
+            sources: vec![],
+        },
+        context: "context".into(),
+        license: BINDING_LICENSE.into(),
+        consent: BINDING_SHARING_CONSENT.into(),
+        authorized_by: "author".into(),
+        authorized_at: Utc::now(),
+        receipt_ids: vec![],
+        events: vec![BindingEvent::Revoked {
+            by: "author".into(),
+            reason: "x".repeat(600_000),
+            at: Utc::now(),
+        }],
+    });
+    RefereeStore::insert(s, &file).await.unwrap();
+    let doc = s
+        .raw(REFEREE_FILES)
+        .find_one(doc! {"id":file.id.as_str()})
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(doc.get_str("storage_format"), Ok("gridfs-json-v1"));
+    assert_eq!(doc.get_bool("binding_directory"), Ok(true));
+    assert!(doc.get("binding_boards").is_none());
+    let page = RefereeStore::binding_sources(s, 1, None).await.unwrap();
+    assert_eq!(page.items, vec![file.id.clone()]);
+    assert_eq!(
+        RefereeStore::get(s, &file.id)
+            .await
+            .unwrap()
+            .unwrap()
+            .binding_boards,
+        file.binding_boards
+    );
+    let snapshot: BlobRef =
+        super::from_document(doc.get_document("snapshot").unwrap().clone()).unwrap();
+    BlobStore::discard(s, &snapshot.id).await.unwrap();
+    assert!(RefereeStore::get(s, &file.id).await.is_err());
+    db.drop().await;
+}

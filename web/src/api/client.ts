@@ -1,3 +1,12 @@
+import type { BindingProfileEntry } from './types';
+import type {
+  PrivateBindingView,
+  PublicBindingBoard,
+  NewBindingBoard,
+  NewBindingContribution,
+  NewBindingChallenge,
+  BindingDirectoryEntry,
+} from './types';
 import type {
   KnowledgeCapabilities,
   ResearchView,
@@ -236,6 +245,26 @@ export function versionBody(source: File, note: string, processingConsent?: stri
 }
 
 export interface ApiClient {
+  bindingProfile(
+    person: string,
+    before?: string,
+    o?: RequestOptions,
+  ): Promise<Listing<BindingProfileEntry>>;
+  bindings(before?: string, o?: RequestOptions): Promise<Listing<BindingDirectoryEntry>>;
+  binding(id: string, key: string, o?: RequestOptions): Promise<PublicBindingBoard>;
+  privateBindings(id: string, o?: RequestOptions): Promise<PrivateBindingView>;
+  publishBinding(id: string, input: NewBindingBoard): Promise<PublicBindingBoard>;
+  revokeBinding(id: string, key: string, reason: string): Promise<{ revoked: boolean }>;
+  contributeBinding(
+    id: string,
+    key: string,
+    input: NewBindingContribution,
+  ): Promise<PublicBindingBoard>;
+  challengeBinding(
+    id: string,
+    key: string,
+    input: NewBindingChallenge,
+  ): Promise<PublicBindingBoard>;
   knowledgeCapabilities(o?: RequestOptions): Promise<KnowledgeCapabilities>;
   research(id: string, o?: RequestOptions): Promise<ResearchView>;
   adoptResearch(id: string, input: NewResearchObligation): Promise<ResearchView>;
@@ -446,6 +475,24 @@ export function createApiClient(fetchImpl: FetchLike = (input, init) => fetch(in
   const page = (p: PageParams) => ({ before: p.before, limit: p.limit });
 
   const client: ApiClient = {
+    bindingProfile: (person, before, o) =>
+      request(
+        'GET',
+        api(`/binding-contributors/${seg(person)}`) + (before ? '?before=' + seg(before) : ''),
+        undefined,
+        o,
+      ),
+    bindings: (before, o) =>
+      request('GET', api('/bindings') + (before ? '?before=' + seg(before) : ''), undefined, o),
+    binding: (id, key, o) => request('GET', api(`/bindings/${seg(id)}/${seg(key)}`), undefined, o),
+    privateBindings: (id, o) => request('GET', sub(id, '/bindings'), undefined, o),
+    publishBinding: (id, input) => request('POST', sub(id, '/bindings'), input),
+    revokeBinding: (id, key, reason) =>
+      request('POST', sub(id, `/bindings/${seg(key)}/revoke`), { reason }),
+    contributeBinding: (id, key, input) =>
+      request('POST', api(`/bindings/${seg(id)}/${seg(key)}/contributions`), input),
+    challengeBinding: (id, key, input) =>
+      request('POST', api(`/bindings/${seg(id)}/${seg(key)}/challenges`), input),
     knowledgeCapabilities: (o) => request('GET', api('/knowledge/capabilities'), undefined, o),
     research: (id, o) => request('GET', sub(id, '/research'), undefined, o),
     adoptResearch: (id, input) => request('POST', sub(id, '/research'), input),

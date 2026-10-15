@@ -118,7 +118,10 @@ impl MongoStore {
             .create_index(plain(doc! { "state": 1, "available_at": 1 }))
             .await?;
         self.raw(REFEREE_FILES)
-            .create_index(unique(doc! { "id": 1 }))
+            .create_indexes([
+                unique(doc! { "id": 1 }),
+                plain(doc! {"binding_directory":1,"id":-1}),
+            ])
             .await?;
         self.raw(knowledge::KNOWLEDGE_SNAPSHOTS)
             .create_index(unique(doc! { "id": 1 }))

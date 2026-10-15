@@ -106,7 +106,7 @@ fn candidates(submission: &Submission, file: &RefereeFile) -> CoreResult<Vec<Res
     Ok(result)
 }
 
-fn subject_current(submission: &Submission, subject: &CoverageSubject) -> bool {
+pub(super) fn subject_current(submission: &Submission, subject: &CoverageSubject) -> bool {
     !matches!(
         submission.status,
         SubmissionStatus::Draft | SubmissionStatus::Withdrawn

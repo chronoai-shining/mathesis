@@ -158,7 +158,10 @@ impl Worker {
             Ok(false) => {
                 // A delivered review can still own an asynchronously stopping agent.
                 // Keep its original job without consuming retry attempts or rerunning review.
-                if matches!(job.kind, JobKind::Referee | JobKind::ResearchTarget) {
+                if matches!(
+                    job.kind,
+                    JobKind::Referee | JobKind::ResearchTarget | JobKind::BindingAudit
+                ) {
                     match self.cleanup_agents(&job).await {
                         Ok(true) => self.jobs.defer(&job, Duration::from_secs(30)).await,
                         Ok(false) => self.jobs.complete(&job).await,
@@ -219,6 +222,9 @@ impl Worker {
         if job.kind == JobKind::OpenProblems {
             return self.open_problems_job(job).await;
         }
+        if job.kind == JobKind::BindingAudit {
+            return self.binding_audit_job(job).await;
+        }
         if job.kind == JobKind::ResearchTarget {
             return self.research_target_job(job).await;
         }
@@ -238,6 +244,7 @@ impl Worker {
             | JobKind::AgentAttempt
             | JobKind::OpenProblems
             | JobKind::VerifyAttempt
+            | JobKind::BindingAudit
             | JobKind::ResearchTarget
             | JobKind::VerifyResearch
             | JobKind::LeanStatement

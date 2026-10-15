@@ -9,6 +9,7 @@
 //! the same rules as any other reviewer.
 
 mod agent_store;
+mod bindings;
 mod error_reports;
 mod knowledge;
 mod knowledge_mapping;
@@ -41,6 +42,7 @@ pub use mathesis_core::ports::{JobLease, LeasedJob};
 /// The stored form of a job kind: `compile` or `stage:<stage>`.
 pub fn kind_key(kind: JobKind) -> String {
     match kind {
+        JobKind::BindingAudit => "binding_audit".into(),
         JobKind::ResearchTarget => "research_target".into(),
         JobKind::VerifyResearch => "verify_research".into(),
         JobKind::ErrorReports => "error_reports".into(),
@@ -61,6 +63,9 @@ pub fn kind_key(kind: JobKind) -> String {
 }
 
 pub fn parse_kind_key(key: &str) -> Option<JobKind> {
+    if key == "binding_audit" {
+        return Some(JobKind::BindingAudit);
+    }
     if key == "research_target" {
         return Some(JobKind::ResearchTarget);
     }
@@ -259,6 +264,7 @@ mod tests {
             JobKind::Compile,
             JobKind::Referee,
             JobKind::ResearchTarget,
+            JobKind::BindingAudit,
             JobKind::VerifyResearch,
             JobKind::Stage(Stage::Literature),
             JobKind::Stage(Stage::Escape),

@@ -565,6 +565,7 @@ impl App {
     pub async fn reconcile(&self) -> CoreResult<Reconciliation> {
         self.reconcile_attempts().await?;
         self.reconcile_research().await?;
+        self.reconcile_bindings().await?;
         self.refresh_dependency_counts().await?;
         let now = self.ports.clock.now();
         let mut outcome = Reconciliation::default();

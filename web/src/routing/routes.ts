@@ -2,6 +2,9 @@ import type { TaskKind } from '../api/types';
 
 export type Route =
   | { kind: 'home' }
+  | { kind: 'bindings' }
+  | { kind: 'binding_profile'; person: string }
+  | { kind: 'binding'; id: string; key: string }
   | { kind: 'papers' }
   | { kind: 'conjectures' }
   | { kind: 'formalizations' }
@@ -51,6 +54,8 @@ export function parseRoute(pathname: string, search = ''): Route {
 
   if (segments.length === 1) {
     switch (first) {
+      case 'bindings':
+        return { kind: 'bindings' };
       case 'supporters':
         return { kind: 'supporters' };
       case 'leaderboard':
@@ -107,10 +112,14 @@ export function parseRoute(pathname: string, search = ''): Route {
   }
   if (segments.length === 4 && first === 'papers' && segments[2] === 'statements')
     return { kind: 'statement', record: second as string, claim: segments[3] as string };
+  if (segments.length === 3 && first === 'bindings')
+    return { kind: 'binding', id: second as string, key: segments[2] as string };
   if (segments.length === 3 && first === 'conjectures')
     return { kind: 'conjecture', record: second as string, claim: segments[2] as string };
   if (segments.length === 2 && second !== undefined) {
     switch (first) {
+      case 'binding-contributors':
+        return { kind: 'binding_profile', person: second };
       case 'authors':
         return { kind: 'author', name: second };
       case 'entrants':
@@ -130,6 +139,12 @@ const seg = encodeURIComponent;
 
 export function routePath(route: Route): string {
   switch (route.kind) {
+    case 'binding_profile':
+      return `/binding-contributors/${seg(route.person)}`;
+    case 'bindings':
+      return '/bindings';
+    case 'binding':
+      return `/bindings/${seg(route.id)}/${seg(route.key)}`;
     case 'supporters':
       return '/supporters';
     case 'statement':
