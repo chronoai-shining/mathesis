@@ -85,8 +85,8 @@ export function SubmitPage({
           </h1>
           <p className="lede">
             {intake === 'review'
-              ? 'Submit a manuscript for private Orchestra feedback. Check arguments, examine prior work, and follow up on specific findings.'
-              : 'Share research or contribute a Lean proof. Orchestra supports research review and deep reasoning; independent Lean verification checks formal proofs.'}
+              ? 'Submit a manuscript for private research feedback. We check arguments, examine prior work, and identify specific findings.'
+              : 'Share research or contribute a Lean proof. Mathesis provides research review and independent Lean verification.'}
           </p>
           <p className="small">
             <Link to={{ kind: 'policy' }}>How work is reviewed</Link>

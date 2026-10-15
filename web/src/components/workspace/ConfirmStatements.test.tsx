@@ -4,7 +4,7 @@ import { draft, extracted } from '../../test/fixtures';
 import { fakeApi, renderWithApp } from '../../test/render';
 import { ConfirmStatements } from './ConfirmStatements';
 
-it('keeps all 41 confirmations across navigation and submits hidden rows too', async () => {
+it('accepts extracted defaults and submits hidden rows without manual checking', async () => {
   const claims = Array.from({ length: 41 }, (_, i) => ({
     ...extracted[0]!,
     id: `C${i + 1}`,
@@ -19,14 +19,12 @@ it('keeps all 41 confirmations across navigation and submits hidden rows too', a
   );
   expect(
     screen.getByRole('button', { name: 'Check statements and start Orchestra review' }),
-  ).toBeDisabled();
+  ).toBeEnabled();
   fireEvent.change(screen.getByLabelText('Role of C1'), { target: { value: 'supporting' } });
   for (let page = 0; page < 9; page++) {
-    for (const input of screen.getAllByRole('checkbox', { name: /^I checked this statement/ }))
-      fireEvent.click(input);
     if (page < 8) fireEvent.click(screen.getByRole('button', { name: 'Next statements' }));
   }
-  expect(screen.getByText('41 / 41 checked')).toBeInTheDocument();
+  expect(screen.getByText('41 statements ready')).toBeInTheDocument();
   fireEvent.change(screen.getByLabelText('Jump to statement'), { target: { value: 'C1' } });
   expect(screen.getByLabelText('Role of C1')).toHaveValue('supporting');
   fireEvent.change(screen.getByLabelText('Find a statement'), { target: { value: 'Theorem 41' } });

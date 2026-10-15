@@ -206,6 +206,7 @@ export function Workspace({
             round={currentReview}
             letters={referee.value?.letters}
             awaitingRecheck={awaitingRecheck}
+            showProgress={false}
             onRevise={isAuthor && !showRevisionForm ? () => setRevising(true) : undefined}
           />
         ) : null}
@@ -226,7 +227,7 @@ export function Workspace({
         isAuthor ? (
           <LeanStatementCard submission={s} onChange={onChange} />
         ) : null}
-        {reviewed && (isAuthor || isStaff) ? (
+        {reviewed && state !== 'in_review' && (isAuthor || isStaff) ? (
           <StatementSummary submission={s} round={currentReview} />
         ) : null}
         {(state !== 'draft' || isStaff) && (isStaff || isAuthor) ? (
@@ -246,7 +247,7 @@ export function Workspace({
             <h2 id="confirm-h">One quick check before review</h2>
             <p className="lede">
               We found these mathematical statements in your source. Keep the defaults when they
-              look right, change only anything we read incorrectly, and start your Orchestra review.
+              look right, change only anything we read incorrectly, and start the review.
             </p>
             <ConfirmStatements
               key={`${s.id}-${s.versions.length}`}
@@ -280,13 +281,13 @@ export function Workspace({
 
         <div className="folds">
           {reviewed && isStaff ? (
-            <Fold id="statements-h" title="Statements" hint={s.claims.length}>
+            <Fold id="statements-h" title="Statements" hint={s.claims.length} open>
               <StatementList claims={s.claims} scope="ws" />
             </Fold>
           ) : null}
 
           {reviewed && isStaff ? (
-            <Fold id="analysis-h" title="Analysis">
+            <Fold id="analysis-h" title="Analysis" open>
               <Async state={analysis.state} onRetry={analysis.reload}>
                 {(a) => <AnalysisView analysis={a} claims={s.claims} scope="ws" />}
               </Async>
@@ -300,7 +301,7 @@ export function Workspace({
           ) : null}
 
           {isStaff && s.purpose !== 'review_only' ? (
-            <Fold id="stages-h" title="Publication decision">
+            <Fold id="stages-h" title="Publication decision" open>
               {state === 'in_review' && isStaff && preview ? (
                 <DecisionView decision={preview} policy={policy} />
               ) : null}
@@ -315,7 +316,7 @@ export function Workspace({
               version={current.number}
             />
           ) : null}
-          <Fold id="abstract-h" title="Abstract">
+          <Fold id="abstract-h" title="Abstract" open>
             {s.abstract_text ? (
               <LatexText source={s.abstract_text} className="abstract" />
             ) : (
@@ -434,7 +435,7 @@ export function ReasonList({ reasons }: { reasons: readonly RejectReason[] }) {
 
 function VersionsSection({ submission }: { submission: Submission }) {
   return (
-    <Fold id="versions-h" title="Versions" hint={submission.versions.length}>
+    <Fold id="versions-h" title="Versions" hint={submission.versions.length} open>
       <ul className="version-list">
         {[...submission.versions].reverse().map((v) => (
           <li key={v.number}>

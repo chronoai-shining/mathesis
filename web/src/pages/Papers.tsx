@@ -14,12 +14,7 @@ import { LatexText, MacrosProvider } from '../components/Markdown';
 import { Pager } from '../components/Pager';
 import { Async, Badge, DateText, ExternalLink, MscList } from '../components/ui';
 import { paperCitation } from '../lib/citation';
-import {
-  CLAIM_KIND_LABELS,
-  SUBMISSION_KIND_LABELS,
-  formatAuthors,
-  newResults,
-} from '../lib/labels';
+import { CLAIM_KIND_LABELS, SUBMISSION_KIND_LABELS, newResults } from '../lib/labels';
 import { safeHttpUrl, sourceHref } from '../lib/links';
 import { Link } from '../routing/router';
 
@@ -31,19 +26,19 @@ export function PaperEntry({ paper }: { paper: PaperSummary }) {
           <InlineLatex source={paper.title} />
         </Link>
       </p>
-      <p className="entry-meta">
-        <span>{formatAuthors(paper.authors)}</span>
-        <span>
+      <div className="entry-meta">
+        <AuthorLine authors={paper.authors} />
+        <p>
           · <code>{paper.record}</code> · {SUBMISSION_KIND_LABELS[paper.kind]}
-        </span>
-        <span>
+        </p>
+        <p>
           {paper.accepted_at ? (
             <>
               · accepted <DateText iso={paper.accepted_at} />
             </>
           ) : null}
-        </span>
-      </p>
+        </p>
+      </div>
       <p className="entry-meta">
         {paper.new_results ? <span>{newResults(paper.new_results)}</span> : null}
         {paper.lean_verified ? <Badge tone="good">Lean ✓ {paper.lean_verified}</Badge> : null}
@@ -200,7 +195,6 @@ export function PaperView({ paper }: { paper: PublicPaper }) {
             <InlineLatex source={s.title} />
           </h1>
           <AuthorLine authors={s.authors} />
-          <p className="small muted">Reviewed by GPT Pro and audited by Codex</p>
           {paper.confirmed_error_reports ? (
             <p className="notice" role="status">
               This published version has {paper.confirmed_error_reports} confirmed error report(s).

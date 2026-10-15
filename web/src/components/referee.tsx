@@ -42,8 +42,10 @@ type WorkspaceProps = {
 };
 
 /** Staff see the full history; authors see delivered letters and referee reports. */
-export function RefereeWorkspace(props: WorkspaceProps & { resource: RefereeResource }) {
-  const { submission, isStaff, isEditor, resource } = props;
+export function RefereeWorkspace(
+  props: WorkspaceProps & { resource: RefereeResource; showStatus?: boolean },
+) {
+  const { submission, isStaff, isEditor, resource, showStatus = true } = props;
   const api = useApi();
   const { reload, active } = resource;
   const includeFormal =
@@ -67,8 +69,8 @@ export function RefereeWorkspace(props: WorkspaceProps & { resource: RefereeReso
 
   if (!isStaff) {
     return (
-      <section className="referee-panel" aria-labelledby="feedback-h">
-        <h2 id="feedback-h">Orchestra review</h2>
+      <section className="referee-panel" aria-label="Orchestra review">
+        <h2 id="feedback-h">Review report</h2>
         <Async state={resource.state} onRetry={reload}>
           {(file) => {
             const current = [...file.rounds]
@@ -80,17 +82,22 @@ export function RefereeWorkspace(props: WorkspaceProps & { resource: RefereeReso
               );
             return (
               <>
-                <p className="review-status" role="status">
-                  {hasWaitingResponse(file, submission)
-                    ? RECHECK_WAITING
-                    : current
-                      ? roundStatus(
+                {showStatus && !current ? (
+                  <p className="review-status" role="status">
+                    Your review will start after you confirm the statements above.
+                  </p>
+                ) : null}
+                {showStatus && current ? (
+                  <p className="review-status" role="status">
+                    {hasWaitingResponse(file, submission)
+                      ? RECHECK_WAITING
+                      : roundStatus(
                           current,
                           file.letters.filter((l) => l.round === current.number),
                           includeFormal,
-                        )
-                      : 'Your review will start after the quick statement check above.'}
-                </p>
+                        )}
+                  </p>
+                ) : null}
                 {current ? <ReviewProgress round={current} includeFormal={includeFormal} /> : null}
                 {current?.review_method ? (
                   <p className="hint">
@@ -127,7 +134,7 @@ export function RefereeWorkspace(props: WorkspaceProps & { resource: RefereeReso
                 {file.letters.length > 0 ? <SentLetters letters={file.letters} authorView /> : null}
                 {current?.audit?.state.state === 'done' ? (
                   <details className="history">
-                    <summary>Statement audit</summary>
+                    <summary>Audit evidence</summary>
                     <AuditView audit={current.audit.state.result} />
                   </details>
                 ) : null}

@@ -151,9 +151,9 @@ export function ContributePage() {
       <section aria-labelledby="donate-h">
         <h2 id="donate-h">Donate quota</h2>
         <p>
-          Support Orchestra’s deep reasoning and formalization through NyxID. You can pause or
-          revoke your grant. Only confirmed NyxID usage receipts count toward your contribution;
-          attributed work without a receipt shows zero usage.
+          Support Mathesis review and formalization work through NyxID. You can pause or revoke your
+          grant. Only confirmed NyxID usage receipts count toward your contribution; attributed work
+          without a receipt shows zero usage.
         </p>
         <p>
           <Link to={{ kind: 'supporters' }}>Supporters</Link>

@@ -62,7 +62,6 @@ export function StatementPage({ record, claim }: { record: string; claim: string
                 <Link to={{ kind: 'paper', record }}>{record}</Link> · {claim}
               </p>
               <h1>{s.claim.label}</h1>
-              <p className="small muted">Reviewed by GPT Pro and audited by Codex</p>
               <LatexText source={s.claim.statement} />
               <ReportError record={record} subject={{ kind: 'statement', claim }} />
               {s.claim.verified ? (
@@ -76,7 +75,7 @@ export function StatementPage({ record, claim }: { record: string; claim: string
                 {s.target ? (
                   <>
                     <p>The author confirmed this exact target.</p>
-                    <details>
+                    <details open>
                       <summary>View Target.lean</summary>
                       <pre>
                         <code>{s.target.lean}</code>
@@ -131,7 +130,7 @@ export function StatementPage({ record, claim }: { record: string; claim: string
                           {a.receipt.verdict === 'proved' ? 'Proved' : 'Disproved'} the
                           author-confirmed Lean target.
                         </p>
-                        <details>
+                        <details open>
                           <summary>Solution and receipt</summary>
                           <pre>{a.solution}</pre>
                           {Object.entries(a.modules ?? {}).map(([name, source]) => (
