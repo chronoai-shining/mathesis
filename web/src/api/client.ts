@@ -1,4 +1,5 @@
 import type {
+  KnowledgeCapabilities,
   ResearchView,
   NewResearchObligation,
   ResearchAttemptInput,
@@ -235,6 +236,7 @@ export function versionBody(source: File, note: string, processingConsent?: stri
 }
 
 export interface ApiClient {
+  knowledgeCapabilities(o?: RequestOptions): Promise<KnowledgeCapabilities>;
   research(id: string, o?: RequestOptions): Promise<ResearchView>;
   adoptResearch(id: string, input: NewResearchObligation): Promise<ResearchView>;
   stopResearch(id: string, key: string, reason: string): Promise<ResearchView>;
@@ -444,6 +446,7 @@ export function createApiClient(fetchImpl: FetchLike = (input, init) => fetch(in
   const page = (p: PageParams) => ({ before: p.before, limit: p.limit });
 
   const client: ApiClient = {
+    knowledgeCapabilities: (o) => request('GET', api('/knowledge/capabilities'), undefined, o),
     research: (id, o) => request('GET', sub(id, '/research'), undefined, o),
     adoptResearch: (id, input) => request('POST', sub(id, '/research'), input),
     stopResearch: (id, key, reason) =>

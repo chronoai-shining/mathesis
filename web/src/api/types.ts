@@ -1125,3 +1125,16 @@ export type ResearchView = {
     };
   }[];
 };
+
+export type KnowledgeCapabilities = {
+  source_query_protocol: string;
+  default_source_ranker: string;
+  coverage_certificates: {
+    supported: boolean;
+    recognized_protocols: string[];
+    reason_code: string;
+    reason: string;
+    required_bindings: string[];
+    ordinary_lean_establishes_coverage: boolean;
+  };
+};

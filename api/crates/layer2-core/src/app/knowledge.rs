@@ -65,6 +65,10 @@ pub(super) fn knowledge_admission(
 }
 
 impl App {
+    pub fn knowledge_capabilities(&self) -> KnowledgeCapabilities {
+        KnowledgeCapabilities::current()
+    }
+
     /// Admit a complete model-proposed query plan in one revision-fenced write.
     /// A crash cannot preserve only the first query and silently lose the rest.
     pub async fn admit_knowledge_plan_leased(

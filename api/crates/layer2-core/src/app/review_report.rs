@@ -21,6 +21,7 @@ pub struct ReviewReport {
     pub claims: Vec<Claim>,
     pub review: RefereeView,
     pub research: ResearchView,
+    pub knowledge_capabilities: KnowledgeCapabilities,
 }
 impl App {
     pub async fn review_report(
@@ -48,6 +49,7 @@ impl App {
         let version = submission.current_version();
         Ok(ReviewReport {
             schema_version: 3,
+            knowledge_capabilities: self.knowledge_capabilities(),
             research: self.research_obligations(caller, id).await?,
             evidence_by_version: submission
                 .versions
@@ -78,6 +80,12 @@ impl ReviewReport {
         let mut out = format!(
             "# Orchestra review — {}\n\nSubmission: {} · Current version: {}\n\nSource SHA-256: {}\n\nReview focus: {}\n\nModel review is research feedback, not a Lean proof certificate. Each round below identifies its own source.\n",
             self.title, self.submission, self.version, self.source_sha256, self.review_scope
+        );
+        let capability = &self.knowledge_capabilities.coverage_certificates;
+        let _ = writeln!(
+            out,
+            "\nCoverage certificate support: {}. {}\n",
+            capability.supported, capability.reason
         );
         if let Some(crate::policy::Decision::Pending { detail, .. }) = &self.decision {
             let _ = writeln!(out, "Publication decision pending: {detail}\n");

@@ -59,6 +59,7 @@ pub(crate) fn routes() -> Router<Arc<App>> {
                     .unwrap()
             }),
         )
+        .route("/knowledge/capabilities", get(knowledge_capabilities))
         .route("/policy", get(policy))
         .route("/me", get(me))
         .route("/people", get(list_people))
@@ -108,6 +109,10 @@ const STAGES: [(Stage, &str, &str); 4] = [
         "Each proved statement is judged content, bind-only or undetermined against explicit prerequisites. Live intermediate or conclusion witnesses, literature evidence and mathematical utility are assessed separately.",
     ),
 ];
+
+async fn knowledge_capabilities(State(app): AppState) -> impl IntoResponse {
+    Json(app.knowledge_capabilities())
+}
 
 async fn policy(State(app): AppState) -> impl IntoResponse {
     let stages = STAGES

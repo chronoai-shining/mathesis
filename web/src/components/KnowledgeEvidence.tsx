@@ -122,6 +122,13 @@ export function CoverageEvidence({ coverage }: { coverage: ClaimCoverage }) {
           ? 'Source-based reviewer judgment; not a formal coverage certificate.'
           : 'Uncertified proposal; no formal coverage qualification.'}
       </p>
+      {coverage.qualification.level === 'certificate_claim' ? (
+        <p>
+          Claimed certificate protocol: <code>{coverage.qualification.protocol}</code>. This
+          consumer has no admitted coverage checker for it. The claim grants no formal coverage
+          qualification.
+        </p>
+      ) : null}
       <Markdown text={coverage.summary} />
       {binding ? (
         <>
