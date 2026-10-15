@@ -81,6 +81,31 @@ fn accepted() -> ReviewResult<TransportReply> {
         response_id: None,
     })
 }
+
+#[tokio::test]
+async fn preflight_reads_resources_without_creating_or_charging_an_agent() {
+    for status in ["active", "stopped"] {
+        let (client, transport) = client(vec![
+            reply(json!({"sandbox_id":"sbx_test","status":"ready"})),
+            reply(
+                json!({"owner":"operator","status":status,"profile":{"id":"sbp_test","revision":1}}),
+            ),
+            reply(json!({"content":{"model_access":"own_credentials"}})),
+        ]);
+        assert_eq!(client.preflight().await.is_ok(), status == "active");
+        let calls = transport.calls.lock().await;
+        assert_eq!(calls.len(), 3);
+        assert!(
+            calls
+                .iter()
+                .all(|call| call.0 == "GET" && call.2.is_none() && call.3.is_none())
+        );
+    }
+    let (mut client, transport) = client(vec![]);
+    client.profile = None;
+    assert!(client.preflight().await.is_err());
+    assert!(transport.calls.lock().await.is_empty());
+}
 fn receipt(id: &str) -> ReviewResult<TransportReply> {
     Ok(TransportReply {
         status: 200,

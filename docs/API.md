@@ -29,6 +29,13 @@ served from the same origin as the API; there is no private route.
 - Listings return `{ "items": [...], "next_before": "<cursor>" | null }`, newest
   first. Pass `?before=<cursor>&limit=<1..100>` for the next page.
 - Absent optional fields may be omitted or `null`.
+- Contract 3 review rounds expose `review_contract: 3` and
+  `review_method: "trureturing-content-2026-10-15"`. Audited claims and S3 escape
+  assessments carry private structured `methodology` evidence. `ProofShape` now
+  includes `undetermined`; decision reasons include `insufficient_evidence` and
+  `insufficient_utility`, each with `claim` and `detail`. Dossier schema 2 remains
+  additive. Historical rounds omit methodology and retain their original meaning.
+  See [REVIEW_METHODOLOGY.md](REVIEW_METHODOLOGY.md) for fields and policy.
 - Timestamps are RFC 3339 UTC strings. Enums are `snake_case` strings; tagged
   unions carry their tag in the field named below (`state`, `outcome`,
   `decision`, `stage`, `kind`, `output`, `reason`).
@@ -215,6 +222,7 @@ type EscapeAssessment = { claim: string; shape: "bind_only" | "content"; witness
   escape_rate?: { arena: string; before: Ratio; after: Ratio; artifact: string } };
 type RejectReason = { reason: "hygiene"; detail: string } | { reason: "known_result"; claim: string; prior: Source }
   | { reason: "bind_only" } | { reason: "no_main_result" }
+  | { reason: "incorrect_result"; claim: string } | { reason: "unchecked_result"; claim: string }
   | { reason: "conjecture"; detail: string } | { reason: "out_of_scope"; detail: string };
 type Decision = { decision: "pending"; awaiting: StageReport["stage"]; detail: string }
   | { decision: "accept"; basis: "escape_witness" | "open_problem_settlement" | "open_conjecture" }
@@ -245,6 +253,7 @@ type PaperSummary = { record: string; title: string; authors: Author[]; kind: Su
   basis?: "escape_witness" | "open_problem_settlement" | "open_conjecture";
   accepted_at?: string; main_results?: number; lean_verified?: number };
 type PublicPaper = { summary: PaperSummary;
+  confirmed_error_reports?: number;
   versions?: { number: number; uploaded_at: string; has_pdf: boolean }[];
   claims?: { id: string; kind: ClaimKind; role: "main" | "supporting"; label: string; statement: string;
     section?: string | null; depends_on: string[]; lean?: FormalArtifact | null }[];
@@ -317,6 +326,19 @@ excluding known results) and `lean_verified`. Conjecture summaries also carry
 kind, authors, acceptance date, source record/claim, status, attempt count and
 current solver. `lean_verified` there counts successful solution checks of the
 current confirmed target; elaborating a target alone adds no proof count.
+
+Public paper details include `confirmed_error_reports`, counting confirmed reports
+for the immutable published version and claims revision. Private records omit
+the field. The notice does not expose a private audit or change historical acceptance.
+An explicit main-result audit of `gap`/`error` gives `incorrect_result`;
+`not_checked` gives `unchecked_result`. Both block a new publication decision
+even if another main result has new content. Historical assessments without a
+correctness field keep their legacy editor-policy interpretation.
+
+The binary serves `/healthz` for liveness and `/readyz` for readiness. API-only
+readiness checks storage; worker/all roles also check configured execution
+dependencies. Read-only resource checks do not prove model execution. See
+[operations](OPERATIONS.md) for diagnostics and status meanings.
 
 ## Referee rounds and sent feedback
 

@@ -4,7 +4,7 @@ use mathesis_core::{
     CoreError,
     app::{App, FiledBy},
     model::{Caller, ReviewerIdentity, Stage, Submission, SubmissionStatus},
-    ports::JobKind,
+    ports::{JobKind, JobLane},
 };
 use mathesis_review::{Document, ReviewModel};
 use tokio::sync::watch;
@@ -18,6 +18,7 @@ const RECONCILE_INTERVAL: Duration = Duration::from_secs(60);
 const LEASE_HEARTBEAT: Duration = Duration::from_secs(5 * 60);
 
 pub struct Worker {
+    pub review_concurrency: usize,
     pub cma_factory: Option<Arc<crate::cma_tokens::CmaFactory>>,
     pub app: Arc<App>,
     pub jobs: Arc<dyn JobLease>,
@@ -69,7 +70,17 @@ pub(super) fn model_failure(error: mathesis_review::ReviewError) -> Failure {
 }
 
 impl Worker {
-    pub async fn run(self, mut shutdown: watch::Receiver<bool>) {
+    pub async fn run(self, shutdown: watch::Receiver<bool>) {
+        let lanes = std::iter::once(JobLane::Compile)
+            .chain(std::iter::once(JobLane::Verify))
+            .chain(std::iter::repeat_n(
+                JobLane::Review,
+                self.review_concurrency,
+            ));
+        futures::future::join_all(lanes.map(|lane| self.run_lane(lane, shutdown.clone()))).await;
+    }
+
+    async fn run_lane(&self, lane: JobLane, mut shutdown: watch::Receiver<bool>) {
         tracing::info!(
             model = self.model.as_ref().map(|m| m.model()),
             "paper worker started"
@@ -78,7 +89,7 @@ impl Worker {
             if *shutdown.borrow() {
                 break;
             }
-            match self.jobs.claim().await {
+            match self.jobs.claim_in(Some(lane)).await {
                 Ok(Some(job)) => self.handle_until_shutdown(job, &mut shutdown).await,
                 Ok(None) => {
                     tokio::select! {
@@ -189,7 +200,9 @@ impl Worker {
                 .await?;
             return Ok(false);
         }
-        self.cleanup_agents(job).await?;
+        if job.kind.lane() == JobLane::Review {
+            self.cleanup_agents(job).await?;
+        }
         if job.kind == JobKind::ErrorReports {
             return self.error_reports_job(job).await;
         }

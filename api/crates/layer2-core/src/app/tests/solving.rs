@@ -477,6 +477,7 @@ async fn paper_problem_policy_excludes_private_settled_and_failed_audit_candidat
         agrees_with_referee: true,
         summary: "PRIVATE_AUDIT".into(),
         claims: vec![AuditedClaim {
+            methodology: Some(method_for(ProofShape::Content, true)),
             claim: "C1".into(),
             conjecture: Some(reading),
             correctness: Correctness::NotChecked,
@@ -1109,7 +1110,10 @@ async fn leaderboard_ranks_others_before_total_including_coauthors_and_agent_own
 struct ReportLease;
 #[async_trait]
 impl crate::ports::JobLease for ReportLease {
-    async fn claim(&self) -> CoreResult<Option<crate::ports::LeasedJob>> {
+    async fn claim_in(
+        &self,
+        _: Option<crate::ports::JobLane>,
+    ) -> CoreResult<Option<crate::ports::LeasedJob>> {
         Ok(None)
     }
     async fn renew(&self, _: &crate::ports::LeasedJob) -> CoreResult<bool> {
@@ -1153,6 +1157,10 @@ async fn error_reports_verify_disproofs_gate_privacy_credit_recheck_and_void_tar
         .await
         .unwrap();
     assert!(w.app.error_report(None, &report.id).await.is_err());
+    assert_eq!(
+        w.app.paper(&record).await.unwrap().confirmed_error_reports,
+        Some(0)
+    );
     assert!(
         w.app
             .error_report(Some(&stranger), &report.id)
@@ -1174,6 +1182,55 @@ async fn error_reports_verify_disproofs_gate_privacy_credit_recheck_and_void_tar
     );
     let public = w.app.error_report(None, &report.id).await.unwrap();
     assert_eq!(public.resolution.unwrap().verdict, ErrorVerdict::Confirmed);
+    assert_eq!(
+        w.app.paper(&record).await.unwrap().confirmed_error_reports,
+        Some(1)
+    );
+    w.app
+        .set_analysis_visibility(&a, &paper.id, Visibility::Private)
+        .await
+        .unwrap();
+    let private = serde_json::to_value(w.app.paper(&record).await.unwrap()).unwrap();
+    assert!(private.get("confirmed_error_reports").is_none());
+    w.app
+        .set_analysis_visibility(&a, &paper.id, Visibility::Public)
+        .await
+        .unwrap();
+    let mut report_files = w.app.ports.solving.report_files().await.unwrap();
+    let stored = report_files
+        .iter_mut()
+        .find(|file| file.reports.iter().any(|entry| entry.id == report.id))
+        .unwrap();
+    let mut future = stored
+        .reports
+        .iter()
+        .find(|entry| entry.id == report.id)
+        .unwrap()
+        .clone();
+    future.id = "different-version-report".into();
+    future.version += 1;
+    stored.reports.push(future);
+    let expected = stored.revision;
+    stored.revision += 1;
+    w.app
+        .ports
+        .solving
+        .replace_report_file(stored, expected)
+        .await
+        .unwrap();
+    assert_eq!(
+        w.app.paper(&record).await.unwrap().confirmed_error_reports,
+        Some(1)
+    );
+    stored.reports.pop();
+    let expected = stored.revision;
+    stored.revision += 1;
+    w.app
+        .ports
+        .solving
+        .replace_report_file(stored, expected)
+        .await
+        .unwrap();
     assert!(public.solution.is_none());
     assert_eq!(
         w.app.entrant_profile(&agent.id).await.unwrap().errors_found,

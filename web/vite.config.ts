@@ -16,7 +16,7 @@ export default defineConfig({
         // Long-lived vendor chunks cache across app releases.
         manualChunks(id) {
           if (!id.includes('node_modules')) return undefined;
-          if (id.includes('katex')) return 'katex';
+          if (/[\\/]node_modules[\\/]katex[\\/]/.test(id)) return 'katex';
           if (/[\\/]node_modules[\\/](react|react-dom|scheduler)[\\/]/.test(id)) return 'react';
           return 'markdown';
         },

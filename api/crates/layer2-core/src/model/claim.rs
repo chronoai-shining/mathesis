@@ -155,6 +155,7 @@ fn has_cycle(claims: &[Claim]) -> bool {
 pub enum ProofShape {
     BindOnly,
     Content,
+    Undetermined,
 }
 
 /// An exact fraction; escape rates are reported only as exact readings.
@@ -207,6 +208,8 @@ impl EscapeRateReading {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct EscapeAssessment {
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub methodology: Option<super::MethodologyReading>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub conjecture: Option<super::ConjectureReading>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub correctness: Option<super::referee::Correctness>,
@@ -231,14 +234,19 @@ impl EscapeAssessment {
                     self.claim
                 )))
             }
-            ProofShape::BindOnly if !self.witnesses.is_empty() => Err(CoreError::invalid(format!(
-                "bind-only claim {} cannot list escape witnesses",
-                self.claim
-            ))),
+            ProofShape::BindOnly | ProofShape::Undetermined if !self.witnesses.is_empty() => {
+                Err(CoreError::invalid(format!(
+                    "bind-only claim {} cannot list escape witnesses",
+                    self.claim
+                )))
+            }
             _ => Ok(()),
         }?;
         if let Some(reading) = &self.escape_rate {
             reading.validate()?;
+        }
+        if let Some(reading) = &self.methodology {
+            reading.validate(self.conjecture.is_some())?;
         }
         Ok(())
     }
@@ -248,6 +256,10 @@ impl EscapeAssessment {
             .is_none_or(|c| c == super::referee::Correctness::Correct)
             && self.shape == ProofShape::Content
             && !self.witnesses.is_empty()
+            && self
+                .methodology
+                .as_ref()
+                .is_none_or(|reading| reading.supports_content(false))
     }
 }
 

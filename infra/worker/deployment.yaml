@@ -69,7 +69,7 @@ spec:
               path: /readyz
               port: http
             periodSeconds: 10
-            timeoutSeconds: 3
+            timeoutSeconds: 20
           volumeMounts:
             - name: tex-cache
               mountPath: /var/cache/texmf

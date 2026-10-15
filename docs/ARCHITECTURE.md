@@ -76,6 +76,10 @@ upload ──► draft ──confirm──► in_review ──decide──► ac
   For legacy records, the first revision preserves the publication inputs on the
   submission without modifying the record.
 
+For papers/notes, an audited error, gap or unchecked main result blocks
+acceptance even when another main result supplies new content. Historical
+editor assessments without correctness retain their legacy interpretation.
+
 ## 3. Public and private projections
 
 `GET /papers/{record}` uses an allowlist independent of `PaperAnalysis`:
@@ -87,6 +91,11 @@ private and legacy undecided records serialize only record, title, authors and
 kind, and their PDF is private. `/conjectures` filters accepted public conjecture
 records, newest first with paging, one-line statements and target status.
 The author can change visibility through the existing route.
+
+Public details also carry `confirmed_error_reports`, counting only confirmed
+reports matching the immutable publication's version and claims revision.
+The page highlights this count without publishing private review judgements.
+The field is omitted for private records.
 
 `PaperAnalysis::compute` gives, for each statement: the prior works the
 literature report links to it and whether one states or implies it; the
@@ -159,6 +168,18 @@ MongoDB collections: `people`, `submissions`, `endorsements`, `records`,
 aggregate replace is fenced on its revision. Jobs (`compile`,
 `stage:literature`, `stage:escape`, `referee`, `lean_statement`, `open_problems`, `verify_attempt`, `error_reports`, `agent_attempt`) are upserted per paper and kind, leased
 for thirty minutes, retried with backoff and parked after three attempts.
+
+Referee histories above 512 KiB of serialized JSON move to checksummed GridFS
+snapshots with a small, revision-fenced Mongo header. Inline legacy histories
+remain readable. The complete aggregate is preserved; replacement snapshots
+add storage and I/O overhead until offline cleanup. This avoids the 16 MiB BSON
+limit without truncating reports or dropping replay state.
+
+Each worker runs one compile lane, one independent-verification lane, and a
+configurable 1–8 remote review lanes (default two). Long provider calls do not
+occupy compile/verification lanes. Shutdown and lease loss cancel each local
+job independently while preserving remote identities. The TeX cache still
+belongs to one worker replica. See [operations](OPERATIONS.md) for recovery.
 
 ## 7. Untrusted input
 

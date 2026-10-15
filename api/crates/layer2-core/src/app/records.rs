@@ -60,6 +60,8 @@ pub struct PublicVersion {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PublicPaper {
     pub summary: PaperSummary,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub confirmed_error_reports: Option<usize>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub versions: Vec<PublicVersion>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -528,6 +530,26 @@ impl App {
             .count();
         Ok(PublicPaper {
             summary: paper_summary,
+            confirmed_error_reports: if public {
+                Some(
+                    self.all_error_reports()
+                        .await?
+                        .iter()
+                        .filter(|report| {
+                            report.record == record.id
+                                && report.submission == submission.id
+                                && Some(report.version)
+                                    == submission.current_version().map(|version| version.number)
+                                && report.claims_revision == submission.claims_revision
+                                && report.resolution.as_ref().is_some_and(|resolution| {
+                                    resolution.verdict == ErrorVerdict::Confirmed
+                                })
+                        })
+                        .count(),
+                )
+            } else {
+                None
+            },
             versions: if public {
                 submission
                     .versions

@@ -100,6 +100,8 @@ pub struct SolveFile {
     pub failure: Option<String>,
     #[serde(default)]
     pub review_round: u32,
+    #[serde(default)]
+    pub review_contract: u32,
     pub task: Option<String>,
     pub report: Option<RefereeReport>,
     pub audit: Option<RefereeAudit>,

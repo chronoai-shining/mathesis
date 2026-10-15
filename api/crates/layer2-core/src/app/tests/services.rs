@@ -250,6 +250,21 @@ async fn private_review_has_no_publication_and_retains_evidence_through_revision
     }
     let report = w.app.review_report(&author, &paper.id).await.unwrap();
     assert!(report.markdown().contains("left side is 0"));
+    assert!(report.markdown().contains(REVIEW_METHOD));
+    assert_eq!(report.review.rounds[0].review_contract, REVIEW_CONTRACT);
+    assert_eq!(
+        report.review.rounds[0].review_method.as_deref(),
+        Some(REVIEW_METHOD)
+    );
+    assert!(
+        report.review.rounds[0]
+            .audit
+            .done()
+            .unwrap()
+            .claims
+            .iter()
+            .all(|claim| claim.methodology.is_some())
+    );
     assert_eq!(
         report.review.rounds[0].source_sha256,
         paper.current_version().unwrap().archive.sha256
@@ -300,7 +315,7 @@ async fn private_review_has_no_publication_and_retains_evidence_through_revision
             .contains("displayed convention")
     );
     assert!(round2.current().unwrap().audit.done().is_none());
-    assert_eq!(round2.current().unwrap().review_contract, 2);
+    assert_eq!(round2.current().unwrap().review_contract, REVIEW_CONTRACT);
     w.app
         .update_referee_round(
             &reviewer,

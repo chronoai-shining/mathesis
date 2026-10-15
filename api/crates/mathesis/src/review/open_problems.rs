@@ -81,14 +81,24 @@ impl Worker {
                         )
                         .await?;
                     let text = crate::latex::source_text(&source.bytes, &source.filename).ok();
-                    let prompt = referee_prompts::conjecture_referee(
-                        &Document {
-                            title: paper.title.clone(),
-                            abstract_text: paper.abstract_text.clone(),
-                            text,
-                        },
-                        &mapping::confirmed_statements(&claims),
-                    );
+                    let document = Document {
+                        title: paper.title.clone(),
+                        abstract_text: paper.abstract_text.clone(),
+                        text,
+                    };
+                    let prompt = if file.review_contract >= mathesis_core::model::REVIEW_CONTRACT {
+                        referee_prompts::methodology_referee(
+                            &document,
+                            &mapping::confirmed_statements(&claims),
+                            &serde_json::to_value(&claims).expect("claims serialization"),
+                            true,
+                        )
+                    } else {
+                        referee_prompts::conjecture_referee(
+                            &document,
+                            &mapping::confirmed_statements(&claims),
+                        )
+                    };
                     let client_ref = format!("wishpool:problem:{}:r{}", file.id, file.review_round);
                     self.ensure_lease(job).await?;
                     let submitted = oracle
@@ -110,11 +120,15 @@ impl Worker {
                 return Ok(true);
             }
             let (mut input, _work, _) = self
-                .advisor_input(&paper, file.report.as_ref().unwrap(), 0)
+                .advisor_input(&paper, file.report.as_ref().unwrap(), file.review_contract)
                 .await
                 .map_err(Failure::Permanent)?;
             input.kind = "conjecture".into();
             input.statements = mapping::confirmed_statements(&claims);
+            if input.review_method.is_some() {
+                input.confirmed_claims =
+                    Some(serde_json::to_value(&claims).expect("claims serialization"));
+            }
             let raw = tokio::time::timeout(
                 self.audit_budget,
                 advisor.audit_with_store(

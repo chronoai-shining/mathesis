@@ -46,7 +46,7 @@ pub enum FailureKind {
     Output,
     Cancelled,
 }
-fn failure_kind(error: &ReviewError) -> Option<FailureKind> {
+pub fn failure_kind(error: &ReviewError) -> Option<FailureKind> {
     match error {
         ReviewError::CmaRefusal(kind) => Some(*kind),
         ReviewError::Provider {
@@ -175,6 +175,17 @@ pub fn inputs(prompt: &str) -> ReviewResult<Vec<String>> {
 }
 
 impl Client {
+    pub async fn preflight(&self) -> ReviewResult<()> {
+        if self.profile.is_none() {
+            return Err(invalid("CMA requires a pinned agent profile"));
+        }
+        let facts = resources::workspace_facts(self.transport.as_ref(), &self.workspace).await?;
+        if facts.workspace_status != "ready" || facts.sandbox_status != "active" {
+            return Err(invalid("CMA workspace or sandbox is not ready"));
+        }
+        Ok(())
+    }
+
     async fn request(
         &self,
         method: &str,

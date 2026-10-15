@@ -12,6 +12,20 @@ const REASONS: RejectReason[] = [
   { reason: 'known_result', claim: 'C1', prior: { kind: 'doi', locator: '10.…' } },
   { reason: 'bind_only' },
   { reason: 'no_main_result' },
+  { reason: 'incorrect_result', claim: 'C1' },
+  { reason: 'unchecked_result', claim: 'C1' },
+  {
+    reason: 'insufficient_evidence',
+    claim: 'C1',
+    detail:
+      'The prerequisite comparison, literature search or claimed settlement needs more evidence.',
+  },
+  {
+    reason: 'insufficient_utility',
+    claim: 'C1',
+    detail:
+      'The computational result needs a concrete mathematical use and discharge of its exact prerequisites.',
+  },
   {
     reason: 'conjecture',
     detail:
@@ -80,6 +94,11 @@ export function PolicyPage() {
         <h2 id="threshold-h">Threshold</h2>
         <p>{THRESHOLD_TEXT} Short notes use the same threshold.</p>
         <p>
+          An audited error, proof gap or unchecked main result blocks publication, even when another
+          main result carries new content. Model review is not a proof of correctness. Confirmed
+          error reports remain visible on the published version after acceptance.
+        </p>
+        <p>
           A conjecture is displayed when at least one main statement is audited as well posed, open,
           and mathematically new if proved.
         </p>
@@ -97,11 +116,32 @@ export function PolicyPage() {
         <h2 id="escape-h">Escape analysis</h2>
         <p>
           A proved statement is <strong>bind-only</strong> when its proof obtains it from prior
-          results by instantiation, projection or normalisation. It carries <strong>content</strong>{' '}
-          when its proof path contains escape witnesses: propositions that prior results do not give
-          by binding alone. Judgements of each statement are combined: an editor’s judgement
-          confirms; two machine judgements from different model families and accounts that agree
-          corroborate. Editors file S3 from the settled judgements.
+          results by instantiation, substitution, projection, recombination or normalisation. It
+          carries <strong>content</strong> when a live intermediate proposition or the conclusion
+          itself requires a construction, computation or estimate beyond those operations. New
+          aliases and unused lemmas do not establish content. Consumed bind-only helpers remain
+          legitimate proof organization.
+        </p>
+        <p>
+          New review rounds use Trureturing’s methodology to record the prerequisite baseline,
+          actual search scope, new mathematical obligation, live witnesses and independent value.
+          Correctness, proof escape, information gain and utility are separate judgments, with no
+          combined score. Unavailable evidence remains undetermined and blocks automatic admission;
+          it is not a finding that the mathematics has no value. Earlier rounds retain their
+          original method.
+        </p>
+        <p>
+          General theorems need no immediate application. Positive finite enumeration or an ordinary
+          certified instance alone is supporting evidence. Checkers and numerical reductions need a
+          concrete mathematical use and discharged prerequisites. A genuine counterexample answers
+          its named assertion directly. Named open-problem settlements must match the inspected
+          original statement and hypotheses, even when the proof is bind-only.
+        </p>
+        <p>
+          Information-gain analysis requires an explicit model, readout, task and supporting
+          evidence. It does not decide publication. No escape percentage is shown without a built
+          and measured finite arena. Source-based review is not a compiled Trureturing registration
+          or a Lean proof.
         </p>
       </section>
 
@@ -132,7 +172,7 @@ export function PolicyPage() {
           </li>
           <li>
             “Make public after acceptance” is checked by default for every kind. The public page
-            shows statements, dependencies, new intermediate lemmas and verified Lean proofs.
+            shows statements, dependencies, audited witness propositions and verified Lean proofs.
             Authors can change the setting later; private records show only title, authors, kind and
             record id. Reviews, correctness labels, comments, reports, advice and letters stay
             private.

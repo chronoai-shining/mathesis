@@ -48,6 +48,40 @@ pub struct CmaFactory {
     pub app: Arc<mathesis_core::app::App>,
 }
 impl CmaFactory {
+    pub async fn preflight(&self, author: &PersonId) -> ReviewResult<()> {
+        if let Some(connection) = &self.connection {
+            let binding = self
+                .app
+                .cma_binding(author)
+                .await
+                .map_err(|_| ReviewError::Transport("CMA binding unavailable".into()))?;
+            if binding.status == mathesis_core::model::CmaStatus::Ready
+                && let Some(workspace) = binding.workspace_id
+            {
+                let client = mathesis_review::cma::Client {
+                    transport: Arc::new(mathesis_review::cma::HttpTransport {
+                        base_url: connection.base_url.clone(),
+                        tokens: Arc::new(AuthorTokens {
+                            connection: connection.clone(),
+                            app: self.app.clone(),
+                            person: author.clone(),
+                            generation: binding.generation,
+                        }),
+                    }),
+                    workspace,
+                    profile: self.operator.profile.clone(),
+                    poll: self.operator.poll,
+                };
+                match client.preflight().await {
+                    Ok(()) => return Ok(()),
+                    Err(error) if mathesis_review::cma::failure_kind(&error).is_some() => {}
+                    Err(error) => return Err(error),
+                }
+            }
+        }
+        self.operator.preflight().await
+    }
+
     pub fn client(
         &self,
         attempt: &mathesis_core::model::CmaAttempt,

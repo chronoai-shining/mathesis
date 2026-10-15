@@ -3,6 +3,12 @@
 The browser front end for wishpool: React 19, Vite 7, TypeScript (strict). It
 talks only to the public HTTP API described in [`../docs/API.md`](../docs/API.md).
 
+`showcase/` is a separate static project site for GitHub Pages, with no API or
+authentication dependency. Use `npm run dev:showcase`, `build:showcase` and
+`preview:showcase`. See [Pages setup](../docs/GITHUB_PAGES.md) for publishing and
+optional custom-domain configuration. The main application's routing and build
+remain separate.
+
 ## Scripts
 
 | Command                | What it does                               |

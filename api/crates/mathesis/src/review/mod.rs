@@ -11,13 +11,20 @@
 mod agent_store;
 mod error_reports;
 pub(crate) mod mapping;
+#[cfg(test)]
+mod methodology_tests;
 mod open_problems;
 mod referee;
 mod sources;
 mod worker;
 
 use async_trait::async_trait;
-use mathesis_core::{CoreResult, ids::SubmissionId, model::Stage, ports::JobKind};
+use mathesis_core::{
+    CoreResult,
+    ids::SubmissionId,
+    model::Stage,
+    ports::{JobKind, JobLane},
+};
 
 pub use worker::{Worker, run_reconciler};
 
@@ -128,7 +135,7 @@ impl MemoryJobs {
 
 #[async_trait]
 impl JobLease for MemoryJobs {
-    async fn claim(&self) -> CoreResult<Option<LeasedJob>> {
+    async fn claim_in(&self, lane: Option<JobLane>) -> CoreResult<Option<LeasedJob>> {
         let now = tokio::time::Instant::now();
         let mut jobs = self.jobs.lock().await;
         // Admission still goes through the Layer 2 queue. As in Mongo, an
@@ -156,6 +163,7 @@ impl JobLease for MemoryJobs {
         }
         let available = jobs
             .iter()
+            .filter(|(_, entry)| lane.is_none_or(|lane| entry.job.kind.lane() == lane))
             .filter_map(|(key, entry)| match entry.state {
                 MemoryJobState::Queued(at) | MemoryJobState::Leased(at) if at <= now => {
                     Some((key.clone(), at))

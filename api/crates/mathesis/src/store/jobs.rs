@@ -3,7 +3,7 @@ use chrono::Utc;
 use mathesis_core::{
     CoreError, CoreResult,
     ids::SubmissionId,
-    ports::{JobKind, ReviewQueue},
+    ports::{JobKind, JobLane, ReviewQueue},
 };
 use mongodb::{
     bson::{DateTime as BsonDateTime, doc},
@@ -49,18 +49,31 @@ impl ReviewQueue for MongoStore {
 
 #[async_trait]
 impl JobLease for MongoStore {
-    async fn claim(&self) -> CoreResult<Option<LeasedJob>> {
+    async fn claim_in(&self, lane: Option<JobLane>) -> CoreResult<Option<LeasedJob>> {
         let now = Utc::now();
         let lease = auth::random_token();
+        let mut filter = doc! {
+            "$or": [
+                { "state": "queued", "available_at": { "$lte": BsonDateTime::from_chrono(now) } },
+                { "state": "leased", "lease_until": { "$lte": BsonDateTime::from_chrono(now) } },
+            ]
+        };
+        match lane {
+            Some(JobLane::Compile) => {
+                filter.insert("kind", "compile");
+            }
+            Some(JobLane::Verify) => {
+                filter.insert("kind", "verify_attempt");
+            }
+            Some(JobLane::Review) => {
+                filter.insert("kind", doc! { "$nin": ["compile", "verify_attempt"] });
+            }
+            None => {}
+        }
         let found = self
             .raw(REVIEW_JOBS)
             .find_one_and_update(
-                doc! {
-                    "$or": [
-                        { "state": "queued", "available_at": { "$lte": BsonDateTime::from_chrono(now) } },
-                        { "state": "leased", "lease_until": { "$lte": BsonDateTime::from_chrono(now) } },
-                    ]
-                },
+                filter,
                 doc! {
                     "$set": { "state": "leased", "lease": &lease, "lease_until": BsonDateTime::from_chrono(now + LEASE) },
                     "$inc": { "attempts": 1_i32 },

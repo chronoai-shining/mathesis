@@ -41,6 +41,7 @@ const REVIEW_STEP_MARGIN_SECS: u64 = 5 * 60;
 pub const REQUEST_BODY_LIMIT_BYTES: usize = 2 * 1024 * 1024;
 
 pub struct Composition {
+    pub readiness: Arc<Readiness>,
     pub router: Router,
     pub worker: Worker,
     pub mongo: Option<MongoStore>,
@@ -325,6 +326,7 @@ impl Composition {
                 _ => None,
             };
         let worker = Worker {
+            review_concurrency: config.review_concurrency,
             cma_factory: cma.as_ref().map(|operator| {
                 Arc::new(crate::cma_tokens::CmaFactory {
                     operator: operator.clone(),
@@ -362,14 +364,13 @@ impl Composition {
             }),
         };
 
-        let router = http_router(
-            app.clone(),
-            auth_state,
-            Arc::new(Readiness {
-                mongo: mongo.clone(),
-            }),
-        );
+        let readiness = Arc::new(Readiness {
+            mongo: mongo.clone(),
+            runtime: Some(Arc::new(health::RuntimeReadiness::new(config.clone(), cma))),
+        });
+        let router = http_router(app.clone(), auth_state, readiness.clone());
         Ok(Self {
+            readiness,
             router,
             worker,
             mongo,

@@ -1,4 +1,5 @@
 dist
+dist-showcase
 node_modules
 coverage
 package-lock.json

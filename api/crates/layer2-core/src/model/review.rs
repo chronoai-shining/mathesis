@@ -65,6 +65,20 @@ pub enum RejectReason {
     BindOnly,
     /// The paper states no proved main result.
     NoMainResult,
+    IncorrectResult {
+        claim: ClaimId,
+    },
+    UncheckedResult {
+        claim: ClaimId,
+    },
+    InsufficientEvidence {
+        claim: ClaimId,
+        detail: String,
+    },
+    InsufficientUtility {
+        claim: ClaimId,
+        detail: String,
+    },
     Conjecture {
         detail: String,
     },
@@ -81,7 +95,19 @@ impl RejectReason {
             }
             Self::BindOnly => "No checked main result carries new mathematical content.".into(),
             Self::NoMainResult => "The paper has no proved main result.".into(),
+            Self::IncorrectResult { claim } => {
+                format!(
+                    "Main result {claim} has an audited error or proof gap; revise it before publication."
+                )
+            }
+            Self::UncheckedResult { claim } => {
+                format!(
+                    "Main result {claim} has not been checked; its correctness must be assessed before publication."
+                )
+            }
             Self::Hygiene { detail }
+            | Self::InsufficientEvidence { detail, .. }
+            | Self::InsufficientUtility { detail, .. }
             | Self::OutOfScope { detail }
             | Self::Conjecture { detail } => detail.clone(),
         }

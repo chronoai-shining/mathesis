@@ -38,13 +38,13 @@ export const DEFAULT_STAGE_INFO: readonly PolicyStage[] = [
     code: 'S3',
     title: 'Escape analysis',
     description:
-      'Each proved statement is judged bind-only or content. A content statement names escape witnesses: new propositions on its proof path that prior results do not give by instantiation, projection or normalisation.',
+      'Each proved statement is judged content, bind-only or undetermined against explicit prerequisites. Live intermediate or conclusion witnesses, literature evidence and mathematical utility are assessed separately.',
   },
 ];
 
 /** The publication threshold, as stated in `docs/API.md`. */
 export const THRESHOLD_TEXT =
-  'A paper is accepted when some main result carries an escape witness (judged content) and the literature check found no work that states it or directly implies it; or when a main result settles a named, sourced open problem that the literature had not settled.';
+  'A paper is accepted when a correct main result has supported new content and mathematical utility relative to the inspected prior work; or when it matches a named, sourced open problem and its settlement is supported by the audit.';
 
 export function stageInfo(stage: Stage, policy?: PolicyDocument | null): PolicyStage {
   const published = policy?.stages.find((s) => s.stage === stage);

@@ -12,6 +12,38 @@ use tokio::{io::AsyncReadExt, process::Command};
 
 pub const STANDARD_AXIOMS: [&str; 3] = ["propext", "Classical.choice", "Quot.sound"];
 pub const OUTPUT_CAP: usize = 64 * 1024;
+
+pub fn workspace_ready(workspace: &Path) -> Result<(), String> {
+    let toolchain = std::fs::read_to_string(workspace.join("lean-toolchain"))
+        .map_err(|_| "Lean toolchain pin is missing")?;
+    let manifest: serde_json::Value = serde_json::from_slice(
+        &std::fs::read(workspace.join("lake-manifest.json"))
+            .map_err(|_| "dependency manifest is missing")?,
+    )
+    .map_err(|_| "dependency manifest is invalid")?;
+    let mathlib = manifest["packages"]
+        .as_array()
+        .and_then(|packages| packages.iter().find(|package| package["name"] == "mathlib"))
+        .ok_or("Mathlib dependency is missing")?;
+    if mathlib["rev"].as_str().is_none_or(|revision| {
+        revision.len() != 40 || !revision.bytes().all(|byte| byte.is_ascii_hexdigit())
+    }) {
+        return Err("Mathlib must pin a full Git revision".into());
+    }
+    let home = std::env::var_os("HOME").ok_or("Lean installation is unavailable")?;
+    let binary = PathBuf::from(home)
+        .join(".elan/toolchains")
+        .join(toolchain.trim().replace('/', "--").replace(':', "---"))
+        .join("bin/lean");
+    if !binary.is_file()
+        || !workspace
+            .join(".lake/packages/mathlib/.lake/build/lib/lean/Mathlib.olean")
+            .is_file()
+    {
+        return Err("pinned Lean binary or built Mathlib artifacts are missing".into());
+    }
+    Ok(())
+}
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Request {

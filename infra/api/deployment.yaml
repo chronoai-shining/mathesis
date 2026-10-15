@@ -62,4 +62,4 @@ spec:
               path: /readyz
               port: http
             periodSeconds: 10
-            timeoutSeconds: 3
+            timeoutSeconds: 20

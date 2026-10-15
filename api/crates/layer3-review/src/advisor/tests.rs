@@ -2,6 +2,8 @@ use super::*;
 
 fn input() -> AdvisorInput {
     AdvisorInput {
+        review_method: None,
+        confirmed_claims: None,
         followup: None,
         kind: "paper".into(),
         title: "T".into(),
@@ -15,6 +17,30 @@ fn input() -> AdvisorInput {
         source_dir: None,
         main_file: Some("main.tex".into()),
     }
+}
+
+#[test]
+fn methodology_is_opted_in_without_changing_legacy_prompt_serialization() {
+    let mut current = input();
+    let legacy = referee_prompts::audit(&current);
+    assert!(!legacy.contains("review_method"));
+    assert!(!legacy.contains("confirmed_claims"));
+    assert!(!legacy.contains("trureturing-content-2026-10-15"));
+    current.review_method = Some("trureturing-content-2026-10-15".into());
+    current.confirmed_claims = Some(serde_json::json!([]));
+    let prompt = referee_prompts::audit(&current);
+    for requirement in [
+        "conclusion itself",
+        "live_use",
+        "undetermined",
+        "finite_enumeration",
+        "matching_argument",
+    ] {
+        assert!(prompt.contains(requirement), "{requirement}");
+    }
+    current.review_method = None;
+    current.confirmed_claims = None;
+    assert_eq!(referee_prompts::audit(&current), legacy);
 }
 
 #[test]

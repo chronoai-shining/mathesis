@@ -10,7 +10,9 @@ mod blobs;
 mod cma;
 mod domain;
 mod jobs;
+mod maintenance;
 mod network;
+mod referees;
 mod solving;
 
 use futures::TryStreamExt;

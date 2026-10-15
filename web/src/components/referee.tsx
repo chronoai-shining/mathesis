@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { ReviewFindings } from './ReviewFindings';
 import { ReviewProgress } from './ReviewProgress';
+import { MethodologyEvidence } from './MethodologyEvidence';
 import { hasWaitingResponse, RECHECK_WAITING, reviewProgressText } from '../lib/reviewProgress';
 import { useApi } from '../api/context';
 import type { RefereeResource } from '../api/useReferee';
@@ -91,6 +92,12 @@ export function RefereeWorkspace(props: WorkspaceProps & { resource: RefereeReso
                       : 'Confirm your statements to start the review.'}
                 </p>
                 {current ? <ReviewProgress round={current} includeFormal={includeFormal} /> : null}
+                {current?.review_method ? (
+                  <p className="hint">
+                    Review method: {current.review_method} · source version {current.version} ·
+                    statements revision {current.claims_revision}
+                  </p>
+                ) : null}
                 <p className="small muted">
                   Your review checks the argument, examines prior work and identifies gaps. Respond
                   to a finding below to request a recheck against your confirmed source.
@@ -349,6 +356,12 @@ function RoundView({
   const formal = round.formal?.state.state === 'done' ? round.formal.state.result : null;
   return (
     <div className="referee-round">
+      {round.review_method ? (
+        <p className="hint">
+          Review method: {round.review_method} · source version {round.version} · statements
+          revision {round.claims_revision}
+        </p>
+      ) : null}
       <ol className="referee-progress" aria-label="Review progress">
         <StepProgress name={STEP_NAMES.referee} step={round.referee} />
         {round.audit ? <StepProgress name={STEP_NAMES.audit} step={round.audit} /> : null}
@@ -570,6 +583,7 @@ function AuditView({ audit }: { audit: RefereeAudit }) {
               {c.known ? ` · ${c.known}` : ''}
             </p>
             <MarkdownList items={c.witnesses} />
+            {c.methodology ? <MethodologyEvidence reading={c.methodology} /> : null}
           </li>
         ))}
       </ul>

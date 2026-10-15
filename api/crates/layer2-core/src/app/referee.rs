@@ -347,6 +347,27 @@ impl App {
                             "audit must cover every confirmed statement exactly once",
                         ));
                     }
+                    if round.review_contract >= crate::model::REVIEW_CONTRACT {
+                        for reading in &audit.claims {
+                            let claim = submission.claim(&reading.claim).expect("validated claim");
+                            let method = reading.methodology.as_ref().ok_or_else(|| CoreError::invalid("this review contract requires a methodology assessment for every statement"))?;
+                            method.validate(claim.kind.is_open())?;
+                            if !claim.kind.is_open()
+                                && reading.correctness == Correctness::Correct
+                                && (reading.shape != Some(method.escape)
+                                    || reading.witnesses
+                                        != method
+                                            .witnesses
+                                            .iter()
+                                            .map(|w| w.statement.clone())
+                                            .collect::<Vec<_>>())
+                            {
+                                return Err(CoreError::invalid(
+                                    "proof reading must agree with its structured methodology",
+                                ));
+                            }
+                        }
+                    }
                     let expected: BTreeSet<_> = responses
                         .iter()
                         .filter(|r| {
@@ -635,10 +656,17 @@ impl App {
                         && reading.shape == Some(ProofShape::Content)
                         && !reading.witnesses.is_empty();
                     EscapeAssessment {
+                        methodology: reading.methodology.clone(),
                         conjecture: reading.conjecture.clone(),
                         correctness: Some(reading.correctness),
                         claim: c.id.clone(),
-                        shape: if let Some(r) = &reading.conjecture {
+                        shape: if let Some(method) = &reading.methodology {
+                            if c.kind.is_open() || reading.correctness == Correctness::Correct {
+                                method.escape
+                            } else {
+                                ProofShape::Undetermined
+                            }
+                        } else if let Some(r) = &reading.conjecture {
                             r.escape
                         } else if carries {
                             ProofShape::Content
@@ -660,10 +688,25 @@ impl App {
                     Stage::Literature,
                     StagePayload::Literature {
                         prior,
-                        searched: vec![
+                        searched: if round.review_contract >= crate::model::REVIEW_CONTRACT {
+                            audit
+                                .claims
+                                .iter()
+                                .flat_map(|reading| {
+                                    reading.methodology.iter().flat_map(|method| {
+                                        method
+                                            .searched
+                                            .iter()
+                                            .map(|scope| format!("{}: {scope}", reading.claim))
+                                    })
+                                })
+                                .collect()
+                        } else {
+                            vec![
                             "Networked referee and Codex audit; opened sources are model-reported, not venue-verified."
                                 .into(),
-                        ],
+                        ]
+                        },
                     },
                 ),
                 (Stage::Escape, StagePayload::Escape { assessments }),
@@ -687,7 +730,11 @@ impl App {
                     }],
                     reviewer: ReviewerIdentity::Machine {
                         account: caller.person.clone(),
-                        engine: round.audit.engine.clone().unwrap_or_else(|| "codex-cli".into()),
+                        engine: round
+                            .audit
+                            .engine
+                            .clone()
+                            .unwrap_or_else(|| "codex-cli".into()),
                         model: round.audit.model.clone(),
                     },
                     claims_revision: round.claims_revision,
@@ -756,7 +803,7 @@ impl App {
     fn push_round(&self, file: &mut RefereeFile, submission: &Submission, version: u32) {
         let number = file.rounds.last().map_or(1, |r| r.number + 1);
         file.rounds.push(RefereeRound {
-            review_contract: 2,
+            review_contract: crate::model::REVIEW_CONTRACT,
             source_sha256: submission
                 .current_version()
                 .map(|v| v.archive.sha256.clone())

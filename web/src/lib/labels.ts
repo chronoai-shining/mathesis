@@ -146,10 +146,12 @@ export const SOURCE_KIND_LABELS: { readonly [K in SourceKind]: string } = {
 export const SOURCE_KINDS = Object.keys(SOURCE_KIND_LABELS) as SourceKind[];
 
 export const SHAPE_LABELS: { readonly [K in ProofShape]: string } = {
+  undetermined: 'Undetermined',
   bind_only: 'Bind-only',
   content: 'Content',
 };
 export const SHAPE_DESCRIPTIONS: { readonly [K in ProofShape]: string } = {
+  undetermined: 'The evidence does not establish whether the proof exceeds binding operations.',
   bind_only:
     'The proof instantiates, projects or normalises prior results; no new proposition appears on its proof path.',
   content:
@@ -228,6 +230,13 @@ export function rejectReasonText(reason: RejectReason): string {
       return 'Bind-only: no main result carries new content; each follows from prior results by instantiation, projection or normalisation.';
     case 'no_main_result':
       return 'No main result: the paper marks no proved statement as a main result.';
+    case 'incorrect_result':
+      return `Main result ${reason.claim} has an audited error or proof gap; revise it before publication.`;
+    case 'unchecked_result':
+      return `Main result ${reason.claim} has not been checked; its correctness must be assessed before publication.`;
+    case 'insufficient_evidence':
+    case 'insufficient_utility':
+      return reason.detail;
     case 'conjecture':
     case 'out_of_scope':
       return `Out of scope: ${reason.detail}`;

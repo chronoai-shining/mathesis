@@ -211,6 +211,7 @@ fn conjecture_reading(
     let escape = match raw.escape.as_str() {
         "content" => ProofShape::Content,
         "bind_only" => ProofShape::BindOnly,
+        "undetermined" => ProofShape::Undetermined,
         _ => return None,
     };
     if raw.suggestions.len() > 20 || raw.suggestions.iter().any(|s| s.chars().count() > 5_000) {
@@ -287,6 +288,7 @@ pub(crate) fn referee_for_kind(
         let shape = match reading.shape.as_str() {
             "content" => ProofShape::Content,
             "bind_only" => ProofShape::BindOnly,
+            "undetermined" => ProofShape::Undetermined,
             _ => {
                 dropped_readings += 1;
                 continue;
@@ -300,7 +302,7 @@ pub(crate) fn referee_for_kind(
             .map(str::to_owned)
             .collect();
         if (shape == ProofShape::Content && witness.is_empty())
-            || (shape == ProofShape::BindOnly && !witness.is_empty())
+            || (shape != ProofShape::Content && !witness.is_empty())
             || readings.iter().any(|r: &RefereeClaim| r.claim == claim.id)
         {
             dropped_readings += 1;
@@ -412,6 +414,46 @@ pub(crate) fn referee_judgement(
         .then_some(output)
 }
 
+fn methodology_reading(
+    raw: Option<serde_json::Value>,
+    claim: &Claim,
+) -> mathesis_core::model::MethodologyReading {
+    use mathesis_core::model::{EvidenceStatus, MethodologyReading};
+    let Some(mut reading) =
+        raw.and_then(|value| serde_json::from_value::<MethodologyReading>(value).ok())
+    else {
+        return MethodologyReading::insufficient(
+            "No usable structured comparison of prerequisites, new content and utility was returned.",
+        );
+    };
+    if let Err(error) = reading.validate(claim.kind.is_open()) {
+        return MethodologyReading::insufficient(&format!(
+            "Incomplete methodology evidence: {error}"
+        ));
+    }
+    if reading.baseline.iter().any(|item| {
+        item.source
+            .as_ref()
+            .is_some_and(|source| !super::sources::reported_work(source))
+    }) {
+        return MethodologyReading::insufficient(
+            "A prerequisite lacks a usable reported opened source; novelty remains undetermined.",
+        );
+    }
+    if let Some(settlement) = &mut reading.settlement
+        && (claim.settles.as_ref() != Some(&settlement.problem)
+            || !super::sources::reported_work(&settlement.opened_source)
+            || !super::sources::matches_source(
+                &settlement.opened_source,
+                &settlement.problem.source,
+            ))
+    {
+        settlement.status = EvidenceStatus::Insufficient;
+        reading.limits.push("The settlement evidence does not match the author-confirmed problem and its reported opened source.".into());
+    }
+    reading
+}
+
 /// Model output is untrusted: no invented ids, witnesses or citations.
 /// Missing/unusable statement readings become explicit not_checked readings.
 pub(crate) fn audit(
@@ -466,6 +508,10 @@ pub(crate) fn audit(
             dropped += 1;
             continue;
         }
+        let methodology = input
+            .review_method
+            .as_ref()
+            .map(|_| methodology_reading(r.methodology, claim));
         if input.kind == "conjecture" && claim.kind.is_open() {
             let Some(checked) = r
                 .conjecture
@@ -475,6 +521,7 @@ pub(crate) fn audit(
                 continue;
             };
             readings.push(AuditedClaim {
+                methodology,
                 claim: claim.id.clone(),
                 correctness: Correctness::NotChecked,
                 comment: r.comment,
@@ -498,6 +545,9 @@ pub(crate) fn audit(
         };
         let shape = match r.shape.as_deref() {
             None => None,
+            Some("undetermined") if input.review_method.is_some() && !claim.kind.is_open() => {
+                Some(ProofShape::Undetermined)
+            }
             Some("content") if !claim.kind.is_open() => Some(ProofShape::Content),
             Some("bind_only") if !claim.kind.is_open() => Some(ProofShape::BindOnly),
             _ => {
@@ -510,6 +560,18 @@ pub(crate) fn audit(
             .into_iter()
             .filter(|w| !w.trim().is_empty())
             .collect();
+        let (shape, witnesses) = match &methodology {
+            Some(reading) if !claim.kind.is_open() => (
+                Some(reading.escape),
+                reading
+                    .witnesses
+                    .iter()
+                    .map(|w| w.statement.clone())
+                    .collect(),
+            ),
+            Some(_) => (None, vec![]),
+            None => (shape, witnesses),
+        };
         if (correctness == Correctness::Correct && shape.is_none())
             || (shape == Some(ProofShape::Content) && witnesses.is_empty())
             || (shape != Some(ProofShape::Content) && !witnesses.is_empty())
@@ -528,6 +590,7 @@ pub(crate) fn audit(
             continue;
         }
         readings.push(AuditedClaim {
+            methodology,
             conjecture: None,
             claim: claim.id.clone(),
             correctness,
@@ -543,6 +606,11 @@ pub(crate) fn audit(
         if !readings.iter().any(|r| r.claim == claim.id) {
             missing += 1;
             readings.push(AuditedClaim {
+                methodology: input.review_method.as_ref().map(|_| {
+                    mathesis_core::model::MethodologyReading::insufficient(
+                        "No usable source-based methodology assessment was returned.",
+                    )
+                }),
                 conjecture: None,
                 claim: claim.id.clone(),
                 correctness: Correctness::NotChecked,
@@ -1207,6 +1275,8 @@ mod audit_tests {
     fn audit_drops_invented_sources_ids_and_witnesses_and_marks_offline_limits() {
         let claims = super::referee_tests::claims();
         let input = AdvisorInput {
+            review_method: None,
+            confirmed_claims: None,
             followup: None,
             kind: "paper".into(),
             title: "Paper".into(),
@@ -1397,6 +1467,8 @@ mod conjecture_tests {
     fn conjecture_audit_requires_opened_source_identity_and_matching_evidence() {
         let claims = super::referee_tests::claims();
         let input = AdvisorInput {
+            review_method: None,
+            confirmed_claims: None,
             followup: None,
             kind: "conjecture".into(),
             title: "Question".into(),

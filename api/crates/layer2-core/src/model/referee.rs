@@ -89,6 +89,8 @@ pub enum ConcernStatus {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AuditedClaim {
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub methodology: Option<super::MethodologyReading>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub conjecture: Option<super::ConjectureReading>,
     pub claim: ClaimId,
     pub correctness: Correctness,
@@ -505,6 +507,9 @@ pub struct RefereeView {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct RefereeRoundView {
+    pub review_contract: u32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub review_method: Option<String>,
     /// Payload-free lifecycle information, safe even for hidden advice and drafts.
     pub progress: RoundProgress,
     pub response_ids: Vec<String>,
@@ -661,6 +666,9 @@ impl RefereeFile {
                 .rounds
                 .into_iter()
                 .map(|r| RefereeRoundView {
+                    review_contract: r.review_contract,
+                    review_method: (r.review_contract >= super::REVIEW_CONTRACT)
+                        .then(|| super::REVIEW_METHOD.into()),
                     progress: RoundProgress {
                         referee: (&r.referee).into(),
                         audit: (&r.audit).into(),

@@ -637,6 +637,186 @@ async fn referee_job_deferral_preserves_attempts_and_lease_fence() {
 }
 
 #[tokio::test]
+async fn oversized_review_history_migrates_without_losing_revision_fences_or_sources() {
+    let Some(database) = TestDb::open().await else {
+        return;
+    };
+    let store = &database.store;
+    let mut file = RefereeFile::new("large-history".into());
+    store
+        .raw(REFEREE_FILES)
+        .insert_one(to_document(&file).unwrap())
+        .await
+        .unwrap();
+    for step in 0..10 {
+        file.agent_steps.insert(
+            format!("step-{step}"),
+            AgentStep {
+                cma_attempts: vec![],
+                version: 1,
+                claims_revision: 1,
+                progress: serde_json::json!({"answer": "x".repeat(1_850_000), "deleted": true}),
+            },
+        );
+    }
+    assert!(serde_json::to_vec(&file).unwrap().len() > 16 * 1024 * 1024);
+    RefereeStore::replace(store, &file, 0).await.unwrap();
+    let stored = RefereeStore::get(store, &file.id).await.unwrap().unwrap();
+    assert_eq!(stored.agent_steps, file.agent_steps);
+    assert_eq!(stored.revision, 1);
+    let header = store
+        .raw(REFEREE_FILES)
+        .find_one(doc! { "id": file.id.as_str() })
+        .await
+        .unwrap()
+        .unwrap();
+    assert!(mongodb::bson::to_vec(&header).unwrap().len() < 4096);
+    assert_eq!(header.get_str("storage_format").unwrap(), "gridfs-json-v1");
+    let files_before = store
+        .raw("papers.files")
+        .count_documents(doc! {})
+        .await
+        .unwrap();
+    assert!(matches!(
+        RefereeStore::replace(store, &file, 0).await,
+        Err(CoreError::StaleRevision { .. })
+    ));
+    assert_eq!(
+        store
+            .raw("papers.files")
+            .count_documents(doc! {})
+            .await
+            .unwrap(),
+        files_before
+    );
+    let audit = store.storage_audit().await.unwrap();
+    assert!(audit.missing_files.is_empty());
+    assert!(audit.orphan_files.is_empty());
+    database.drop().await;
+}
+
+#[tokio::test]
+async fn offline_collection_preserves_references_recent_uploads_and_live_jobs() {
+    let Some(database) = TestDb::open().await else {
+        return;
+    };
+    let store = &database.store;
+    let kept = BlobStore::put(store, b"saved", "text/plain").await.unwrap();
+    let orphan = BlobStore::put(store, b"orphan", "text/plain")
+        .await
+        .unwrap();
+    let recent = BlobStore::put(store, b"recent", "text/plain")
+        .await
+        .unwrap();
+    let old_chunk = mongodb::bson::oid::ObjectId::from_parts(
+        (Utc::now() - chrono::Duration::days(8)).timestamp() as u32,
+        [0; 5],
+        [0; 3],
+    );
+    for (id, file) in [
+        (old_chunk, "interrupted-old"),
+        (mongodb::bson::oid::ObjectId::new(), "interrupted-new"),
+    ] {
+        store.raw("papers.chunks").insert_one(doc! { "_id": id, "files_id": file, "n": 0,
+            "data": mongodb::bson::Binary { subtype: mongodb::bson::spec::BinarySubtype::Generic, bytes: vec![1] } })
+            .await.unwrap();
+    }
+    store
+        .raw(SUBMISSIONS)
+        .insert_one(doc! { "id": "fixture", "source": to_document(&kept).unwrap() })
+        .await
+        .unwrap();
+    store.raw("papers.files").update_many(doc! { "_id": { "$in": [&kept.id, &orphan.id] } },
+        doc! { "$set": { "uploadDate": mongodb::bson::DateTime::from_chrono(Utc::now() - chrono::Duration::days(8)) } }).await.unwrap();
+    let audit = store.storage_audit().await.unwrap();
+    assert_eq!(audit.orphan_files, vec![orphan.id.clone()]);
+    assert_eq!(audit.orphan_chunk_files, vec!["interrupted-old"]);
+    assert_eq!(audit.orphan_chunks, 1);
+    ReviewQueue::enqueue(store, &"fixture".into(), JobKind::Compile)
+        .await
+        .unwrap();
+    let job = JobLease::claim(store).await.unwrap().unwrap();
+    assert!(store.collect_orphan_files_offline().await.is_err());
+    JobLease::complete(store, &job).await.unwrap();
+    store.collect_orphan_files_offline().await.unwrap();
+    assert!(
+        store
+            .raw("papers.chunks")
+            .find_one(doc! { "files_id": "interrupted-old" })
+            .await
+            .unwrap()
+            .is_none()
+    );
+    assert!(
+        store
+            .raw("papers.chunks")
+            .find_one(doc! { "files_id": "interrupted-new" })
+            .await
+            .unwrap()
+            .is_some()
+    );
+    assert!(BlobStore::get(store, &orphan.id).await.unwrap().is_none());
+    assert_eq!(
+        BlobStore::get(store, &kept.id).await.unwrap().unwrap(),
+        b"saved"
+    );
+    assert_eq!(
+        BlobStore::get(store, &recent.id).await.unwrap().unwrap(),
+        b"recent"
+    );
+    database.drop().await;
+}
+
+#[tokio::test]
+async fn compile_and_verification_jobs_are_available_while_reviews_are_leased() {
+    let Some(database) = TestDb::open().await else {
+        return;
+    };
+    let store = &database.store;
+    for (paper, kind) in [
+        ("review", JobKind::Referee),
+        ("compile", JobKind::Compile),
+        ("verify", JobKind::VerifyAttempt),
+    ] {
+        ReviewQueue::enqueue(store, &paper.into(), kind)
+            .await
+            .unwrap();
+    }
+    let review = store
+        .claim_in(Some(JobLane::Review))
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(review.kind, JobKind::Referee);
+    assert!(
+        store
+            .claim_in(Some(JobLane::Review))
+            .await
+            .unwrap()
+            .is_none()
+    );
+    assert_eq!(
+        store
+            .claim_in(Some(JobLane::Compile))
+            .await
+            .unwrap()
+            .unwrap()
+            .kind,
+        JobKind::Compile
+    );
+    assert_eq!(
+        store
+            .claim_in(Some(JobLane::Verify))
+            .await
+            .unwrap()
+            .unwrap()
+            .kind,
+        JobKind::VerifyAttempt
+    );
+    database.drop().await;
+}
+
+#[tokio::test]
 async fn job_renewal_extends_live_lease_and_never_revives_a_stale_token() {
     let Some(db) = TestDb::open().await else {
         return;
@@ -729,6 +909,7 @@ async fn solving_aggregates_and_agent_names_are_unique_and_revision_fenced() {
     ));
     assert_eq!(store.agents().await.unwrap()[0].name, "Renamed");
     let file = SolveFile {
+        review_contract: 0,
         agent_attempted: Default::default(),
         id: "WP-2026-0001:C1:v1:c1".into(),
         record: "WP-2026-0001".into(),

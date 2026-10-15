@@ -1,0 +1,13 @@
+{
+  "baseline": [{"statement": "The stated compactness hypotheses", "location": "Section 1, hypotheses", "source": null}],
+  "searched": ["Compared the stated compactness prerequisites and their specializations in Section 1."],
+  "literature": "supported",
+  "binding_analysis": "Instantiation preserves the original bound; the proof constructs a sharper uniform bound.",
+  "delta": "A uniform bound for the family under the stated hypotheses.",
+  "escape": "content",
+  "witnesses": [{"kind": "conclusion", "statement": "The gap estimate", "location": "Main theorem, final estimate", "non_binding_step": "Construct a finite subcover and derive the uniform estimate.", "live_use": "This is the conclusion of the main proof."}],
+  "utility": {"kind": "general_theorem", "status": "supported", "rationale": "The uniform estimate resolves the stated mathematical bound.", "problem": "", "progress": "", "prerequisites": "", "discharge": ""},
+  "settlement": null,
+  "information_gain": null,
+  "limits": ["Synthetic test fixture; not a review of a real manuscript."]
+}

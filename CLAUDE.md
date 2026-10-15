@@ -22,7 +22,7 @@ pipeline; only their labels differ.
   dependencies. Papers/notes require a proved main result; conjectures require a
   main conjecture or question. Stored documents without `kind` load as `paper`.
 - **Analysis**: for papers/notes, whether prior work states or implies a result,
-  and whether its proof carries a new intermediate proposition (an escape
+  and whether its proof carries a live intermediate proposition or conclusion (an escape
   witness) or follows by binding alone. Conjectures are checked for well-posedness,
   open/known status, and whether a proof would carry new mathematical content.
   Named works are reported names, never verified bibliographic claims.
@@ -92,9 +92,42 @@ known false, special cases of known results, unclear status and bind-only readin
 do not meet that rule. Existing human-stage and endorsement gates apply to every
 kind. Every non-acceptance carries an author-facing reason.
 
+For papers/notes, any explicitly audited `gap`, `error` or `not_checked` main
+result blocks acceptance, even if a different result carries new content.
+Unchecked main results settle as not accepted with a distinct reason, so the
+automatic pipeline can still deliver its letter. Historical editor assessments
+without correctness retain their existing meaning. Accepted inputs are not
+retroactively rewritten. Public paper details include a count of confirmed
+error reports bound to the published version and claims revision, omitted for
+private records; the web page highlights nonzero counts without exposing audits.
+
 Escape rates are reported only as exact readings on an explicitly built finite
 arena. Never compute, estimate or display a percentage for a statement whose
 arena was not built and measured.
+
+New referee and paper-problem rounds pin review contract 3 and method
+`trureturing-content-2026-10-15`. Every audited statement carries a structured
+prerequisite baseline, actual search scope, binding comparison, mathematical
+delta, live witnesses, independent utility and limits. Proof escape may be
+`undetermined`; missing evidence is not a bind-only finding. Correctness, proof
+escape, information gain and utility remain distinct; no scalar score is used.
+Content witnesses may be intermediate propositions or the conclusion itself.
+Inline new wrappers and helpers, ignore unused terms, and stop comparison at
+the stated existing prerequisites. Consumed bind-only helpers are legitimate
+but confer no independent new content.
+
+For contract 3 automatic admission, content requires a supported literature
+comparison and category-appropriate mathematical utility. General theorems do
+not need an artificial downstream consumer. Positive finite enumeration and
+ordinary certified instances alone are supporting evidence. Checkers, numerical
+reductions and counterexamples require an explicit problem, actual progress,
+exact prerequisites and their discharge. A named open-problem settlement is a
+separate route, even for bind-only proofs, but must audit the original statement,
+hypotheses, prior status and matching proof/refutation against the confirmed
+problem and reported opened source. Optional model/readout/task information-gain
+readings do not decide admission. These are reviewer judgments, never compiled
+Trureturing registrations, FIB proofs or Lean receipts. See
+`docs/REVIEW_METHODOLOGY.md` for protocol and compatibility details.
 
 ## 2. Repository layout
 
@@ -178,6 +211,9 @@ sdk/contribute/    the contributors' CLI and MCP server.
 
 - MongoDB is the only authority; uploaded sources and PDFs live in GridFS.
   Aggregates carry `revision`; every replace is fenced on the revision read.
+- Large referee aggregates use a revision-fenced Mongo header and a checksummed
+  GridFS JSON snapshot. Legacy inline histories remain readable. Replaced
+  snapshots are retained for offline collection, never deleted under readers.
 - Stage reports are append-only. Accepted records are immutable.
 - Machine work (compiling, S2 leads, S3 proposals) is a durable, leased job.
   A worker restart must not lose or duplicate admitted work.
@@ -226,6 +262,11 @@ the MongoDB tests and `WISHPOOL_TEST_TEX_BIN` for the compile tests),
 `sdk/*` package. Web: `npm ci`, `format:check`, `lint`, `typecheck`, `test`,
 `build`, `npm audit --audit-level=high`. Cross-cutting: gitleaks, image
 builds, kubeconform.
+
+The static showcase also passes `npm run build:showcase`. Real Lean tests are
+explicitly ignored unless selected with `--ignored` and a prepared
+`WISHPOOL_TEST_LEAN_WORKSPACE`; the verifier image build must run them and fail
+on missing inputs. All verifier manifests are included in schema validation.
 
 ## 10. Branches
 
@@ -306,6 +347,15 @@ from `develop`. No force pushes to either.
   version, statement revision, round, step and attempt. Worker restarts resume
   polling with those ids; uncertain mutations reuse the original key and body.
   Agent steps have at most 3,600 seconds. The lease heartbeat stays active.
+- A worker has one compile lane, one verification lane and 1–8 remote review
+  lanes (`WISHPOOL_REVIEW_CONCURRENCY`, default 2). Compile jobs never wait on
+  CMA cleanup. Each job retains its own lease and cancellation fence.
+- Every CMA configuration pins a published agent profile. Before a new Oracle
+  request is admitted, read-only CMA resource preflight checks the eligible
+  author/operator resources without creating an agent or recording a payer.
+  Execution admission still chooses and persists the payer in Layer 2; existing
+  attempts never change identity during preflight. Resource readiness is not
+  proof of working model credentials or quota.
 - CMA output is untrusted: the binary writes returned Lean text into fresh
   scratch and checks it locally; the credential-free solution verifier is
   unchanged. Always stop and delete the CMA Agent after the final answer or on
@@ -471,10 +521,12 @@ funded; local elaboration and proof verification carry no CMA payer.
   Queue reconciliation recovers a saved response after enqueue failure.
 - Review JSON schema 2 and `/review.md` include each round's source digest and author
   responses. Both use the author-safe view, including when requested by staff.
-- New rounds pin review contract 2. Contract 1 introduced re-review assessments;
+- New rounds pin review contract 3. Contract 1 introduced re-review assessments;
   contract 2 additionally carries bounded attachment contents and their actual
   version-bound hashes into audit, advice and letter prompts. Earlier rounds
   retain their original prompts, including when evidence was not transported.
+  Contract 3 adds the structured Trureturing methodology above. Historical
+  reports and decisions retain their original meaning; no automatic backfill.
   Re-review audits assess each admitted author
   response as addressed, unresolved or not_checkable, with a concrete explanation.
   Attachment references resolve to paths and actual SHA-256 digests in that round's
