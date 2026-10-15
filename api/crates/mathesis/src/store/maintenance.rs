@@ -5,7 +5,7 @@ use mathesis_core::{CoreError, CoreResult, ports::BlobStore};
 use mongodb::bson::{Bson, DateTime, doc};
 use serde::Serialize;
 
-use super::{MongoStore, REFEREE_FILES, unavailable};
+use super::{MongoStore, REFEREE_FILES, to_document, unavailable};
 
 #[derive(Debug, Serialize)]
 pub struct StorageAudit {
@@ -52,13 +52,17 @@ impl MongoStore {
                 .await
                 .map_err(unavailable)?;
             while let Some(document) = cursor.try_next().await.map_err(unavailable)? {
-                if collection == REFEREE_FILES
-                    && let Ok(format) = document.get_str("storage_format")
-                    && format != "gridfs-json-v1"
-                {
-                    return Err(CoreError::Unavailable(
-                        "storage audit cannot interpret this review history format".into(),
-                    ));
+                if collection == REFEREE_FILES && document.contains_key("storage_format") {
+                    let id = document
+                        .get_str("id")
+                        .map_err(|_| {
+                            CoreError::Unavailable("review history identity missing".into())
+                        })?
+                        .into();
+                    // A present blob is not necessarily a readable history. Collection must
+                    // stop on corruption before deleting any other recovery material.
+                    let file = self.read_referee_document(&id, document.clone()).await?;
+                    references(&Bson::Document(to_document(&file)?), &mut referenced);
                 }
                 references(&Bson::Document(document), &mut referenced);
             }

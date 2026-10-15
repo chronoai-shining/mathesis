@@ -116,6 +116,11 @@ To reclaim storage:
 4. Resolve missing referenced files before any collection.
 5. Run `mathesis --storage-gc --offline`, inspect its JSON report, then restart.
 
+The audit and collector also read and verify every GridFS review snapshot using
+the normal reader, including its checksum, format, submission identity and revision.
+An unreadable history aborts collection before any deletion; restore that history
+first. References inside a decoded snapshot are retained alongside its header.
+
 The collector refuses active job leases and missing referenced files. `--offline`
 is the operator's assertion that every writer is stopped; it is not a distributed
 maintenance lock and cannot detect a concurrent upload from a live API. Never

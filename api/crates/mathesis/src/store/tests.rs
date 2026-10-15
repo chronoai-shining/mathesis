@@ -696,6 +696,72 @@ async fn oversized_review_history_migrates_without_losing_revision_fences_or_sou
 }
 
 #[tokio::test]
+async fn offline_collection_refuses_unreadable_review_snapshots_before_deleting_files() {
+    let Some(database) = TestDb::open().await else {
+        return;
+    };
+    let store = &database.store;
+    let mut file = RefereeFile::new("corrupt-history".into());
+    file.agent_steps.insert(
+        "audit".into(),
+        AgentStep {
+            cma_attempts: vec![],
+            version: 1,
+            claims_revision: 1,
+            progress: serde_json::json!({"answer": "x".repeat(600_000)}),
+        },
+    );
+    RefereeStore::insert(store, &file).await.unwrap();
+    let original = store
+        .raw(REFEREE_FILES)
+        .find_one(doc! { "id": file.id.as_str() })
+        .await
+        .unwrap()
+        .unwrap();
+    let orphan = BlobStore::put(store, b"recovery material", "text/plain")
+        .await
+        .unwrap();
+    store.raw("papers.files").update_one(doc! { "_id": &orphan.id },
+        doc! { "$set": { "uploadDate": mongodb::bson::DateTime::from_chrono(Utc::now() - chrono::Duration::days(8)) } }).await.unwrap();
+
+    for mutation in [
+        doc! { "snapshot.sha256": "0".repeat(64) },
+        doc! { "snapshot.id": "missing-snapshot" },
+        doc! { "revision": 99_i64 },
+        doc! { "storage_format": 1_i32 },
+        doc! { "storage_format": "unknown" },
+    ] {
+        store
+            .raw(REFEREE_FILES)
+            .update_one(doc! { "id": file.id.as_str() }, doc! { "$set": mutation })
+            .await
+            .unwrap();
+        assert!(store.storage_audit().await.is_err());
+        assert!(store.collect_orphan_files_offline().await.is_err());
+        assert_eq!(
+            BlobStore::get(store, &orphan.id).await.unwrap().unwrap(),
+            b"recovery material"
+        );
+        store
+            .raw(REFEREE_FILES)
+            .replace_one(doc! { "id": file.id.as_str() }, original.clone())
+            .await
+            .unwrap();
+    }
+    assert_eq!(
+        store.storage_audit().await.unwrap().orphan_files,
+        vec![orphan.id.clone()]
+    );
+    store.collect_orphan_files_offline().await.unwrap();
+    assert!(BlobStore::get(store, &orphan.id).await.unwrap().is_none());
+    assert_eq!(
+        RefereeStore::get(store, &file.id).await.unwrap().unwrap(),
+        file
+    );
+    database.drop().await;
+}
+
+#[tokio::test]
 async fn offline_collection_preserves_references_recent_uploads_and_live_jobs() {
     let Some(database) = TestDb::open().await else {
         return;

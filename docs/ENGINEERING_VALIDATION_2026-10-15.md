@@ -88,3 +88,33 @@ validation above used a different prepared toolchain from the pinned CI image.
 An initial MongoDB test run hit the host's free-space floor. Removing only
 regenerable project build artifacts restored space, and the database tests
 passed on rerun. No runtime database was reset or replaced.
+
+## P0 integration verification — 16 October 2026
+
+The methodology branch was merged with develop at
+`1e9b7f7fb3b981d3ca5079a0600bbe925eaa3455` in an isolated worktree. Static review
+found that offline collection checked whether a review snapshot existed but
+did not read it before collecting other files. The collector now shares the
+ordinary snapshot reader, checking its format, checksum, submission identity
+and revision before any deletion. References in the decoded history are retained.
+
+The new MongoDB regression
+`offline_collection_refuses_unreadable_review_snapshots_before_deleting_files`
+failed on the original implementation at the checksum mutation. With the fix,
+checksum, missing-blob, revision, non-string-format and unknown-format mutations
+all prevent audit/collection and preserve the recovery file. Restoring the
+header allows ordinary collection and leaves the history readable.
+
+Local API verification passed 291 tests with an isolated MongoDB on port 27031
+and real TeX, plus formatting and strict all-target/all-feature Clippy. The two
+real Lean tests are explicitly ignored locally. Web formatting, lint, types,
+313 tests and both builds passed. Cargo deny passed; npm's locked installation
+reported zero vulnerabilities. The fix's diff passed gitleaks and whitespace
+checks. No provider, production database or upstream repository was modified.
+
+The earlier GitHub run
+[`38744507574`](https://github.com/the-omega-institute/mathesis/actions/runs/38744507574)
+at `e3c4d0adedd3c641b2809694156b1baa35c43c7b` successfully built the prepared
+Linux verifier and ran real Lean proofs. This supersedes the earlier local-only
+image limitation for that revision; it is not a claim about checks on the new
+integration commit, live model quality, or a production deployment.

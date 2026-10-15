@@ -38,21 +38,14 @@ impl MongoStore {
             let _ = BlobStore::discard(self, &snapshot.id).await;
         }
     }
-}
 
-#[async_trait]
-impl RefereeStore for MongoStore {
-    async fn get(&self, id: &SubmissionId) -> CoreResult<Option<RefereeFile>> {
-        let Some(document) = self
-            .raw(REFEREE_FILES)
-            .find_one(doc! { "id": id.as_str() })
-            .await
-            .map_err(unavailable)?
-        else {
-            return Ok(None);
-        };
+    pub(super) async fn read_referee_document(
+        &self,
+        id: &SubmissionId,
+        document: Document,
+    ) -> CoreResult<RefereeFile> {
         if !document.contains_key("storage_format") {
-            return from_document(document).map(Some);
+            return from_document(document);
         }
         if document.get_str("storage_format") != Ok("gridfs-json-v1") {
             return Err(CoreError::Unavailable(
@@ -82,7 +75,22 @@ impl RefereeStore for MongoStore {
                 "review history snapshot identity mismatch".into(),
             ));
         }
-        Ok(Some(file))
+        Ok(file)
+    }
+}
+
+#[async_trait]
+impl RefereeStore for MongoStore {
+    async fn get(&self, id: &SubmissionId) -> CoreResult<Option<RefereeFile>> {
+        let Some(document) = self
+            .raw(REFEREE_FILES)
+            .find_one(doc! { "id": id.as_str() })
+            .await
+            .map_err(unavailable)?
+        else {
+            return Ok(None);
+        };
+        self.read_referee_document(id, document).await.map(Some)
     }
 
     async fn insert(&self, file: &RefereeFile) -> CoreResult<()> {
