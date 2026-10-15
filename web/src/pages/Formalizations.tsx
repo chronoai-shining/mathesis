@@ -7,7 +7,7 @@ import { LatexText } from '../components/Markdown';
 import { ProofAttribution } from '../components/ProofAttribution';
 import { Pager } from '../components/Pager';
 import { Link } from '../routing/router';
-import { formatAuthors } from '../lib/labels';
+import { AuthorLine } from '../components/AuthorLine';
 import { EntrantName } from './Leaderboard';
 
 export function FormalizationsPage() {
@@ -121,7 +121,7 @@ export function FormalizationsPage() {
                     >
                       <InlineLatex source={item.title} />
                     </Link>
-                    <p className="small muted">{formatAuthors(item.authors)}</p>
+                    <AuthorLine authors={item.authors} />
                     <LatexText source={item.statement} />
                     {item.contributor ? (
                       <p className="small">

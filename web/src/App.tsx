@@ -13,6 +13,8 @@ import { HomePage } from './pages/Home';
 import { NotFoundPage } from './pages/NotFound';
 import { PaperPage, PapersPage } from './pages/Papers';
 import { PeoplePage } from './pages/People';
+import { AuthorPage } from './pages/Author';
+import { AuthorsPage } from './pages/Authors';
 import { PolicyPage } from './pages/Policy';
 import { SubmissionDetailPage } from './pages/SubmissionDetail';
 import { SubmissionsPage } from './pages/Submissions';
@@ -55,6 +57,10 @@ function titleFor(route: Route): string {
       return 'Paper';
     case 'people':
       return 'People';
+    case 'author':
+      return route.name;
+    case 'authors':
+      return 'Authors';
     case 'contribute':
       return 'Contribute';
     case 'tasks':
@@ -109,6 +115,10 @@ function Page({ route }: { route: Route }) {
       return <SubmissionDetailPage key={route.id} id={route.id} />;
     case 'people':
       return <PeoplePage />;
+    case 'author':
+      return <AuthorPage name={route.name} />;
+    case 'authors':
+      return <AuthorsPage />;
     case 'contribute':
       return <ContributePage />;
     case 'tasks':

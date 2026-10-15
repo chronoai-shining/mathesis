@@ -48,12 +48,14 @@ export function PaperStanding({
   letters = [],
   awaitingRecheck = false,
   onRevise,
+  showProgress = true,
 }: {
   submission: Submission;
   round?: RefereeRound;
   letters?: readonly FeedbackLetter[];
   awaitingRecheck?: boolean;
   onRevise?: () => void;
+  showProgress?: boolean;
 }) {
   const status = submission.status;
   if (status.state === 'draft') return null;
@@ -75,12 +77,12 @@ export function PaperStanding({
   const headline =
     status.state === 'review_complete'
       ? !round
-        ? 'Private Orchestra review'
+        ? 'Private review'
         : awaitingRecheck
           ? 'Your response is awaiting review'
           : privatePending
             ? failed
-              ? 'Your review needs attention'
+              ? 'Review could not finish'
               : audit
                 ? 'Your source audit is ready'
                 : round.response_ids?.length
@@ -97,7 +99,9 @@ export function PaperStanding({
             : 'Not accepted'
           : status.state === 'withdrawn'
             ? 'Withdrawn'
-            : 'Under review';
+            : failed
+              ? 'Review could not finish'
+              : 'Under review';
   const tone =
     status.state === 'accepted'
       ? 'good'
@@ -143,7 +147,7 @@ export function PaperStanding({
         ) : null}
       </div>
 
-      {awaitingRecheck ? (
+      {!showProgress ? null : awaitingRecheck ? (
         <p role="status">{RECHECK_WAITING}</p>
       ) : status.state === 'in_review' ||
         privatePending ||

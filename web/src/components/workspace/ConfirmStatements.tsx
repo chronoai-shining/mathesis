@@ -31,7 +31,6 @@ export function ConfirmStatements({
   const [rows, setRows] = useState<ConfirmRow[]>(() =>
     initialRows(extracted, submission.claims, submission.conjecture_dependencies),
   );
-  const [reviewed, setReviewed] = useState<Set<string>>(() => new Set());
   const [page, setPage] = useState(0);
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState('all');
@@ -44,7 +43,6 @@ export function ConfirmStatements({
   const filtered = rows.filter((row) => {
     const claim = extracted.find((c) => c.id === row.id);
     return (
-      (filter !== 'remaining' || !reviewed.has(row.id)) &&
       (filter !== 'main' || (!row.excluded && row.role === 'main')) &&
       `${row.id} ${claim?.label ?? ''} ${claim?.section ?? ''} ${claim?.statement ?? ''}`
         .toLowerCase()
@@ -53,13 +51,6 @@ export function ConfirmStatements({
   });
   const activePage = Math.min(page, Math.max(0, Math.ceil(filtered.length / pageSize) - 1));
   const visibleRows = filtered.slice(activePage * pageSize, (activePage + 1) * pageSize);
-  const mark = (id: string, checked: boolean) =>
-    setReviewed((old) => {
-      const next = new Set(old);
-      if (checked) next.add(id);
-      else next.delete(id);
-      return next;
-    });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
 
@@ -84,10 +75,6 @@ export function ConfirmStatements({
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    if (rows.length > 10 && reviewed.size !== rows.length) {
-      setError('Mark every statement as checked before starting review.');
-      return;
-    }
     const built = buildConfirmations(rows, submission.kind === 'conjecture');
     if (!built.ok) {
       setError(built.error);
@@ -110,9 +97,10 @@ export function ConfirmStatements({
   return (
     <form className="confirm-form" onSubmit={submit} aria-label="Confirm statements">
       <p>
-        We found {extracted.length} statement{extracted.length === 1 ? '' : 's'} in your source.
-        Keep the defaults when they are right: check each label, role and dependency, and exclude
-        anything that was read incorrectly. You do not need to rewrite the mathematics.{' '}
+        We found {extracted.length} statement{extracted.length === 1 ? '' : 's'} in your source. The
+        extracted labels, roles and dependencies are accepted by default. Edit only anything we read
+        incorrectly or exclude anything that does not belong in the review. You do not need to
+        rewrite the mathematics.{' '}
         {submission.kind === 'conjecture'
           ? 'Mark at least one conjecture or question as main.'
           : 'Mark at least one proved statement as a main result.'}
@@ -120,14 +108,9 @@ export function ConfirmStatements({
       <div className="confirmation-navigation" ref={navigation}>
         <div className="confirmation-progress" role="status">
           <strong>
-            {reviewed.size} / {rows.length} checked
+            {rows.length} statement{rows.length === 1 ? '' : 's'} ready
           </strong>
-          <span>{rows.length - reviewed.size} remaining</span>
-          <progress
-            value={reviewed.size}
-            max={rows.length}
-            aria-label="Statement confirmation progress"
-          />
+          <span>Defaults accepted; edit exceptions only.</span>
         </div>
         <div className="confirmation-controls">
           <label>
@@ -152,7 +135,6 @@ export function ConfirmStatements({
               }}
             >
               <option value="all">All statements</option>
-              <option value="remaining">Not yet checked</option>
               <option value="main">Main results</option>
             </select>
           </label>
@@ -172,7 +154,6 @@ export function ConfirmStatements({
               </option>
               {extracted.map((claim) => (
                 <option key={claim.id} value={claim.id}>
-                  {reviewed.has(claim.id) ? '✓ ' : ''}
                   {claim.id} · {claim.label}
                   {claim.section ? ` · ${claim.section}` : ''}
                 </option>
@@ -181,8 +162,8 @@ export function ConfirmStatements({
           </label>
         </div>
         <p className="hint">
-          This is a one-time check before review. Edits stay in this page while you navigate;
-          changing a statement clears its check.
+          This is a one-time review before publication. Edits stay in this page while you navigate;
+          unedited statements keep the extracted defaults.
         </p>
       </div>
       <div className="table-wrap">
@@ -215,14 +196,10 @@ export function ConfirmStatements({
                   claim={claim}
                   rows={rows}
                   extracted={extracted}
-                  checked={reviewed.has(row.id)}
-                  onCheck={(checked) => mark(row.id, checked)}
                   onPatch={(patch) => {
-                    mark(row.id, false);
                     setRows((rs) => updateRow(rs, row.id, patch));
                   }}
                   onDependency={(dep, on) => {
-                    mark(row.id, false);
                     setRows((rs) => toggleDependency(rs, row.id, dep, on));
                   }}
                 />
@@ -262,9 +239,10 @@ export function ConfirmStatements({
         <button
           type="submit"
           className="button"
-          disabled={busy || (rows.length > 10 && reviewed.size !== rows.length)}
+          aria-label="Check statements and start Orchestra review"
+          disabled={busy}
         >
-          {busy ? 'Starting review…' : 'Check statements and start Orchestra review'}
+          {busy ? 'Starting review…' : 'Confirm statements and start review'}
         </button>
       </div>
       <InlineError error={error} />
@@ -279,8 +257,6 @@ function ConfirmRowView({
   extracted,
   onPatch,
   onDependency,
-  checked,
-  onCheck,
 }: {
   row: ConfirmRow;
   claim: Claim;
@@ -288,8 +264,6 @@ function ConfirmRowView({
   extracted: readonly Claim[];
   onPatch: (patch: Partial<Omit<ConfirmRow, 'id'>>) => void;
   onDependency: (dep: string, on: boolean) => void;
-  checked: boolean;
-  onCheck: (checked: boolean) => void;
 }) {
   const [dependenciesOpen, setDependenciesOpen] = useState(false);
   const others = extracted.filter((c) => c.id !== row.id);
@@ -310,10 +284,6 @@ function ConfirmRowView({
         {claim.section ? <p className="muted small">§ {claim.section}</p> : null}
         <LatexText source={claim.statement} className="statement" />
         <SettlesEditor row={row} onPatch={onPatch} />
-        <label className="checkbox statement-checked">
-          <input type="checkbox" checked={checked} onChange={(e) => onCheck(e.target.checked)} />
-          <span>I checked this statement</span>
-        </label>
       </td>
       <td className="confirm-kind" data-label="Kind">
         <label className="visually-hidden" htmlFor={id('kind')}>

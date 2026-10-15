@@ -24,10 +24,11 @@ export function ReviewFindings({
   if (!rounds.length) return null;
   return (
     <section className="review-findings" aria-label="Review findings and responses">
-      <h3>Findings & responses</h3>
+      <h3>Findings to address</h3>
       <p className="small muted">
-        Read the evidence, explain a correction or upload a revised version, then request another
-        review. A response does not mark a finding resolved.
+        These are the points the source check could not settle. Open one to read the evidence,
+        explain a correction, or upload a revised version and request another review. A response
+        does not mark a finding resolved.
       </p>
       {rounds.map((round) => (
         <div key={round.number}>

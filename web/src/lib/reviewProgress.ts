@@ -46,8 +46,7 @@ export function reviewProgressText(
     : REVIEW_STAGES.slice(0, 4);
   for (const [key, label] of stages) {
     const step = round.progress[key];
-    if (step.state === 'failed')
-      return `${label} ${key === 'advice' ? 'need' : 'needs'} attention. Your source and completed reports are saved.`;
+    if (step.state === 'failed') return failedStageText(key);
     if (step.state === 'running')
       return `${label} ${key === 'advice' ? 'are' : 'is'} in progress. You can leave this page and return later.`;
     if (step.state === 'pending')
@@ -56,4 +55,20 @@ export function reviewProgressText(
   return delivered
     ? 'Your feedback letter is ready below.'
     : 'The review stages have finished. No feedback letter has been delivered for this round.';
+}
+
+/** Translate a worker failure into the next useful action for an author. */
+function failedStageText(key: (typeof REVIEW_STAGES)[number][0]): string {
+  switch (key) {
+    case 'referee':
+      return 'Referee report needs attention. It could not be completed; your upload is saved, so please try the review again.';
+    case 'audit':
+      return 'Source audit needs attention. It could not be completed; your upload and referee report are saved, so you can try again or upload a corrected version.';
+    case 'advice':
+      return 'Improvement suggestions need attention. They could not be prepared; the referee report and source check are still available.';
+    case 'letter':
+      return 'Feedback letter needs attention. It could not be delivered; the referee report and source check are still available.';
+    case 'formal':
+      return 'Lean check needs attention. It could not be completed; your review is still available.';
+  }
 }

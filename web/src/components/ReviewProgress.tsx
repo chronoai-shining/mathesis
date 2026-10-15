@@ -35,7 +35,7 @@ export function ReviewProgress({
                     : step.state === 'running'
                       ? 'In progress'
                       : step.state === 'failed'
-                        ? 'Needs attention'
+                        ? 'Could not finish'
                         : 'Complete'}
               </span>
               {step.state === 'running' ? (

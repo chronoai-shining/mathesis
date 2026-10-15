@@ -165,7 +165,7 @@ export function EntrantPage({ id }: { id: string }) {
                       {s.receipt.verdict === 'proved' ? 'Solved' : 'Disproved'} · {s.record} ·{' '}
                       {s.claim} · <DateText iso={s.receipt.checked_at} />
                     </p>
-                    <details>
+                    <details open>
                       <summary>Verification receipt</summary>
                       <pre>{JSON.stringify(s.receipt, null, 2)}</pre>
                     </details>

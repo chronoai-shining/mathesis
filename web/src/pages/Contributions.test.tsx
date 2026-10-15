@@ -160,7 +160,6 @@ describe('phase D contributions', () => {
     );
     expect(await screen.findByText('Lean ✓')).toBeInTheDocument();
     expect(screen.getByText(/proved the author-confirmed Lean target\./)).toBeInTheDocument();
-    expect(screen.getByText('Reviewed by GPT Pro and audited by Codex')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Download Target.lean' })).toHaveAttribute(
       'href',
       `/api/v1/papers/${report.record}/statements/C1/target`,

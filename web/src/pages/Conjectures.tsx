@@ -8,7 +8,8 @@ import { Pager } from '../components/Pager';
 import { Async, Badge, DateText } from '../components/ui';
 import { Link } from '../routing/router';
 import { EntrantName } from './Leaderboard';
-import { formatAuthors, SUBMISSION_KIND_LABELS } from '../lib/labels';
+import { SUBMISSION_KIND_LABELS } from '../lib/labels';
+import { AuthorLine } from '../components/AuthorLine';
 export function ConjectureEntry({ conjecture: c }: { conjecture: ConjectureSummary }) {
   return (
     <article>
@@ -24,10 +25,10 @@ export function ConjectureEntry({ conjecture: c }: { conjecture: ConjectureSumma
           {c.status === 'solved' ? 'Solved' : c.status === 'disproved' ? 'Disproved' : 'Open'}
         </Badge>
       </p>
-      <p className="entry-meta">
-        {c.authors ? <span>{formatAuthors(c.authors)}</span> : null}
+      <div className="entry-meta">
+        {c.authors ? <AuthorLine authors={c.authors} /> : null}
         {c.accepted_at ? <DateText iso={c.accepted_at} /> : null}
-      </p>
+      </div>
       <LatexText source={c.statement} className="conjecture-one-line" />
       <p className="small muted">
         {c.attempts} attempts ·{' '}

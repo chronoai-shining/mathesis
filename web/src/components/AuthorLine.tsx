@@ -1,6 +1,7 @@
 import type { Author } from '../api/types';
 import { orcidHref, safeHttpUrl } from '../lib/links';
 import { ExternalLink } from './ui';
+import { Link } from '../routing/router';
 
 export function AuthorLine({ authors }: { authors: readonly Author[] }) {
   return (
@@ -11,7 +12,9 @@ export function AuthorLine({ authors }: { authors: readonly Author[] }) {
         const website = a.website ? safeHttpUrl(a.website) : null;
         return (
           <li key={`${a.name}-${i}`}>
-            <span className="author-name">{a.name}</span>
+            <Link className="author-name" to={{ kind: 'author', name: a.name }}>
+              {a.name}
+            </Link>
             {orcid ? (
               <>
                 {' '}

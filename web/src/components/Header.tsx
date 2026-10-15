@@ -77,6 +77,11 @@ export function Header() {
             label="Formalizations"
             active={k === 'formalizations' || k === 'statement'}
           />
+          <NavLink
+            to={{ kind: 'authors' }}
+            label="Authors"
+            active={k === 'authors' || k === 'author'}
+          />
           <NavLink to={{ kind: 'submit' }} label="Submit" active={k === 'submit'} />
           {person ? (
             <NavLink
