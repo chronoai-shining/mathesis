@@ -155,6 +155,23 @@ pub enum JobKind {
     AgentAttempt,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum JobLane {
+    Compile,
+    Review,
+    Verify,
+}
+
+impl JobKind {
+    pub fn lane(self) -> JobLane {
+        match self {
+            Self::Compile => JobLane::Compile,
+            Self::VerifyAttempt => JobLane::Verify,
+            _ => JobLane::Review,
+        }
+    }
+}
+
 /// A job together with the opaque lease token that fences its worker.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LeasedJob {
@@ -171,7 +188,10 @@ pub struct LeasedJob {
 #[async_trait]
 pub trait JobLease: Send + Sync {
     /// Lease the oldest available job.
-    async fn claim(&self) -> CoreResult<Option<LeasedJob>>;
+    async fn claim(&self) -> CoreResult<Option<LeasedJob>> {
+        self.claim_in(None).await
+    }
+    async fn claim_in(&self, lane: Option<JobLane>) -> CoreResult<Option<LeasedJob>>;
     /// Renew the lease for another lease length. `false` means the token no
     /// longer owns the job and the worker must discard any pending result.
     async fn renew(&self, job: &LeasedJob) -> CoreResult<bool>;

@@ -195,6 +195,13 @@ export function PaperView({ paper }: { paper: PublicPaper }) {
             <InlineLatex source={s.title} />
           </h1>
           <AuthorLine authors={s.authors} />
+          {paper.confirmed_error_reports ? (
+            <p className="notice" role="status">
+              This published version has {paper.confirmed_error_reports} confirmed error report(s).
+              Read the error reports before relying on its results. The original acceptance record
+              is preserved; acceptance is not a proof of correctness.
+            </p>
+          ) : null}
           {claims.length ? <ReportError record={s.record} subject={{ kind: 'review' }} /> : null}
           <p className="entry-meta">
             {s.accepted_at ? (

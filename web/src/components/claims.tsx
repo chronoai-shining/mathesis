@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import type { ClaimKind, ClaimRole, EscapeAssessment, FormalArtifact, Settles } from '../api/types';
+import { MethodologyEvidence } from './MethodologyEvidence';
 import { isStandardAxiom, nonStandardAxioms } from '../lib/axioms';
 import { CLAIM_KIND_LABELS } from '../lib/labels';
 import { artifactLabel, commitHref, safeHttpUrl } from '../lib/links';
@@ -166,6 +167,7 @@ export function EscapeAssessmentView({
         <p className="muted">No witnesses named.</p>
       ) : null}
       {assessment.rationale ? <Markdown text={assessment.rationale} className="rationale" /> : null}
+      {assessment.methodology ? <MethodologyEvidence reading={assessment.methodology} /> : null}
       {rate ? (
         <p className="escape-rate">
           <span className="escape-rate-label">Escape rate</span> on <em>{rate.arena}</em>:{' '}

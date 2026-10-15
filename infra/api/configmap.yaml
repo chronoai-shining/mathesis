@@ -12,6 +12,7 @@ data:
   WISHPOOL_BIND: "0.0.0.0:8080"
   WISHPOOL_PUBLIC_URL: "https://mathesis.example.org"
   WISHPOOL_ROLE: "api"
+  WISHPOOL_REVIEW_CONCURRENCY: "2"
   WISHPOOL_STORAGE: "mongo"
   WISHPOOL_MONGODB_DATABASE: "wishpool"
   WISHPOOL_AUTH_MODE: "nyxid"
@@ -51,7 +52,7 @@ data:
   # NyxID user access tokens only; provision the mounted token file out of band.
   WISHPOOL_AGENT_BACKEND: ""
   WISHPOOL_CMA_WORKSPACE: ""
-  # Pin a published profile readable by operator and author accounts; required for BYOK.
+  # Pin a published profile readable by executing accounts; required for all CMA modes.
   WISHPOOL_CMA_AGENT_PROFILE: ""
   # Author CMA consent is independent of hosted donations. Requires NyxID, HTTP
   # transport and WISHPOOL_TOKEN_KEY. Authors provision their own_credentials workspace.

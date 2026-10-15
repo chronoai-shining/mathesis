@@ -18,6 +18,10 @@ use crate::{
 #[derive(Debug, Clone, Serialize)]
 pub struct AdvisorInput {
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub review_method: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub confirmed_claims: Option<serde_json::Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub followup: Option<FollowupInput>,
     pub kind: String,
     pub title: String,

@@ -189,10 +189,12 @@ impl App {
                     && matches!(
                         s.latest_report(Stage::Escape).map(|r| &r.payload),
                         Some(StagePayload::Escape { assessments }) if assessments.iter().any(|a| a.claim == *claim
-                            && a.conjecture.as_ref().is_some_and(crate::policy::Policy::admits_open_problem))
+                            && a.conjecture.as_ref().is_some_and(crate::policy::Policy::admits_open_problem)
+                            && a.methodology.as_ref().is_none_or(|method| method.supports_content(true)))
                     ),
             failure: None,
             review_round: 1,
+            review_contract: REVIEW_CONTRACT,
             task: None,
             report: None,
             audit: None,
@@ -264,6 +266,17 @@ impl App {
     ) -> CoreResult<()> {
         caller.require(Role::Reviewer)?;
         let s = self.submission(caller, &file.submission).await?;
+        let stored = self
+            .ports
+            .solving
+            .get(&file.id)
+            .await?
+            .ok_or_else(|| CoreError::not_found("problem review", &file.id))?;
+        if stored.review_contract != file.review_contract {
+            return Err(CoreError::conflict(
+                "a problem review retains its admitted method contract",
+            ));
+        }
         if s.current_version().map(|v| v.number) != Some(file.version)
             || s.claims_revision != file.claims_revision
             || s.analysis_visibility != Visibility::Public
@@ -276,8 +289,20 @@ impl App {
                 .claims
                 .iter()
                 .find(|c| c.claim == file.claim)
-                .and_then(|c| c.conjecture.as_ref())
-                .is_some_and(crate::policy::Policy::admits_open_problem);
+                .is_some_and(|reading| {
+                    reading
+                        .conjecture
+                        .as_ref()
+                        .is_some_and(crate::policy::Policy::admits_open_problem)
+                        && if file.review_contract >= REVIEW_CONTRACT {
+                            reading
+                                .methodology
+                                .as_ref()
+                                .is_some_and(|method| method.supports_content(true))
+                        } else {
+                            true
+                        }
+                });
         }
         if file.failure.is_some() {
             file.admitted = false;

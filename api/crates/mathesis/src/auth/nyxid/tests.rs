@@ -238,7 +238,14 @@ async fn harness_with_cma(enabled: bool) -> Harness {
         donations: Some(donations.clone()),
     });
     Harness {
-        router: http_router(app.clone(), auth, Arc::new(Readiness { mongo: None })),
+        router: http_router(
+            app.clone(),
+            auth,
+            Arc::new(Readiness {
+                mongo: None,
+                runtime: None,
+            }),
+        ),
         provider,
         app,
         client,

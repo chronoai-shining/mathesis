@@ -112,6 +112,7 @@ fn escape(assessments: Vec<(&str, ProofShape)>) -> StageReport {
     let assessments = assessments
         .into_iter()
         .map(|(id, shape)| EscapeAssessment {
+            methodology: None,
             conjecture: None,
             correctness: None,
             claim: id.into(),
@@ -138,6 +139,211 @@ fn main_and_lemma() -> Vec<Claim> {
         claim("C1", ClaimKind::Theorem, ClaimRole::Main, &["C2"]),
         claim("C2", ClaimKind::Lemma, ClaimRole::Supporting, &[]),
     ]
+}
+
+fn current_method_paper(
+    mut method: MethodologyReading,
+    problem: Option<OpenProblemRef>,
+) -> Submission {
+    let mut statement = claim("C1", ClaimKind::Theorem, ClaimRole::Main, &[]);
+    statement.settles = problem;
+    let mut submission = paper(vec![statement]);
+    submission.push_report(literature(vec![], true));
+    if method.escape != ProofShape::Content {
+        method.witnesses.clear();
+    }
+    submission.push_report(report(
+        Stage::Escape,
+        Outcome::Pass,
+        StagePayload::Escape {
+            assessments: vec![EscapeAssessment {
+                conjecture: None,
+                correctness: Some(Correctness::Correct),
+                claim: "C1".into(),
+                shape: method.escape,
+                witnesses: method
+                    .witnesses
+                    .iter()
+                    .map(|w| w.statement.clone())
+                    .collect(),
+                rationale: method.binding_analysis.clone(),
+                escape_rate: None,
+                methodology: Some(method),
+            }],
+        },
+        true,
+    ));
+    submission
+}
+
+fn content_method() -> MethodologyReading {
+    serde_json::from_str(include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../fixtures/content-methodology.json"
+    )))
+    .unwrap()
+}
+
+#[test]
+fn conclusion_witness_admits_general_mathematics_without_a_consumer_or_score() {
+    let method = content_method();
+    assert_eq!(method.witnesses[0].kind, WitnessKind::Conclusion);
+    assert!(method.utility.problem.is_empty());
+    assert!(method.information_gain.is_none());
+    assert_eq!(
+        Policy::default().decide(&current_method_paper(method, None), &[]),
+        Decision::Accept {
+            basis: AdmissionBasis::EscapeWitness
+        }
+    );
+}
+
+#[test]
+fn dead_witnesses_and_renamed_wrappers_cannot_ground_admission() {
+    let mut dead = content_method();
+    dead.witnesses[0].live_use.clear();
+    assert!(dead.validate(false).is_err());
+    assert!(matches!(
+        Policy::default().decide(&current_method_paper(dead, None), &[]),
+        Decision::NotAccepted { .. }
+    ));
+    let mut wrapper = content_method();
+    wrapper.escape = ProofShape::BindOnly;
+    wrapper.witnesses.clear();
+    wrapper.binding_analysis =
+        "The consumed helper only instantiates the baseline; its new name adds no content.".into();
+    assert!(wrapper.validate(false).is_ok());
+    assert_eq!(
+        Policy::default().decide(&current_method_paper(wrapper, None), &[]),
+        Decision::NotAccepted {
+            reasons: vec![RejectReason::BindOnly]
+        }
+    );
+}
+
+#[test]
+fn unavailable_comparison_is_insufficient_evidence_not_bind_only() {
+    let mut method = content_method();
+    method.literature = EvidenceStatus::Insufficient;
+    method.limits = vec!["The decisive prior theorem could not be opened.".into()];
+    let Decision::NotAccepted { reasons } =
+        Policy::default().decide(&current_method_paper(method, None), &[])
+    else {
+        panic!("missing literature cannot establish novelty")
+    };
+    assert!(matches!(
+        &reasons[..],
+        [RejectReason::InsufficientEvidence { .. }]
+    ));
+    let mut undecided = paper(vec![claim("C1", ClaimKind::Theorem, ClaimRole::Main, &[])]);
+    undecided.push_report(literature(vec![], true));
+    undecided.push_report(escape(vec![("C1", ProofShape::Undetermined)]));
+    let Decision::NotAccepted { reasons } = Policy::default().decide(&undecided, &[]) else {
+        panic!("undetermined human readings cannot grant content")
+    };
+    assert!(matches!(
+        &reasons[..],
+        [RejectReason::InsufficientEvidence { .. }]
+    ));
+}
+
+#[test]
+fn computation_needs_independent_utility_and_discharged_premises() {
+    for kind in [
+        UtilityKind::FiniteEnumeration,
+        UtilityKind::CertifiedInstance,
+        UtilityKind::Checker,
+        UtilityKind::NumericReduction,
+        UtilityKind::Counterexample,
+    ] {
+        let mut method = content_method();
+        method.utility.kind = kind;
+        let Decision::NotAccepted { reasons } =
+            Policy::default().decide(&current_method_paper(method.clone(), None), &[])
+        else {
+            panic!("unsupported computation {kind:?}")
+        };
+        assert!(matches!(
+            &reasons[..],
+            [RejectReason::InsufficientUtility { .. }]
+        ));
+        method.utility.problem = "The independent assertion under the stated hypotheses".into();
+        method.utility.progress = "A concrete soundness application or matching refutation".into();
+        method.utility.prerequisites = "The exact finite domain and inequalities".into();
+        assert!(!method.utility.supports_admission());
+        method.utility.discharge = "An explicit argument establishing those exact premises".into();
+        assert_eq!(
+            method.utility.supports_admission(),
+            !matches!(
+                kind,
+                UtilityKind::FiniteEnumeration | UtilityKind::CertifiedInstance
+            )
+        );
+    }
+}
+
+#[test]
+fn named_settlement_requires_the_exact_audited_problem_even_for_bind_only() {
+    let problem = OpenProblemRef {
+        name: "Named open problem".into(),
+        source: arxiv("2401.01234"),
+    };
+    let mut method = content_method();
+    method.escape = ProofShape::BindOnly;
+    method.witnesses.clear();
+    assert!(matches!(
+        Policy::default().decide(
+            &current_method_paper(method.clone(), Some(problem.clone())),
+            &[]
+        ),
+        Decision::NotAccepted { .. }
+    ));
+    method.settlement = Some(SettlementReading {
+        status: EvidenceStatus::Supported,
+        problem: problem.clone(),
+        statement: "Original quantified assertion".into(),
+        assumptions: "The same domain and hypotheses".into(),
+        prior_status: "Open in the inspected source and search".into(),
+        resolution: "Disproof".into(),
+        matching_argument: "The counterexample meets all hypotheses and violates the conclusion"
+            .into(),
+        opened_source: "Problem [opened: arXiv:2401.01234]".into(),
+    });
+    assert_eq!(
+        Policy::default().decide(
+            &current_method_paper(method.clone(), Some(problem.clone())),
+            &[]
+        ),
+        Decision::Accept {
+            basis: AdmissionBasis::OpenProblemSettlement
+        }
+    );
+    method.settlement.as_mut().unwrap().problem.name = "A different weaker problem".into();
+    assert!(matches!(
+        Policy::default().decide(&current_method_paper(method, Some(problem)), &[]),
+        Decision::NotAccepted { .. }
+    ));
+}
+
+#[test]
+fn separate_information_gain_cannot_rescue_a_bind_only_result() {
+    let mut method = content_method();
+    method.escape = ProofShape::BindOnly;
+    method.witnesses.clear();
+    method.information_gain = Some(InformationGainReading {
+        model: "Explicit model".into(),
+        readout: "Observation".into(),
+        task: "Question".into(),
+        correspondence: "Model-to-source mapping".into(),
+        evidence: "Reported calculation".into(),
+        status: EvidenceStatus::Supported,
+    });
+    assert_eq!(
+        Policy::default().decide(&current_method_paper(method, None), &[]),
+        Decision::NotAccepted {
+            reasons: vec![RejectReason::BindOnly]
+        }
+    );
 }
 
 #[test]
@@ -212,6 +418,46 @@ fn content_only_in_a_lemma_does_not_pass() {
             reasons: vec![RejectReason::BindOnly]
         }
     );
+}
+
+#[test]
+fn new_content_does_not_override_another_incorrect_or_unchecked_main_result() {
+    for correctness in [
+        Correctness::Error,
+        Correctness::Gap,
+        Correctness::NotChecked,
+    ] {
+        let mut submission = paper(vec![
+            claim("C1", ClaimKind::Theorem, ClaimRole::Main, &[]),
+            claim("C2", ClaimKind::Theorem, ClaimRole::Main, &[]),
+        ]);
+        submission.push_report(literature(vec![], true));
+        let mut assessment = escape(vec![
+            ("C1", ProofShape::Content),
+            ("C2", ProofShape::BindOnly),
+        ]);
+        if let StagePayload::Escape { assessments } = &mut assessment.payload {
+            assessments[0].correctness = Some(Correctness::Correct);
+            assessments[1].correctness = Some(correctness);
+        }
+        submission.push_report(assessment);
+        let decision = Policy::default().decide(&submission, &[]);
+        if correctness == Correctness::NotChecked {
+            assert_eq!(
+                decision,
+                Decision::NotAccepted {
+                    reasons: vec![RejectReason::UncheckedResult { claim: "C2".into() }],
+                }
+            );
+        } else {
+            assert_eq!(
+                decision,
+                Decision::NotAccepted {
+                    reasons: vec![RejectReason::IncorrectResult { claim: "C2".into() }],
+                }
+            );
+        }
+    }
 }
 
 #[test]
@@ -424,6 +670,7 @@ fn conjecture_policy_truth_table_and_human_gates() {
                     Outcome::Pass,
                     StagePayload::Escape {
                         assessments: vec![EscapeAssessment {
+                            methodology: None,
                             claim: "C1".into(),
                             correctness: Some(Correctness::NotChecked),
                             shape,

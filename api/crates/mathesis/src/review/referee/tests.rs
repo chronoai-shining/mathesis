@@ -258,6 +258,12 @@ impl Advisor for FakeAdvisor {
                 .statements
                 .iter()
                 .map(|c| AuditedClaimOut {
+                    methodology: input.review_method.as_ref().map(|_| {
+                        let mut reading: serde_json::Value = serde_json::from_str(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/../../fixtures/content-methodology.json"))).unwrap();
+                        if !c.proved { reading["witnesses"] = serde_json::json!([]); }
+                        else { reading["witnesses"][0]["statement"] = serde_json::json!("A compactness lemma"); }
+                        reading
+                    }),
                     claim: c.id.clone(),
                     conjecture: (input.kind == "conjecture" && !c.proved).then(|| {
                         mathesis_review::referee_prompts::ConjectureOut {
@@ -459,6 +465,7 @@ impl World {
             .await
             .unwrap();
         let worker = Worker {
+            review_concurrency: 2,
             cma_factory: None,
             app,
             jobs: jobs.clone(),
@@ -950,7 +957,7 @@ async fn referee_reading_corroborates_claude_without_changing_policy() {
 
 #[tokio::test]
 async fn malformed_answer_is_retained_and_missing_advisor_is_explicit() {
-    let mut w = World::new(
+    let w = World::new(
         vec![Ok(OracleStatus::Completed {
             text: "A readable but unstructured review".into(),
             model: None,
@@ -958,7 +965,6 @@ async fn malformed_answer_is_retained_and_missing_advisor_is_explicit() {
         true,
     )
     .await;
-    w.worker.advisor = None;
     w.run_round().await;
     let file = w.file().await;
     let round = file.current().unwrap();
@@ -966,16 +972,13 @@ async fn malformed_answer_is_retained_and_missing_advisor_is_explicit() {
     assert_eq!(report.text, "A readable but unstructured review");
     assert!(report.recommendation.is_none());
     assert!(!report.limits.is_empty());
-    assert!(matches!(round.advice.state, StepState::Skipped { .. }));
-    assert!(
-        matches!(&round.audit.state, StepState::Failed { reason, .. } if reason == "no Codex auditor configured")
-    );
     let mut w = World::new(vec![completed("accept")], true).await;
     w.worker.advisor = None;
     w.run_round().await;
+    assert_eq!(w.oracle.submitted.load(Ordering::SeqCst), 0);
     assert!(matches!(
-        &w.file().await.current().unwrap().audit.state,
-        StepState::Failed { reason, .. } if reason == "no Codex auditor configured"
+        &w.file().await.current().unwrap().referee.state,
+        StepState::Failed { reason, .. } if reason.contains("Review execution is unavailable")
     ));
 }
 
@@ -1222,6 +1225,15 @@ async fn new_contract_delivers_actual_evidence_to_all_review_prompts_without_cha
 
     let (current, _work, source) = w.worker.advisor_input(&paper, &report, 2).await.unwrap();
     assert_eq!(source, old_source, "source bytes did not change");
+    let (upgraded, _upgraded_work, upgraded_source) = w
+        .worker
+        .advisor_input(&paper, &report, mathesis_core::model::REVIEW_CONTRACT)
+        .await
+        .unwrap();
+    assert_eq!(upgraded_source, old_source);
+    assert!(referee_prompts::audit(&upgraded).contains(mathesis_core::model::REVIEW_METHOD));
+    assert!(referee_prompts::audit(&upgraded).contains("certificate-payload-for-auditor"));
+    assert!(current.review_method.is_none());
     for prompt in [
         referee_prompts::audit(&current),
         referee_prompts::advice(&current),
@@ -1295,6 +1307,75 @@ async fn shutdown_releases_running_audit_without_waiting_for_lease_expiry() {
     let revision = after.revision;
     tokio::time::advance(Duration::from_secs(3600)).await;
     assert_eq!(w.file().await.revision, revision);
+}
+
+#[tokio::test]
+async fn running_worker_compiles_another_submission_during_a_long_audit() {
+    let mut world = World::new(vec![completed("accept")], true).await;
+    let review = prepare_audit(&world).await;
+    world.jobs.defer(&review, Duration::ZERO).await.unwrap();
+    world.worker.advisor = Some(Arc::new(FakeAdvisor {
+        audit_delay: Duration::from_secs(3600),
+        ..Default::default()
+    }));
+    world.worker.review_concurrency = 1;
+    let application = world.worker.app.clone();
+    let author = world.author.clone();
+    let reviewed_id = world.paper.id.clone();
+    let referee = world.worker.referee_account.clone();
+    let (shutdown, receiver) = tokio::sync::watch::channel(false);
+    let running = tokio::spawn(world.worker.run(receiver));
+    let observation = tokio::time::timeout(Duration::from_secs(10), async {
+        loop {
+            let file = application.referee(&referee, &reviewed_id).await.unwrap();
+            if matches!(file.rounds[0].audit.state, StepState::Running { .. }) {
+                break;
+            }
+            tokio::time::sleep(Duration::from_millis(10)).await;
+        }
+        let paper = application
+            .submit_paper(
+                &author,
+                NewPaper {
+                    purpose: Default::default(),
+                    review_scope: String::new(),
+                    processing_consent: Some("ai-review-2026-10-11".into()),
+                    kind: mathesis_core::model::SubmissionKind::Paper,
+                    make_public_after_acceptance: false,
+                    typed_conjecture: None,
+                    ai_disclosure: AiDisclosure {
+                        level: AiUse::None,
+                        statement: "No AI used.".into(),
+                    },
+                    authors: vec![],
+                    msc: vec![],
+                    doi: None,
+                    open_to_contributors: false,
+                },
+                Upload {
+                    filename: "paper.tex".into(),
+                    bytes: SOURCE.as_bytes().to_vec(),
+                },
+            )
+            .await
+            .unwrap();
+        loop {
+            let current = application.submission(&author, &paper.id).await.unwrap();
+            if current.current_version().unwrap().compile_error.is_some() {
+                break;
+            }
+            tokio::time::sleep(Duration::from_millis(10)).await;
+        }
+        let file = application.referee(&referee, &reviewed_id).await.unwrap();
+        assert!(matches!(
+            file.rounds[0].audit.state,
+            StepState::Running { .. }
+        ));
+    })
+    .await;
+    shutdown.send(true).unwrap();
+    running.await.unwrap();
+    observation.expect("compilation must be dispatched before the remote audit finishes");
 }
 
 #[tokio::test(start_paused = true)]
@@ -1393,8 +1474,11 @@ struct LostHeartbeat {
 
 #[async_trait]
 impl JobLease for LostHeartbeat {
-    async fn claim(&self) -> mathesis_core::CoreResult<Option<LeasedJob>> {
-        self.jobs.claim().await
+    async fn claim_in(
+        &self,
+        lane: Option<mathesis_core::ports::JobLane>,
+    ) -> mathesis_core::CoreResult<Option<LeasedJob>> {
+        self.jobs.claim_in(lane).await
     }
     async fn renew(&self, job: &LeasedJob) -> mathesis_core::CoreResult<bool> {
         self.renewals.fetch_add(1, Ordering::SeqCst);
@@ -1712,7 +1796,13 @@ impl mathesis_review::cma::Transport for ManagedTransport {
         use serde_json::json;
         self.calls.lock().await.push((method.into(), path.into()));
         let mut response_id = None;
-        let value = if path.ends_with("/agents") {
+        let value = if method == "GET" && path.starts_with("api/v1/workspaces/") {
+            json!({"sandbox_id":"sbx_test","status":"ready"})
+        } else if method == "GET" && path.starts_with("api/v1/sandboxes/") {
+            json!({"owner":"author","status":"active","profile":{"id":"sbp_test","revision":1}})
+        } else if method == "GET" && path.starts_with("api/v1/sandbox-profiles/") {
+            json!({"content":{"model_access":"own_credentials"}})
+        } else if path.ends_with("/agents") {
             let n = self.created.fetch_add(1, Ordering::SeqCst) + 1;
             json!({"id":format!("agt_{n}")})
         } else if method == "POST" && path.ends_with("/responses") {
@@ -1721,7 +1811,7 @@ impl mathesis_review::cma::Transport for ManagedTransport {
             let text = body["input"].as_str().unwrap();
             assert!(text.contains("Every gap is finite"));
             assert!(!text.contains("Network access is disabled"));
-            let answer = if text.contains("Audit the GPT Pro referee report")
+            let mut answer = if text.contains("Audit the GPT Pro referee report")
                 || text.contains("Audit this conjecture referee report")
             {
                 json!({"verdict":"accept","summary":"The compactness argument supplies new content.","claims":[{"claim":"C1","correctness":"correct","comment":"A compactness lemma supplies the proof.","shape":"content","witnesses":["A compactness lemma"],"referee_agreed":true},{"claim":"C2","correctness":"not_checked","comment":"An open question.","conjecture":{"well_posed":true,"well_posed_reason":"All quantities are defined","status":"open","status_reason":"No prior settlement found","escape":"content","escape_reason":"A new uniform bound is needed"}}]})
@@ -1732,6 +1822,26 @@ impl mathesis_review::cma::Transport for ManagedTransport {
             } else {
                 json!({"subject":"Decision","body":"Dear A. Author,\n\nThe compactness argument is useful.","note":""})
             };
+            if text.contains(mathesis_core::model::REVIEW_METHOD)
+                && let Some(claims) = answer
+                    .get_mut("claims")
+                    .and_then(|claims| claims.as_array_mut())
+            {
+                for claim in claims {
+                    let mut reading: serde_json::Value =
+                        serde_json::from_str(include_str!(concat!(
+                            env!("CARGO_MANIFEST_DIR"),
+                            "/../../fixtures/content-methodology.json"
+                        )))
+                        .unwrap();
+                    if claim["correctness"] == "not_checked" {
+                        reading["witnesses"] = json!([]);
+                    } else {
+                        reading["witnesses"][0]["statement"] = json!("A compactness lemma");
+                    }
+                    claim["methodology"] = reading;
+                }
+            }
             let id = format!("resp_{}", self.created.load(Ordering::SeqCst));
             self.answers
                 .lock()
@@ -1785,7 +1895,7 @@ async fn pipeline_uses_durable_cma_for_audit_advice_letter_and_hides_provider_st
     let client = Arc::new(mathesis_review::cma::Client {
         transport: transport.clone(),
         workspace: "wks_test".into(),
-        profile: None,
+        profile: Some(serde_json::json!({"id":"agp_published","revision":1})),
         poll: Duration::from_millis(1),
     });
     w.worker.cma_factory = Some(Arc::new(crate::cma_tokens::CmaFactory {

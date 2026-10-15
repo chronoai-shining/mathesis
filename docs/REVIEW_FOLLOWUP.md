@@ -85,8 +85,10 @@ remote review or create a replacement task.
 
 ## Operating the real review loop
 
-API `/readyz` currently checks database readiness only. It is not evidence that
-Oracle or CMA execution works. Before a real evaluation, check the Oracle pool,
+API-only `/readyz` checks database readiness; worker/all roles additionally check
+configured executables, CMA resources and verifier readiness. `mathesis --check`
+provides the same diagnostics without starting a listener. These resource checks
+are not evidence that Oracle or CMA model execution works. Before a real evaluation, check the Oracle pool,
 CMA workspace/profile and a task-scoped execution; follow its terminal result.
 An agent creation HTTP 201 alone does not establish execution readiness.
 

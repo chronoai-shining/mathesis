@@ -108,6 +108,36 @@ impl Worker {
         let mut step = round.referee.clone();
         match &step.state {
             StepState::Pending => {
+                if step.client_ref.is_none() {
+                    let preflight = if let Some(factory) = &self.cma_factory {
+                        matches!(
+                            tokio::time::timeout(
+                                std::time::Duration::from_secs(15),
+                                factory.preflight(&submission.submitter),
+                            )
+                            .await,
+                            Ok(Ok(()))
+                        )
+                    } else {
+                        self.advisor.is_some()
+                    };
+                    if !preflight {
+                        step.state = self.failed(
+                            "Review execution is unavailable. Check CMA login, workspace, sandbox and pinned profile before restarting this review.".into(),
+                            None, true,
+                        );
+                        self.ensure_lease(job).await?;
+                        self.app
+                            .update_referee_round(
+                                &self.referee_account,
+                                &submission.id,
+                                number,
+                                RoundUpdate::Referee(step),
+                            )
+                            .await?;
+                        return self.defer_referee(job).await;
+                    }
+                }
                 if let Some(version) = submission
                     .versions
                     .iter()
@@ -157,12 +187,13 @@ impl Worker {
                     }
                     Err(error) => return Err(error.into()),
                 };
-                let make_prompt =
-                    if submission.kind == mathesis_core::model::SubmissionKind::Conjecture {
-                        referee_prompts::conjecture_referee
-                    } else {
-                        referee_prompts::referee
-                    };
+                let conjecture =
+                    submission.kind == mathesis_core::model::SubmissionKind::Conjecture;
+                let make_prompt = if conjecture {
+                    referee_prompts::conjecture_referee
+                } else {
+                    referee_prompts::referee
+                };
                 let mut prompt = make_prompt(
                     &Document {
                         title: submission.title.clone(),
@@ -171,6 +202,18 @@ impl Worker {
                     },
                     &mapping::confirmed_statements(&submission.claims),
                 );
+                if round.review_contract >= mathesis_core::model::REVIEW_CONTRACT {
+                    prompt = referee_prompts::methodology_referee(
+                        &Document {
+                            title: submission.title.clone(),
+                            abstract_text: submission.abstract_text.clone(),
+                            text: None,
+                        },
+                        &mapping::confirmed_statements(&submission.claims),
+                        &serde_json::to_value(&submission.claims).expect("claims serialization"),
+                        conjecture,
+                    );
+                }
                 // Existing rounds without declared evidence keep their admitted input digest.
                 if let Some(version) = submission
                     .versions
@@ -1130,6 +1173,10 @@ impl Worker {
             std::fs::write(path, bytes).map_err(|e| e.to_string())?;
         }
         let mut input = AdvisorInput {
+            review_method: (review_contract >= mathesis_core::model::REVIEW_CONTRACT)
+                .then(|| mathesis_core::model::REVIEW_METHOD.into()),
+            confirmed_claims: (review_contract >= mathesis_core::model::REVIEW_CONTRACT)
+                .then(|| serde_json::to_value(&paper.claims).expect("claims serialization")),
             followup: None,
             kind: serde_json::to_value(paper.kind)
                 .unwrap()

@@ -236,6 +236,7 @@ impl App {
                     let shape = c.shape.unwrap_or(ProofShape::BindOnly);
                     let source = mine.iter().rev().find(|j| j.shape == shape);
                     assessments.push(EscapeAssessment {
+                        methodology: None,
                         conjecture: None,
                         correctness: None,
                         claim: claim.id.clone(),

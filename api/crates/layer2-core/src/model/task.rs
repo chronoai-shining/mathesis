@@ -202,7 +202,7 @@ impl ContributionOutput {
                     (ProofShape::Content, false) => Err(CoreError::invalid(
                         "a content judgement must name a witness",
                     )),
-                    (ProofShape::BindOnly, true) => {
+                    (ProofShape::BindOnly | ProofShape::Undetermined, true) => {
                         Err(CoreError::invalid("a bind-only judgement names no witness"))
                     }
                     _ => Ok(()),

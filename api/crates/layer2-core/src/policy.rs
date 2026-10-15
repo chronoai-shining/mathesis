@@ -136,6 +136,37 @@ impl Policy {
             );
         }
 
+        let incorrect: Vec<_> = main
+            .iter()
+            .filter_map(|claim| {
+                assessments.iter().find_map(|assessment| {
+                    (assessment.claim == claim.id
+                        && matches!(
+                            assessment.correctness,
+                            Some(crate::model::Correctness::Gap | crate::model::Correctness::Error)
+                        ))
+                    .then(|| RejectReason::IncorrectResult {
+                        claim: claim.id.clone(),
+                    })
+                })
+            })
+            .collect();
+        if !incorrect.is_empty() {
+            return Decision::NotAccepted { reasons: incorrect };
+        }
+        if let Some(unchecked) = main.iter().find(|claim| {
+            assessments.iter().any(|assessment| {
+                assessment.claim == claim.id
+                    && assessment.correctness == Some(crate::model::Correctness::NotChecked)
+            })
+        }) {
+            return Decision::NotAccepted {
+                reasons: vec![RejectReason::UncheckedResult {
+                    claim: unchecked.id.clone(),
+                }],
+            };
+        }
+
         let settles = main.iter().any(|c| {
             c.settles.is_some()
                 && known_by(&c.id).is_none()
@@ -143,6 +174,11 @@ impl Policy {
                     a.claim == c.id
                         && a.correctness
                             .is_none_or(|v| v == crate::model::Correctness::Correct)
+                        && a.methodology.as_ref().is_none_or(|reading| {
+                            c.settles
+                                .as_ref()
+                                .is_some_and(|problem| reading.supports_settlement(problem))
+                        })
                 })
         });
         let new_content = main.iter().any(|c| {
@@ -172,7 +208,47 @@ impl Policy {
                     .any(|a| a.claim == c.id && !a.has_escape_content())
             });
             let mut reasons = known;
-            if all_bind_only || reasons.is_empty() {
+            for claim in &main {
+                if known_by(&claim.id).is_some() {
+                    continue;
+                }
+                let Some(assessment) = assessments.iter().find(|a| a.claim == claim.id) else {
+                    continue;
+                };
+                if assessment.shape == crate::model::ProofShape::Undetermined
+                    && assessment.methodology.is_none()
+                {
+                    reasons.push(RejectReason::InsufficientEvidence {
+                        claim: claim.id.clone(),
+                        detail: format!("Statement {} has an undetermined proof-escape reading; further evidence is needed.", claim.id),
+                    });
+                }
+                if let Some(reading) = &assessment.methodology {
+                    if reading.literature != crate::model::EvidenceStatus::Supported
+                        || reading.escape == crate::model::ProofShape::Undetermined
+                        || reading.validate(false).is_err()
+                        || claim
+                            .settles
+                            .as_ref()
+                            .is_some_and(|problem| !reading.supports_settlement(problem))
+                    {
+                        reasons.push(RejectReason::InsufficientEvidence { claim: claim.id.clone(), detail: format!("Statement {} lacks sufficient evidence for its prerequisite comparison, new content or claimed open-problem settlement. {}", claim.id, reading.limits.join(" ")) });
+                    } else if reading.escape == crate::model::ProofShape::Content
+                        && !reading.utility.supports_admission()
+                    {
+                        reasons.push(RejectReason::InsufficientUtility { claim: claim.id.clone(), detail: format!("Statement {} has no established independent utility under its mathematical or computational category: {}", claim.id, reading.utility.rationale) });
+                    }
+                }
+            }
+            if (all_bind_only || reasons.is_empty())
+                && !reasons.iter().any(|reason| {
+                    matches!(
+                        reason,
+                        RejectReason::InsufficientEvidence { .. }
+                            | RejectReason::InsufficientUtility { .. }
+                    )
+                })
+            {
                 reasons.push(RejectReason::BindOnly);
             }
             return Decision::NotAccepted { reasons };
@@ -210,7 +286,11 @@ impl Policy {
         };
         let passes = main.iter().any(|c| {
             assessments.iter().any(|a| {
-                a.claim == c.id && a.conjecture.as_ref().is_some_and(Self::admits_open_problem)
+                a.claim == c.id
+                    && a.conjecture.as_ref().is_some_and(Self::admits_open_problem)
+                    && a.methodology
+                        .as_ref()
+                        .is_none_or(|reading| reading.supports_content(true))
             })
         });
         if passes {
@@ -234,7 +314,8 @@ impl Policy {
                 None => format!("Statement {} has no usable check of well-posedness, open status and new content.", c.id),
                 Some(r) if !r.well_posed => format!("Statement {} needs clarification: {}", c.id, r.well_posed_reason),
                 Some(r) if r.status != crate::model::ConjectureStatus::Open => format!("Statement {} is not established as open: {}", c.id, r.status_reason),
-                Some(r) => format!("Statement {} would only re-bind known results: {}", c.id, r.escape_reason),
+                Some(r) if r.escape == crate::model::ProofShape::BindOnly => format!("Statement {} would only re-bind known results: {}", c.id, r.escape_reason),
+                Some(_) => format!("Statement {} lacks sufficient evidence for conditional new content, literature status or mathematical value.", c.id),
             };
             RejectReason::Conjecture { detail }
         }).collect();

@@ -1,5 +1,6 @@
 import type { FeedbackLetter, RefereeRound, RejectReason, Submission } from '../api/types';
 import { RECHECK_WAITING, reviewDelivered, reviewProgressText } from '../lib/reviewProgress';
+import { rejectReasonText } from '../lib/labels';
 
 export function publicationReason(reason: RejectReason): string {
   switch (reason.reason) {
@@ -9,6 +10,9 @@ export function publicationReason(reason: RejectReason): string {
       return 'No checked main result carries new mathematical content.';
     case 'no_main_result':
       return 'The paper has no proved main result.';
+    case 'incorrect_result':
+    case 'unchecked_result':
+      return rejectReasonText(reason);
     default:
       return reason.detail;
   }
@@ -95,9 +99,9 @@ export function PaperStanding({
             : 'Not accepted'
           : status.state === 'withdrawn'
             ? 'Withdrawn'
-        : failed
-          ? 'Review could not finish'
-          : 'Under review';
+            : failed
+              ? 'Review could not finish'
+              : 'Under review';
   const tone =
     status.state === 'accepted'
       ? 'good'

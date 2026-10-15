@@ -1,7 +1,7 @@
 use axum::{
     Json, Router,
     extract::{DefaultBodyLimit, State},
-    routing::post,
+    routing::{get, post},
 };
 use mathesis_verifier::{Checker, Receipt, Request};
 use std::{path::PathBuf, sync::Arc, time::Duration};
@@ -33,6 +33,23 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             Json(checker.verify(&request).await)
         }
         let router = Router::new()
+            .route("/healthz", get(|| async { axum::http::StatusCode::OK }))
+            .route(
+                "/readyz",
+                get({
+                    let checker = checker.clone();
+                    move || {
+                        let checker = checker.clone();
+                        async move {
+                            if mathesis_verifier::workspace_ready(&checker.workspace).is_ok() {
+                                axum::http::StatusCode::OK
+                            } else {
+                                axum::http::StatusCode::SERVICE_UNAVAILABLE
+                            }
+                        }
+                    }
+                }),
+            )
             .route("/verify", post(verify))
             .layer(DefaultBodyLimit::max(64 * 1024 * 1024))
             .with_state((checker, Arc::new(tokio::sync::Semaphore::new(1))));

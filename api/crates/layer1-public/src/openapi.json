@@ -101,11 +101,7 @@
             "in": "query",
             "required": false,
             "schema": {
-              "enum": [
-                "paper",
-                "note",
-                "conjecture"
-              ]
+              "enum": ["paper", "note", "conjecture"]
             },
             "description": ""
           }
@@ -222,10 +218,7 @@
             "in": "query",
             "required": false,
             "schema": {
-              "enum": [
-                "mine",
-                "queue"
-              ]
+              "enum": ["mine", "queue"]
             },
             "description": ""
           }
@@ -628,11 +621,7 @@
             "in": "query",
             "required": false,
             "schema": {
-              "enum": [
-                "open",
-                "solved",
-                "disproved"
-              ]
+              "enum": ["open", "solved", "disproved"]
             },
             "description": ""
           }
@@ -768,9 +757,7 @@
                     "type": "string"
                   }
                 },
-                "required": [
-                  "solution"
-                ]
+                "required": ["solution"]
               }
             }
           }
@@ -896,10 +883,7 @@
             "in": "query",
             "schema": {
               "type": "string",
-              "enum": [
-                "paper",
-                "conjecture"
-              ]
+              "enum": ["paper", "conjecture"]
             }
           },
           {
@@ -907,11 +891,7 @@
             "in": "query",
             "schema": {
               "type": "string",
-              "enum": [
-                "open",
-                "verified",
-                "disproved"
-              ]
+              "enum": ["open", "verified", "disproved"]
             }
           },
           {
@@ -1263,6 +1243,165 @@
       }
     },
     "schemas": {
+      "MethodologyReading": {
+        "type": "object",
+        "description": "Private source-based reviewer evidence under review contract 3. Not a Lean receipt, compiled Trureturing registration or formal FIB result. Missing/unusable model evidence becomes an explicit insufficient/undetermined reading. Historical claims omit this field.",
+        "required": [
+          "baseline",
+          "searched",
+          "literature",
+          "binding_analysis",
+          "delta",
+          "escape",
+          "witnesses",
+          "utility",
+          "limits"
+        ],
+        "properties": {
+          "baseline": {
+            "type": "array",
+            "maxItems": 40,
+            "items": {
+              "type": "object",
+              "required": ["statement", "location"],
+              "properties": {
+                "statement": { "type": "string", "maxLength": 10000 },
+                "location": { "type": "string", "maxLength": 2000 },
+                "source": {
+                  "type": ["string", "null"],
+                  "description": "Reported opened source, or null for manuscript-local prerequisites."
+                }
+              }
+            }
+          },
+          "searched": {
+            "type": "array",
+            "maxItems": 40,
+            "items": { "type": "string", "maxLength": 2000 }
+          },
+          "literature": {
+            "$ref": "#/components/schemas/MethodologyEvidenceStatus"
+          },
+          "binding_analysis": { "type": "string", "maxLength": 10000 },
+          "delta": { "type": "string", "maxLength": 10000 },
+          "escape": { "enum": ["content", "bind_only", "undetermined"] },
+          "witnesses": {
+            "type": "array",
+            "maxItems": 20,
+            "items": {
+              "type": "object",
+              "required": [
+                "kind",
+                "statement",
+                "location",
+                "non_binding_step",
+                "live_use"
+              ],
+              "properties": {
+                "kind": { "enum": ["intermediate", "conclusion"] },
+                "statement": { "type": "string", "maxLength": 10000 },
+                "location": { "type": "string", "maxLength": 2000 },
+                "non_binding_step": { "type": "string", "maxLength": 10000 },
+                "live_use": { "type": "string", "maxLength": 10000 }
+              }
+            }
+          },
+          "utility": {
+            "type": "object",
+            "required": [
+              "kind",
+              "status",
+              "rationale",
+              "problem",
+              "progress",
+              "prerequisites",
+              "discharge"
+            ],
+            "properties": {
+              "kind": {
+                "enum": [
+                  "general_theorem",
+                  "finite_enumeration",
+                  "checker",
+                  "numeric_reduction",
+                  "certified_instance",
+                  "counterexample"
+                ]
+              },
+              "status": {
+                "$ref": "#/components/schemas/MethodologyEvidenceStatus"
+              },
+              "rationale": { "type": "string", "maxLength": 10000 },
+              "problem": { "type": "string" },
+              "progress": { "type": "string" },
+              "prerequisites": { "type": "string" },
+              "discharge": { "type": "string" }
+            }
+          },
+          "settlement": {
+            "type": ["object", "null"],
+            "required": [
+              "status",
+              "problem",
+              "statement",
+              "assumptions",
+              "prior_status",
+              "resolution",
+              "matching_argument",
+              "opened_source"
+            ],
+            "properties": {
+              "status": {
+                "$ref": "#/components/schemas/MethodologyEvidenceStatus"
+              },
+              "problem": {
+                "type": "object",
+                "required": ["name", "source"],
+                "properties": {
+                  "name": { "type": "string", "maxLength": 300 },
+                  "source": { "$ref": "#/components/schemas/Source" }
+                }
+              },
+              "statement": { "type": "string" },
+              "assumptions": { "type": "string" },
+              "prior_status": { "type": "string" },
+              "resolution": { "type": "string" },
+              "matching_argument": { "type": "string" },
+              "opened_source": { "type": "string" }
+            }
+          },
+          "information_gain": {
+            "type": ["object", "null"],
+            "description": "Optional separate analysis; never an admission gate.",
+            "required": [
+              "model",
+              "readout",
+              "task",
+              "correspondence",
+              "evidence",
+              "status"
+            ],
+            "properties": {
+              "model": { "type": "string" },
+              "readout": { "type": "string" },
+              "task": { "type": "string" },
+              "correspondence": { "type": "string" },
+              "evidence": { "type": "string" },
+              "status": {
+                "$ref": "#/components/schemas/MethodologyEvidenceStatus"
+              }
+            }
+          },
+          "limits": {
+            "type": "array",
+            "maxItems": 40,
+            "items": { "type": "string" }
+          }
+        }
+      },
+      "MethodologyEvidenceStatus": {
+        "enum": ["supported", "unsupported", "insufficient"]
+      },
       "Problem": {
         "type": "object",
         "properties": {
@@ -1273,10 +1412,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "code",
-          "detail"
-        ]
+        "required": ["code", "detail"]
       },
       "Author": {
         "type": "object",
@@ -1294,9 +1430,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "name"
-        ]
+        "required": ["name"]
       },
       "Paper": {
         "type": "object",
@@ -1314,11 +1448,7 @@
             }
           },
           "kind": {
-            "enum": [
-              "paper",
-              "note",
-              "conjecture"
-            ]
+            "enum": ["paper", "note", "conjecture"]
           },
           "submission": {
             "type": "string"
@@ -1333,10 +1463,7 @@
             }
           },
           "doi": {
-            "type": [
-              "string",
-              "null"
-            ]
+            "type": ["string", "null"]
           },
           "accepted_at": {
             "type": "string",
@@ -1346,12 +1473,7 @@
             "type": "integer"
           }
         },
-        "required": [
-          "record",
-          "title",
-          "authors",
-          "kind"
-        ]
+        "required": ["record", "title", "authors", "kind"]
       },
       "PaperListing": {
         "type": "object",
@@ -1363,20 +1485,19 @@
             }
           },
           "next_before": {
-            "type": [
-              "string",
-              "null"
-            ]
+            "type": ["string", "null"]
           }
         },
-        "required": [
-          "items",
-          "next_before"
-        ]
+        "required": ["items", "next_before"]
       },
       "PublicPaper": {
         "type": "object",
         "properties": {
+          "confirmed_error_reports": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Confirmed reports bound to the immutable published version and claims revision; omitted for private records. Acceptance is not mathematical verification."
+          },
           "summary": {
             "$ref": "#/components/schemas/Paper"
           },
@@ -1399,9 +1520,7 @@
             }
           }
         },
-        "required": [
-          "summary"
-        ]
+        "required": ["summary"]
       },
       "Source": {
         "type": "object",
@@ -1422,16 +1541,10 @@
             "type": "string"
           },
           "year": {
-            "type": [
-              "integer",
-              "null"
-            ]
+            "type": ["integer", "null"]
           }
         },
-        "required": [
-          "kind",
-          "locator"
-        ]
+        "required": ["kind", "locator"]
       },
       "NewFormalization": {
         "type": "object",
@@ -1488,10 +1601,7 @@
             }
           },
           "source_revision": {
-            "type": [
-              "string",
-              "null"
-            ],
+            "type": ["string", "null"],
             "pattern": "^(?:[a-fA-F0-9]{40}|[a-fA-F0-9]{64})$",
             "description": "Reported full Git revision; not independently authenticated."
           },
@@ -1597,10 +1707,7 @@
             }
           },
           "source_revision": {
-            "type": [
-              "string",
-              "null"
-            ],
+            "type": ["string", "null"],
             "pattern": "^(?:[a-fA-F0-9]{40}|[a-fA-F0-9]{64})$",
             "description": "Reported full Git revision; not independently authenticated."
           },
@@ -1613,14 +1720,7 @@
             "description": "Inert UTF-8 project configuration, at most 1 MiB total. Allowed root files: lean-toolchain, lake-manifest.json, lakefile.lean, lakefile.toml, README.md, LICENSE, LICENSE.md, LICENSE.txt. Preserved and included in project export."
           }
         },
-        "required": [
-          "id",
-          "owner",
-          "title",
-          "authors",
-          "source",
-          "attempts"
-        ]
+        "required": ["id", "owner", "title", "authors", "source", "attempts"]
       },
       "FormalizationListing": {
         "type": "object",
@@ -1632,10 +1732,7 @@
             }
           },
           "next_before": {
-            "type": [
-              "string",
-              "null"
-            ]
+            "type": ["string", "null"]
           }
         }
       },
@@ -1657,10 +1754,7 @@
             "description": "Optional complete Solution.lean adapter (up to 1 MiB) for this attempt. Deposited project modules remain unchanged; this exact adapter is bound into the attempt/receipt."
           }
         },
-        "required": [
-          "record",
-          "claim"
-        ],
+        "required": ["record", "claim"],
         "additionalProperties": false
       },
       "Attempt": {
@@ -1679,10 +1773,7 @@
             "type": "string"
           },
           "receipt": {
-            "type": [
-              "object",
-              "null"
-            ]
+            "type": ["object", "null"]
           },
           "solution": {
             "type": "string"
@@ -1703,10 +1794,7 @@
             "description": "Dotted module names preserve directory paths (Research.Lemmas = Research/Lemmas.lean). At most 512 modules and 8 MiB total Lean source, including the optional Solution adapter. Reserved roots and case collisions are rejected. Only the pinned prepared workspace supplies dependencies; user Lake scripts are never executed."
           }
         },
-        "required": [
-          "id",
-          "state"
-        ]
+        "required": ["id", "state"]
       },
       "ReviewReport": {
         "type": "object",
@@ -1759,6 +1847,14 @@
                   "type": "object",
                   "description": "Version/claims-revision-bound report, audit and author-visible formalization outcomes. No provider identifiers, prompts, advice or private proof files.",
                   "properties": {
+                    "review_contract": {
+                      "type": "integer",
+                      "description": "Pinned when the round is admitted; legacy defaults to 0."
+                    },
+                    "review_method": {
+                      "type": "string",
+                      "description": "trureturing-content-2026-10-15 for contract 3; absent on legacy rounds."
+                    },
                     "audit": {
                       "type": "object",
                       "properties": {
@@ -1768,6 +1864,17 @@
                             "result": {
                               "type": "object",
                               "properties": {
+                                "claims": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "methodology": {
+                                        "$ref": "#/components/schemas/MethodologyReading"
+                                      }
+                                    }
+                                  }
+                                },
                                 "response_assessments": {
                                   "type": "array",
                                   "items": {
@@ -1830,10 +1937,7 @@
             }
           },
           "purpose": {
-            "enum": [
-              "publication",
-              "review_only"
-            ]
+            "enum": ["publication", "review_only"]
           },
           "review_scope": {
             "type": "string",
@@ -1890,38 +1994,22 @@
             }
           },
           "kind": {
-            "enum": [
-              "paper",
-              "conjecture"
-            ]
+            "enum": ["paper", "conjecture"]
           },
           "status": {
-            "enum": [
-              "open",
-              "verified",
-              "disproved"
-            ]
+            "enum": ["open", "verified", "disproved"]
           },
           "verified_count": {
             "type": "integer"
           },
           "contributor": {
-            "type": [
-              "object",
-              "null"
-            ]
+            "type": ["object", "null"]
           },
           "attribution": {
-            "type": [
-              "object",
-              "null"
-            ]
+            "type": ["object", "null"]
           },
           "receipt": {
-            "type": [
-              "object",
-              "null"
-            ]
+            "type": ["object", "null"]
           }
         },
         "required": [
@@ -1951,16 +2039,10 @@
             }
           },
           "next_before": {
-            "type": [
-              "string",
-              "null"
-            ]
+            "type": ["string", "null"]
           }
         },
-        "required": [
-          "items",
-          "next_before"
-        ]
+        "required": ["items", "next_before"]
       },
       "NewFindingResponse": {
         "type": "object",
@@ -1989,13 +2071,7 @@
             "maxLength": 10000
           }
         },
-        "required": [
-          "round",
-          "concern",
-          "version",
-          "claims_revision",
-          "body"
-        ]
+        "required": ["round", "concern", "version", "claims_revision", "body"]
       },
       "LeanPreflight": {
         "type": "object",
@@ -2077,34 +2153,18 @@
             "type": "integer"
           }
         },
-        "required": [
-          "path",
-          "kind",
-          "description",
-          "claims",
-          "sha256",
-          "bytes"
-        ]
+        "required": ["path", "kind", "description", "claims", "sha256", "bytes"]
       },
       "ResponseAssessment": {
         "type": "object",
-        "required": [
-          "response_id",
-          "status",
-          "explanation",
-          "evidence"
-        ],
+        "required": ["response_id", "status", "explanation", "evidence"],
         "properties": {
           "response_id": {
             "type": "string",
             "description": "Exact author response admitted into this round on this source version and claims revision"
           },
           "status": {
-            "enum": [
-              "addressed",
-              "unresolved",
-              "not_checkable"
-            ]
+            "enum": ["addressed", "unresolved", "not_checkable"]
           },
           "explanation": {
             "type": "string",
@@ -2114,10 +2174,7 @@
             "type": "array",
             "items": {
               "type": "object",
-              "required": [
-                "path",
-                "sha256"
-              ],
+              "required": ["path", "sha256"],
               "properties": {
                 "path": {
                   "type": "string"
@@ -2137,25 +2194,17 @@
           {
             "type": "object",
             "additionalProperties": false,
-            "required": [
-              "state"
-            ],
+            "required": ["state"],
             "properties": {
               "state": {
-                "enum": [
-                  "pending",
-                  "skipped"
-                ]
+                "enum": ["pending", "skipped"]
               }
             }
           },
           {
             "type": "object",
             "additionalProperties": false,
-            "required": [
-              "state",
-              "since"
-            ],
+            "required": ["state", "since"],
             "properties": {
               "state": {
                 "const": "running"
@@ -2169,10 +2218,7 @@
           {
             "type": "object",
             "additionalProperties": false,
-            "required": [
-              "state",
-              "at"
-            ],
+            "required": ["state", "at"],
             "properties": {
               "state": {
                 "const": "done"
@@ -2186,11 +2232,7 @@
           {
             "type": "object",
             "additionalProperties": false,
-            "required": [
-              "state",
-              "at",
-              "retryable"
-            ],
+            "required": ["state", "at", "retryable"],
             "properties": {
               "state": {
                 "const": "failed"

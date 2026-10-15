@@ -28,11 +28,19 @@ decision → immediate public display → private letter → Lean.
   content or a sourced open-problem settlement. Conjectures are displayed when a
   main claim is audited well-posed, open and mathematically new if proved.
   Model recommendations remain feedback; the pure policy applies the decision.
+  Any explicitly audited error, gap or unchecked main result blocks acceptance,
+  even if another main result has new content.
+  New rounds use [Trureturing's content and utility methodology](docs/REVIEW_METHODOLOGY.md):
+  explicit prerequisites, live intermediate or conclusion witnesses, bounded
+  literature comparisons and separate mathematical-value evidence. Missing
+  evidence stays undetermined; old rounds retain their original contract.
 - **Display.** Every kind shares `WP-<year>-NNNN`. “Make public after acceptance”
   defaults to checked and can be changed later. Public details show statements,
-  dependencies, new-content witness lemmas and verified Lean proofs. Reviews,
+  dependencies, new-content witness propositions and verified Lean proofs. Reviews,
   correctness labels, comments, reports, advice and letters stay author/staff-only.
   Private/undecided records expose only title, authors, kind and record id.
+  Confirmed error reports for the published version produce a prominent notice;
+  the immutable acceptance record is not a correctness guarantee.
 - **Solve.** Download an author-confirmed `Target.lean`, prove its proposition or
   its negation in Lean, and submit the solution. A separate credential-free
   verifier checks the imported constant and standard axioms. The first verified
@@ -86,6 +94,16 @@ user tree (e.g. BasicTeX with `tlmgr --usermode`) are found when
 
 Machine clients in dev mode authenticate with `Authorization: Bearer dev:<name>`.
 
+This starts the local application, storage and PDF workflow. Automatic reviews
+require the Oracle/CMA configuration below; proof checking additionally requires
+a prepared Lean/Mathlib workspace or verifier service. Memory mode loses data
+when the process exits. Use MongoDB for retained work.
+
+The standalone [project showcase](docs/GITHUB_PAGES.md) can run on GitHub Pages:
+`cd web && npm run build:showcase && npm run preview:showcase`. A domain is
+optional. Pages hosts the showcase; the working research service needs its own
+backend deployment.
+
 ## Referee and managed Codex agents
 
 GPT Pro referees through the Oracle broker and every Codex step runs on CMA
@@ -104,6 +122,8 @@ WISHPOOL_PUBLIC_URL=http://127.0.0.1:5173 \
 WISHPOOL_AUTH_MODE=dev WISHPOOL_STORAGE=memory \
 WISHPOOL_ORACLE=cli WISHPOOL_AGENT_BACKEND=cma \
 WISHPOOL_CMA_TRANSPORT=cli WISHPOOL_CMA_WORKSPACE=wks_YOUR_WORKSPACE \
+WISHPOOL_CMA_AGENT_PROFILE='{"id":"agp_YOUR_PUBLISHED_PROFILE","revision":1}' \
+WISHPOOL_TEX_BIN=$(dirname "$(command -v pdflatex)") \
 cargo run -p mathesis
 ```
 
@@ -119,6 +139,15 @@ an ordinary, unrestricted user access token: resource-scoped or delegated
 execution tokens are refused by CMA. Reusing refresh-token storage does not
 relax that contract; use a mounted user token when the stored grant is restricted.
 Tokens and deployment configuration never enter CMA input, state or logs.
+
+CLI mode authenticates with the local user's NyxID session and accesses remote
+CMA resources. It does not provision a permanent Mathesis service in CMA.
+The pinned agent profile is required in every CMA mode. Use the same environment
+with `cargo run -p mathesis -- --check` before admitting reviews. The check reads
+resource readiness without creating agents or requesting model work; it cannot
+prove model credentials, quota or end-to-end execution. New referee requests
+also check CMA resources before the first Oracle submission. Already admitted
+requests keep their original identities and payer.
 
 Submit a paper, wait for its PDF and confirm the statements. GPT Pro reads the
 PDF. CMA receives the main TeX with needed inputs inline, confirmed statements
@@ -203,7 +232,7 @@ editors/contributors may supply reports.
 | `WISHPOOL_AUDITOR_ACCOUNT` | `wishpool:auditor` | separate account for audit reports, automatic decisions and letters |
 | `WISHPOOL_AGENT_BACKEND` | `cma` when a workspace is configured; otherwise disabled | `cma` or explicit loopback-only `codex-local` |
 | `WISHPOOL_CMA_WORKSPACE` | unset | existing ready workspace id; required for cma |
-| `WISHPOOL_CMA_AGENT_PROFILE` | unset | optional published profile JSON `{ "id": "agp_...", "revision": 1 }` |
+| `WISHPOOL_CMA_AGENT_PROFILE` | required for CMA | published profile JSON `{ "id": "agp_...", "revision": 1 }`, readable by the executing accounts |
 | `WISHPOOL_CMA_TRANSPORT` | `http` | `http` or loopback-only `cli` |
 | `WISHPOOL_CMA_BASE_URL` | `https://nyx-api.chrono-ai.fun/api/v1/proxy/s/cma` | proxy base; HTTPS required except local test servers |
 | `WISHPOOL_CMA_TOKEN_FILE` | unset | HTTP token file path; token never logged |
@@ -224,6 +253,7 @@ editors/contributors may supply reports.
 | `WISHPOOL_FORMAL_TIMEOUT_SECS` | `1200` | formalization Codex deadline; maximum 3600 seconds; discovery/check margin is 300 seconds, with the CMA total capped at 3600 |
 | `WISHPOOL_ADVISOR_WORK_DIR` | `/tmp/wishpool-advisor` | parent for temporary source, Oracle and advisor workspaces |
 | `WISHPOOL_ROLE` | `all` | `api` (HTTP only), `worker` (background work, one replica), `all` |
+| `WISHPOOL_REVIEW_CONCURRENCY` | `2` | remote review lanes, from 1 to 8; compile and verification each have a separate lane |
 | `WISHPOOL_TEX_BIN` | `/usr/bin` | TeX Live bin directory (`pdflatex`, `xelatex`, `lualatex`, `bibtex`) |
 | `WISHPOOL_TEX_CACHE` | `/tmp/texmf-var` | writable cache for TeX fonts and formats |
 | `WISHPOOL_TEXMF_HOME` | unset | extra texmf tree with packages beyond the distribution |
@@ -242,6 +272,9 @@ original execution deadline on restart. Transient CMA requests replay the same
 intent within that deadline; local audit transport timeouts retain their
 existing job retry limit. Advice, letters and Lean wait for the audit.
 
+See [operations and recovery](docs/OPERATIONS.md) for readiness, prepared verifier
+images, large review histories, backups and offline GridFS cleanup.
+
 ## Tests
 
 ```bash
@@ -250,6 +283,11 @@ cd api && WISHPOOL_TEST_MONGODB_URI=mongodb://127.0.0.1:27017 \
 cd sdk/contribute && cargo test
 cd web && npm test
 ```
+
+Real Lean tests are explicitly ignored by the ordinary test command. Run them
+with `WISHPOOL_TEST_LEAN_WORKSPACE=/path/to/prepared/workspace cargo test --locked
+-p mathesis-verifier real_lean -- --ignored --test-threads=1` from `api/`.
+The verifier image build runs these checks against its prepared pinned base.
 
 ## Solve with the CLI or MCP
 

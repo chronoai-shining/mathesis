@@ -103,7 +103,7 @@ const STAGES: [(Stage, &str, &str); 4] = [
     (
         Stage::Escape,
         "Escape analysis",
-        "Each proved statement is judged bind-only or content. A content statement names escape witnesses: new propositions on its proof path that prior results do not give by instantiation, projection or normalisation.",
+        "Each proved statement is judged content, bind-only or undetermined against explicit prerequisites. Live intermediate or conclusion witnesses, literature evidence and mathematical utility are assessed separately.",
     ),
 ];
 

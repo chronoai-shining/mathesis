@@ -997,6 +997,19 @@ async fn confirm_enqueues_referee_and_begin_is_idempotent() {
     );
 }
 
+fn method_for(shape: ProofShape, conjecture: bool) -> MethodologyReading {
+    let mut reading: MethodologyReading = serde_json::from_str(include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../fixtures/content-methodology.json"
+    )))
+    .unwrap();
+    reading.escape = shape;
+    if conjecture || shape != ProofShape::Content {
+        reading.witnesses.clear();
+    }
+    reading
+}
+
 fn audit_for(
     paper: &Submission,
     verdict: Recommendation,
@@ -1013,6 +1026,7 @@ fn audit_for(
             .claims
             .iter()
             .map(|c| AuditedClaim {
+                methodology: Some(method_for(shape, c.kind.is_open())),
                 conjecture: None,
                 claim: c.id.clone(),
                 correctness,
@@ -1045,6 +1059,83 @@ async fn audited(
         .apply_referee_audit(reviewer, &paper.id, 1)
         .await
         .unwrap()
+}
+
+#[tokio::test]
+async fn current_round_requires_methodology_while_legacy_rounds_keep_their_contract() {
+    let world = World::new().await;
+    let author = world.person("method-author", &[]).await;
+    let auditor = world.person("method-auditor", &[Role::Reviewer]).await;
+    let paper = world.submit(&author, "tl", false).await;
+    let paper = world.review_paper(&author, &paper).await;
+    world
+        .app
+        .begin_referee_round(&auditor, &paper.id)
+        .await
+        .unwrap();
+    world
+        .app
+        .update_referee_round(
+            &auditor,
+            &paper.id,
+            1,
+            RoundUpdate::Referee(done_step(referee_report(Some(Recommendation::Accept)))),
+        )
+        .await
+        .unwrap();
+    let mut legacy_audit = audit_for(
+        &paper,
+        Recommendation::Accept,
+        Correctness::Correct,
+        ProofShape::Content,
+        None,
+    );
+    for reading in &mut legacy_audit.claims {
+        reading.methodology = None;
+    }
+    assert!(
+        world
+            .app
+            .update_referee_round(
+                &auditor,
+                &paper.id,
+                1,
+                RoundUpdate::Audit(done_step(legacy_audit.clone()))
+            )
+            .await
+            .is_err()
+    );
+    let mut file = crate::ports::RefereeStore::get(&*world.stores, &paper.id)
+        .await
+        .unwrap()
+        .unwrap();
+    file.rounds[0].review_contract = 2;
+    let revision = file.revision;
+    crate::ports::RefereeStore::replace(&*world.stores, &file, revision)
+        .await
+        .unwrap();
+    world
+        .app
+        .update_referee_round(
+            &auditor,
+            &paper.id,
+            1,
+            RoundUpdate::Audit(done_step(legacy_audit)),
+        )
+        .await
+        .unwrap();
+    let projected = world.app.referee(&author, &paper.id).await.unwrap();
+    assert_eq!(projected.rounds[0].review_contract, 2);
+    assert!(projected.rounds[0].review_method.is_none());
+    assert!(
+        projected.rounds[0]
+            .audit
+            .done()
+            .unwrap()
+            .claims
+            .iter()
+            .all(|claim| claim.methodology.is_none())
+    );
 }
 
 #[tokio::test]
@@ -2049,6 +2140,7 @@ async fn displayed_conjecture(w: &World, author: &Caller, reviewer: &Caller) -> 
         agrees_with_referee: true,
         summary: "PRIVATE_AUDIT_SUMMARY".into(),
         claims: vec![AuditedClaim {
+            methodology: Some(method_for(ProofShape::Content, true)),
             claim: "C1".into(),
             correctness: Correctness::NotChecked,
             comment: "PRIVATE_CLAIM_COMMENT".into(),
@@ -2803,7 +2895,10 @@ async fn legacy_cma_progress_stays_operator_and_disconnect_fences_consent() {
 struct TestAgentLease(bool);
 #[async_trait::async_trait]
 impl crate::ports::JobLease for TestAgentLease {
-    async fn claim(&self) -> CoreResult<Option<crate::ports::LeasedJob>> {
+    async fn claim_in(
+        &self,
+        _: Option<crate::ports::JobLane>,
+    ) -> CoreResult<Option<crate::ports::LeasedJob>> {
         unreachable!()
     }
     async fn renew(&self, _: &crate::ports::LeasedJob) -> CoreResult<bool> {
@@ -3079,7 +3174,10 @@ fn cma_test_job(paper: &Submission) -> crate::ports::LeasedJob {
 struct AdmissionLease(std::sync::atomic::AtomicBool);
 #[async_trait::async_trait]
 impl crate::ports::JobLease for AdmissionLease {
-    async fn claim(&self) -> CoreResult<Option<crate::ports::LeasedJob>> {
+    async fn claim_in(
+        &self,
+        _: Option<crate::ports::JobLane>,
+    ) -> CoreResult<Option<crate::ports::LeasedJob>> {
         unreachable!()
     }
     async fn renew(&self, _: &crate::ports::LeasedJob) -> CoreResult<bool> {

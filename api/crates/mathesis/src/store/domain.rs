@@ -288,35 +288,6 @@ impl RecordStore for MongoStore {
 }
 
 #[async_trait]
-impl RefereeStore for MongoStore {
-    async fn get(
-        &self,
-        id: &SubmissionId,
-    ) -> CoreResult<Option<mathesis_core::model::RefereeFile>> {
-        self.get_by_id(REFEREE_FILES, id.as_str()).await
-    }
-
-    async fn insert(&self, file: &mathesis_core::model::RefereeFile) -> CoreResult<()> {
-        MongoStore::insert(self, REFEREE_FILES, file).await
-    }
-
-    async fn replace(
-        &self,
-        file: &mathesis_core::model::RefereeFile,
-        expected: u64,
-    ) -> CoreResult<()> {
-        self.replace_revision(
-            REFEREE_FILES,
-            "referee file",
-            file.id.as_str(),
-            file,
-            expected,
-        )
-        .await
-    }
-}
-
-#[async_trait]
 impl LeanDepositStore for MongoStore {
     async fn get(&self, id: &str) -> CoreResult<Option<mathesis_core::model::LeanDeposit>> {
         self.get_by_id("lean_deposits", id).await

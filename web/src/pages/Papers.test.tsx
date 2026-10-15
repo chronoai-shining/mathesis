@@ -7,6 +7,16 @@ import { fakeApi, renderWithApp } from '../test/render';
 import { PaperPage, PapersPage } from './Papers';
 
 describe('public paper page', () => {
+  it('prominently identifies confirmed errors on the published version', async () => {
+    const api = fakeApi({
+      getPaper: vi.fn(async () => ({ ...publicPaper, confirmed_error_reports: 2 })),
+    });
+    renderWithApp(<PaperPage record="WP-2026-0001" />, api);
+    expect(
+      await screen.findByText(/This published version has 2 confirmed error report/),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/acceptance is not a proof of correctness/)).toBeInTheDocument();
+  });
   it('shows the statements with KaTeX and a Lean badge, and hides the analysis when absent', async () => {
     const api = fakeApi({ getPaper: vi.fn(async () => publicPaper) });
     renderWithApp(<PaperPage record="WP-2026-0001" />, api);

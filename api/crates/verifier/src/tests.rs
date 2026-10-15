@@ -123,10 +123,10 @@ async fn executable_fakes_enforce_exit_status_output_limit_and_axiom_receipts() 
     );
 }
 #[tokio::test]
+#[ignore = "requires WISHPOOL_TEST_LEAN_WORKSPACE with pinned Lean and built Mathlib"]
 async fn real_lean_target_proof_disproof_wrong_type_and_axiom() {
-    let Ok(workspace) = std::env::var("WISHPOOL_TEST_LEAN_WORKSPACE") else {
-        return;
-    };
+    let workspace = std::env::var("WISHPOOL_TEST_LEAN_WORKSPACE")
+        .expect("real Lean tests require WISHPOOL_TEST_LEAN_WORKSPACE");
     let dir = tempfile::tempdir().unwrap();
     let checker = Checker {
         workspace: workspace.into(),
@@ -310,10 +310,10 @@ fn projects_validate_every_module_and_bind_the_entire_dependency_graph() {
 }
 
 #[tokio::test]
+#[ignore = "requires WISHPOOL_TEST_LEAN_WORKSPACE with pinned Lean and built Mathlib"]
 async fn real_lean_multimodule_proof_checks_helpers_and_wrong_type() {
-    let Ok(workspace) = std::env::var("WISHPOOL_TEST_LEAN_WORKSPACE") else {
-        return;
-    };
+    let workspace = std::env::var("WISHPOOL_TEST_LEAN_WORKSPACE")
+        .expect("real Lean tests require WISHPOOL_TEST_LEAN_WORKSPACE");
     let dir = tempfile::tempdir().unwrap();
     let checker = Checker {
         workspace: workspace.into(),

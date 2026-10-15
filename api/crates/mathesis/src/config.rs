@@ -128,6 +128,7 @@ impl std::fmt::Debug for CmaByokConfig {
 
 #[derive(Debug, Clone)]
 pub struct Config {
+    pub review_concurrency: usize,
     pub cma_byok: Option<CmaByokConfig>,
     pub verifier_program: String,
     pub verifier_url: Option<String>,
@@ -410,6 +411,11 @@ impl Config {
                     .map(|text| serde_json::from_str::<serde_json::Value>(&text))
                     .transpose()
                     .context("CMA agent profile must be JSON {id,revision}")?;
+                if profile.is_none() {
+                    bail!(
+                        "WISHPOOL_CMA_AGENT_PROFILE must pin a published profile with id and revision"
+                    );
+                }
                 if profile.as_ref().is_some_and(|v| {
                     v.as_object().is_none_or(|o| o.len() != 2)
                         || v["id"].as_str().is_none_or(|id| {
@@ -577,6 +583,13 @@ impl Config {
             storage,
             auth,
             bootstrap_admins,
+            review_concurrency: {
+                let concurrency = seconds("WISHPOOL_REVIEW_CONCURRENCY", 2)?;
+                if concurrency > 8 {
+                    bail!("WISHPOOL_REVIEW_CONCURRENCY must be between 1 and 8");
+                }
+                concurrency as usize
+            },
             review_model,
             oracle,
             oracle_poll_secs,
@@ -686,9 +699,22 @@ mod referee_tests {
     use super::*;
     #[test]
     fn cma_configuration_defaults_and_bounds() {
+        assert!(
+            local(&[
+                ("WISHPOOL_CMA_WORKSPACE", "wks_example"),
+                ("WISHPOOL_CMA_TRANSPORT", "cli"),
+            ])
+            .unwrap_err()
+            .to_string()
+            .contains("WISHPOOL_CMA_AGENT_PROFILE")
+        );
         let c = local(&[
             ("WISHPOOL_CMA_WORKSPACE", "wks_example"),
             ("WISHPOOL_CMA_TRANSPORT", "cli"),
+            (
+                "WISHPOOL_CMA_AGENT_PROFILE",
+                r#"{"id":"agp_example","revision":2}"#,
+            ),
         ])
         .unwrap();
         assert!(
@@ -727,6 +753,10 @@ mod referee_tests {
                 local(&[
                     ("WISHPOOL_CMA_WORKSPACE", "wks_example"),
                     ("WISHPOOL_CMA_TOKEN_FILE", "/mounted/user-token"),
+                    (
+                        "WISHPOOL_CMA_AGENT_PROFILE",
+                        r#"{"id":"agp_example","revision":2}"#
+                    ),
                     extra
                 ])
                 .is_err(),

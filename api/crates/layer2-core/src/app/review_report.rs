@@ -97,6 +97,13 @@ impl ReviewReport {
                 "\n## Round {} — source version {}\n\nSource SHA-256: {}\n",
                 round.number, round.version, round.source_sha256
             );
+            if let Some(method) = &round.review_method {
+                let _ = writeln!(
+                    out,
+                    "Review method: {method} · contract {} · claims revision {}\n",
+                    round.review_contract, round.claims_revision
+                );
+            }
             if let Some(report) = round.referee.done() {
                 let _ = writeln!(out, "### Referee report\n\n{}\n", report.summary);
                 for c in &report.concerns {
@@ -119,6 +126,79 @@ impl ReviewReport {
                     }
                     for witness in &c.witnesses {
                         let _ = writeln!(out, "Audited witness: {witness}\n");
+                    }
+                    if let Some(method) = &c.methodology {
+                        let _ = writeln!(
+                            out,
+                            "Escape: {:?} · Literature: {:?} · Utility: {:?} ({:?})\n\n{}\n\nAdditional content: {}\n\nValue: {}\n",
+                            method.escape,
+                            method.literature,
+                            method.utility.status,
+                            method.utility.kind,
+                            method.binding_analysis,
+                            method.delta,
+                            method.utility.rationale
+                        );
+                        for prerequisite in &method.baseline {
+                            let _ = writeln!(
+                                out,
+                                "Prerequisite: {} — {}\n\nReported source: {}\n",
+                                prerequisite.statement,
+                                prerequisite.location,
+                                prerequisite.source.as_deref().unwrap_or("manuscript")
+                            );
+                        }
+                        for scope in &method.searched {
+                            let _ = writeln!(out, "Search scope: {scope}\n");
+                        }
+                        for witness in &method.witnesses {
+                            let _ = writeln!(
+                                out,
+                                "Witness ({:?}): {}\n\nLocation: {}\n\nNon-binding step: {}\n\nLive use: {}\n",
+                                witness.kind,
+                                witness.statement,
+                                witness.location,
+                                witness.non_binding_step,
+                                witness.live_use
+                            );
+                        }
+                        let _ = writeln!(
+                            out,
+                            "Question/application: {}\n\nProgress: {}\n\nExact premises: {}\n\nDischarge: {}\n",
+                            method.utility.problem,
+                            method.utility.progress,
+                            method.utility.prerequisites,
+                            method.utility.discharge
+                        );
+                        if let Some(settlement) = &method.settlement {
+                            let _ = writeln!(
+                                out,
+                                "Settlement ({:?}): {}\n\nOriginal statement: {}\n\nAssumptions: {}\n\nPrior status: {}\n\nResolution: {}\n\nMatching argument: {}\n\nReported opened source: {}\n",
+                                settlement.status,
+                                settlement.problem.name,
+                                settlement.statement,
+                                settlement.assumptions,
+                                settlement.prior_status,
+                                settlement.resolution,
+                                settlement.matching_argument,
+                                settlement.opened_source
+                            );
+                        }
+                        if let Some(gain) = &method.information_gain {
+                            let _ = writeln!(
+                                out,
+                                "Separate information-gain analysis ({:?}; not an admission gate)\n\nModel: {}\n\nReadout: {}\n\nTask: {}\n\nCorrespondence: {}\n\nReported evidence: {}\n",
+                                gain.status,
+                                gain.model,
+                                gain.readout,
+                                gain.task,
+                                gain.correspondence,
+                                gain.evidence
+                            );
+                        }
+                        for limit in &method.limits {
+                            let _ = writeln!(out, "Methodology limitation: {limit}\n");
+                        }
                     }
                 }
                 for (i, c) in audit.concerns.iter().enumerate() {

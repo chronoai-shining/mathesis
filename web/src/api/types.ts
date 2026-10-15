@@ -32,6 +32,7 @@ export type Recommendation = 'accept' | 'minor_revision' | 'major_revision' | 'r
 export type Severity = 'major' | 'minor';
 export type Correctness = 'correct' | 'gap' | 'error' | 'not_checked';
 export type AuditedClaim = {
+  methodology?: MethodologyReading;
   conjecture?: ConjectureReading;
   claim: string;
   correctness: Correctness;
@@ -72,7 +73,7 @@ export type RefereeConcern = { claim?: string; severity: Severity; issue: string
 export type RefereeClaim = {
   conjecture?: ConjectureReading;
   claim: string;
-  shape: 'content' | 'bind_only';
+  shape: ProofShape;
   witnesses: string[];
   known?: string;
   note: string;
@@ -138,6 +139,8 @@ export type Step<T> = {
   state: StepState<T>;
 };
 export type RefereeRound = {
+  review_contract?: number;
+  review_method?: string;
   /** Safe lifecycle projection; older servers may omit it. */
   progress?: Record<'referee' | 'audit' | 'advice' | 'letter' | 'formal', StageProgress>;
   source_sha256?: string;
@@ -377,6 +380,9 @@ export type RejectReason =
   | { reason: 'known_result'; claim: string; prior: Source }
   | { reason: 'bind_only' }
   | { reason: 'no_main_result' }
+  | { reason: 'incorrect_result'; claim: string }
+  | { reason: 'unchecked_result'; claim: string }
+  | { reason: 'insufficient_evidence' | 'insufficient_utility'; claim: string; detail: string }
   | { reason: 'conjecture'; detail: string }
   | { reason: 'out_of_scope'; detail: string };
 
@@ -392,9 +398,60 @@ export type Reviewer =
 export type HygieneCheck = { name: string; passed: boolean; detail: string };
 export type PriorRelation = 'same' | 'implies' | 'related';
 export type PriorWork = { claim: string; source: Source; relation: PriorRelation; note: string };
-export type ProofShape = 'bind_only' | 'content';
+export type ProofShape = 'bind_only' | 'content' | 'undetermined';
+export type EvidenceStatus = 'supported' | 'unsupported' | 'insufficient';
+export type MethodologyReading = {
+  baseline: { statement: string; location: string; source: string | null }[];
+  searched: string[];
+  literature: EvidenceStatus;
+  binding_analysis: string;
+  delta: string;
+  escape: ProofShape;
+  witnesses: {
+    kind: 'intermediate' | 'conclusion';
+    statement: string;
+    location: string;
+    non_binding_step: string;
+    live_use: string;
+  }[];
+  utility: {
+    kind:
+      | 'general_theorem'
+      | 'finite_enumeration'
+      | 'checker'
+      | 'numeric_reduction'
+      | 'certified_instance'
+      | 'counterexample';
+    status: EvidenceStatus;
+    rationale: string;
+    problem: string;
+    progress: string;
+    prerequisites: string;
+    discharge: string;
+  };
+  settlement: {
+    status: EvidenceStatus;
+    problem: Settles;
+    statement: string;
+    assumptions: string;
+    prior_status: string;
+    resolution: string;
+    matching_argument: string;
+    opened_source: string;
+  } | null;
+  information_gain: {
+    model: string;
+    readout: string;
+    task: string;
+    correspondence: string;
+    evidence: string;
+    status: EvidenceStatus;
+  } | null;
+  limits: string[];
+};
 export type EscapeRate = { arena: string; before: Ratio; after: Ratio; artifact: string };
 export type EscapeAssessment = {
+  methodology?: MethodologyReading;
   conjecture?: ConjectureReading;
   claim: string;
   shape: ProofShape;
@@ -587,6 +644,7 @@ export type PublicClaim = {
 };
 export type PublicPaper = {
   summary: PaperSummary;
+  confirmed_error_reports?: number;
   versions?: { number: number; uploaded_at: string; has_pdf: boolean }[];
   claims?: PublicClaim[];
   formalization_repository?: string;
