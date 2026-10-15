@@ -863,6 +863,8 @@ export type CmaAttemptView = {
     | 'letter'
     | 'lean_probe'
     | 'conjecture_target'
+    | 'research_target'
+    | 'research_faithfulness'
     | 'problem_audit'
     | 'target_faithfulness'
     | 'error_report_audit'
@@ -1065,3 +1067,61 @@ export interface ComputationReceipt {
   explanation: string;
   checked_at: string;
 }
+
+export type ResearchCandidate = {
+  digest: string;
+  subject: CoverageSubject;
+  gap: { kind: 'hypothesis' | 'bridge'; index: number };
+  unresolved_text: string;
+  original_statement: string;
+  receipt_ids: string[];
+  binding: NonNullable<ClaimCoverage['binding']>;
+};
+export type ResearchGoal = {
+  definitions: string[];
+  hypotheses: string[];
+  quantifiers: string;
+  conclusion: string;
+  correspondence: string;
+};
+export type NewResearchObligation = {
+  round: number;
+  claim: string;
+  gap: ResearchCandidate['gap'];
+  candidate_digest: string;
+  goal: ResearchGoal;
+  budget: { max_attempts: number; expires_at: string };
+  consent: string;
+};
+export type ResearchAttempt = {
+  id: string;
+  target_digest: string;
+  solution_digest: string;
+  submitted_at: string;
+  note: string;
+  receipt: VerificationReceipt | null;
+  invalidated: string | null;
+};
+export type ResearchAttemptInput = {
+  target_digest: string;
+  solution: string;
+  modules?: Record<string, string>;
+  note?: string;
+};
+export type ResearchView = {
+  candidates: ResearchCandidate[];
+  obligations: {
+    state: string;
+    target: LeanStatementAttempt | null;
+    attempts: ResearchAttempt[];
+    obligation: {
+      id: string;
+      candidate: ResearchCandidate;
+      goal: ResearchGoal;
+      budget: NewResearchObligation['budget'];
+      authorized_at: string;
+      authorized_by: string;
+      consent: string;
+    };
+  }[];
+};

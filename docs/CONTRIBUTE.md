@@ -73,3 +73,14 @@ maximum; authors cannot take independent-review tasks on their own papers.
 Judgements count when corroborated/confirmed; literature and probe notes when
 accepted. Legacy formalize documents are history only. Never invent a citation,
 witness, identifier or verification receipt. Unpublished source stays private.
+
+### Author-owned private research
+
+Authors may turn a current source-audited missing hypothesis or bridge into a
+private goal with explicit processing consent and a bounded attempt budget.
+`research`, `adopt-research`, `research-attempt`, `research-attempt-status`,
+`stop-research` and `recheck-research` are available in both CLI and MCP.
+The submitting author confirms the inspected exact target in the browser.
+Private attempts are checked by the same independent verifier and receive no
+public solving/formalization credit. See
+[RESEARCH_OBLIGATIONS.md](RESEARCH_OBLIGATIONS.md) for complete examples.

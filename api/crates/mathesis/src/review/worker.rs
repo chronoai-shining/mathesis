@@ -158,7 +158,7 @@ impl Worker {
             Ok(false) => {
                 // A delivered review can still own an asynchronously stopping agent.
                 // Keep its original job without consuming retry attempts or rerunning review.
-                if job.kind == JobKind::Referee {
+                if matches!(job.kind, JobKind::Referee | JobKind::ResearchTarget) {
                     match self.cleanup_agents(&job).await {
                         Ok(true) => self.jobs.defer(&job, Duration::from_secs(30)).await,
                         Ok(false) => self.jobs.complete(&job).await,
@@ -194,6 +194,12 @@ impl Worker {
     }
 
     async fn process(&self, job: &LeasedJob) -> Result<bool, Failure> {
+        if job.kind == JobKind::VerifyResearch {
+            self.app
+                .verify_research_leased(&self.reviewer, job, self.jobs.as_ref())
+                .await?;
+            return Ok(false);
+        }
         if job.kind == JobKind::VerifyAttempt {
             self.ensure_lease(job).await?;
             self.app
@@ -213,6 +219,9 @@ impl Worker {
         if job.kind == JobKind::OpenProblems {
             return self.open_problems_job(job).await;
         }
+        if job.kind == JobKind::ResearchTarget {
+            return self.research_target_job(job).await;
+        }
         if job.kind == JobKind::LeanStatement {
             return self.lean_statement_job(job).await;
         }
@@ -229,6 +238,8 @@ impl Worker {
             | JobKind::AgentAttempt
             | JobKind::OpenProblems
             | JobKind::VerifyAttempt
+            | JobKind::ResearchTarget
+            | JobKind::VerifyResearch
             | JobKind::LeanStatement
             | JobKind::Referee => unreachable!("referee handled above"),
             JobKind::Compile => self.compile(job, &submission).await,

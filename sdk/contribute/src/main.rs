@@ -72,6 +72,26 @@ fn main() -> ExitCode {
         ["papers", query] => print(client.papers(&serde_json::json!({"q": query}))),
         ["paper", record] => print(client.paper(record)),
         ["review", id] => print(client.review(id)),
+        ["research", id] => print(client.research(id)),
+        ["stop-research", id, key, reason] => print(client.stop_research(id, key, reason)),
+        ["research-attempt-status", id, key, attempt] => {
+            print(client.research_attempt_status(id, key, attempt))
+        }
+        ["recheck-research", id, key, attempt] => print(client.recheck_research(id, key, attempt)),
+        ["adopt-research", id, file] => match read_json(file) {
+            Ok(body) => print(client.adopt_research(id, &body)),
+            Err(error) => {
+                eprintln!("{error}");
+                ExitCode::FAILURE
+            }
+        },
+        ["research-attempt", id, key, file] => match read_json(file) {
+            Ok(body) => print(client.research_attempt(id, key, &body)),
+            Err(error) => {
+                eprintln!("{error}");
+                ExitCode::FAILURE
+            }
+        },
         ["knowledge-response", id, receipt] => print(client.knowledge_response(id, receipt)),
         ["verification-bundle", record, claim, attempt] => {
             print(client.verification_bundle(record, claim, attempt))
@@ -195,7 +215,7 @@ fn main() -> ExitCode {
         },
         _ => {
             eprintln!(
-                "usage: mathesis-contribute formalization-opportunities [query] | formalizations | formalization-project <id> | papers [query] | paper <record> | review <submission-id> | knowledge-response <submission-id> <receipt-id> | respond-review <submission-id> <response.json> | verification-bundle <record> <claim> <attempt> | preflight-formalization <deposit.json> | submit-formalization <deposit.json> | formalization <id> | verify-formalization <id> <record> <claim> [Solution.lean] | conjectures | target <record> <claim> | attempt <record> <claim> <file> [--as-agent NAME] | attempt-status <id> | report <record> <report.json> | report-status <id> | tasks [kind] | show <task> | lease <task> | release <task> | submit <task> <result.json> | mcp"
+                "usage: mathesis-contribute formalization-opportunities [query] | formalizations | formalization-project <id> | papers [query] | paper <record> | review <submission-id> | research <submission-id> | adopt-research <submission-id> <obligation.json> | research-attempt <submission-id> <obligation-id> <attempt.json> | research-attempt-status <submission-id> <obligation-id> <attempt-id> | recheck-research <submission-id> <obligation-id> <attempt-id> | stop-research <submission-id> <obligation-id> <reason> | knowledge-response <submission-id> <receipt-id> | respond-review <submission-id> <response.json> | verification-bundle <record> <claim> <attempt> | preflight-formalization <deposit.json> | submit-formalization <deposit.json> | formalization <id> | verify-formalization <id> <record> <claim> [Solution.lean] | conjectures | target <record> <claim> | attempt <record> <claim> <file> [--as-agent NAME] | attempt-status <id> | report <record> <report.json> | report-status <id> | tasks [kind] | show <task> | lease <task> | release <task> | submit <task> <result.json> | mcp"
             );
             ExitCode::from(2)
         }
@@ -234,6 +254,12 @@ fn submit_attempt(
     }
 }
 
+fn read_json(file: &str) -> Result<serde_json::Value, String> {
+    std::fs::read_to_string(file)
+        .map_err(|e| e.to_string())
+        .and_then(|s| serde_json::from_str(&s).map_err(|e| e.to_string()))
+}
+
 #[cfg(test)]
 mod tests {
     use serde_json::json;
@@ -263,6 +289,12 @@ mod tests {
         assert_eq!(
             names,
             [
+                "research",
+                "adopt-research",
+                "stop-research",
+                "research-attempt",
+                "research-attempt-status",
+                "recheck-research",
                 "formalization-opportunities",
                 "formalizations",
                 "formalization-project",

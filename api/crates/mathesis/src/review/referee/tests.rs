@@ -4902,3 +4902,120 @@ async fn computation_contract_and_lease_fences_prevent_late_or_retrospective_rec
         vec![receipt]
     );
 }
+
+#[tokio::test]
+async fn private_research_target_needs_no_public_acceptance_and_revocation_fences_cma() {
+    use mathesis_core::{
+        model::*,
+        ports::{RefereeStore, ReviewQueue},
+    };
+    use mathesis_review::cma::RunStore;
+    use sha2::{Digest, Sha256};
+    let w = World::new(vec![], true).await;
+    let claim = &w.paper.claims[0];
+    let candidate = ResearchCandidate {
+        digest: "fixture-candidate".into(),
+        subject: CoverageSubject {
+            submission: w.paper.id.clone(),
+            version: 1,
+            claims_revision: w.paper.claims_revision,
+            round: 1,
+            claim: claim.id.clone(),
+            source_digest: format!(
+                "sha256:{}",
+                w.paper.current_version().unwrap().archive.sha256
+            ),
+            claim_digest: format!(
+                "sha256:{:x}",
+                Sha256::digest(serde_json::to_vec(claim).unwrap())
+            ),
+        },
+        gap: ResearchGap::Bridge { index: 0 },
+        unresolved_text: "Bridge fixture".into(),
+        original_statement: claim.statement.clone(),
+        receipt_ids: vec![],
+        binding: KnowledgeBinding {
+            premises: vec![],
+            relation: BindingRelation::Implies,
+            parameters: vec![],
+            hypotheses: vec![],
+            argument: "Synthetic worker fixture".into(),
+            unresolved: vec!["Bridge fixture".into()],
+            source_lineage: vec![],
+        },
+    };
+    let mut file = RefereeFile::new(w.paper.id.clone());
+    file.research_obligations.push(ResearchObligation {
+        id: "fixture-research".into(),
+        candidate,
+        goal: ResearchGoal {
+            definitions: vec![],
+            hypotheses: vec![],
+            quantifiers: "For every natural n".into(),
+            conclusion: "n = n".into(),
+            correspondence: "Fixture bridge only".into(),
+        },
+        budget: ResearchBudget {
+            max_attempts: 1,
+            expires_at: chrono::Utc::now() + chrono::Duration::days(1),
+        },
+        consent: RESEARCH_CONSENT.into(),
+        authorized_by: w.author.person.clone(),
+        authorized_at: chrono::Utc::now(),
+        events: vec![],
+    });
+    RefereeStore::insert(w.stores.as_ref(), &file)
+        .await
+        .unwrap();
+    w.stores
+        .enqueue(&w.paper.id, JobKind::ResearchTarget)
+        .await
+        .unwrap();
+    let job = w.jobs.claim().await.unwrap().unwrap();
+    assert_eq!(job.kind, JobKind::ResearchTarget);
+    w.worker.research_target_job(&job).await.unwrap();
+    let result = w
+        .worker
+        .app
+        .research_obligations(&w.author, &w.paper.id)
+        .await
+        .unwrap();
+    assert_eq!(result.obligations[0].state, "awaiting_confirmation");
+    assert_eq!(
+        result.obligations[0]
+            .target
+            .as_ref()
+            .unwrap()
+            .faithfulness
+            .as_ref()
+            .unwrap()
+            .verdict,
+        FaithfulnessVerdict::Faithful
+    );
+    assert!(matches!(
+        w.worker
+            .app
+            .submission(&w.author, &w.paper.id)
+            .await
+            .unwrap()
+            .status,
+        SubmissionStatus::InReview
+    ));
+    let store = w
+        .worker
+        .agent_store(&job, &w.paper, "research:fixture-research:a0:pass0");
+    assert!(store.active().await.unwrap());
+    w.worker
+        .app
+        .stop_research_obligation(
+            &w.author,
+            &w.paper.id,
+            "fixture-research",
+            "Stop the fixture".into(),
+        )
+        .await
+        .unwrap();
+    assert!(!store.active().await.unwrap());
+    w.worker.research_target_job(&job).await.unwrap();
+    assert_eq!(w.formalizer.calls.load(Ordering::SeqCst), 1);
+}

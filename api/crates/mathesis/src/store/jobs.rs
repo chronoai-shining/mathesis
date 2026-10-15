@@ -63,10 +63,13 @@ impl JobLease for MongoStore {
                 filter.insert("kind", "compile");
             }
             Some(JobLane::Verify) => {
-                filter.insert("kind", "verify_attempt");
+                filter.insert("kind", doc! {"$in": ["verify_attempt", "verify_research"]});
             }
             Some(JobLane::Review) => {
-                filter.insert("kind", doc! { "$nin": ["compile", "verify_attempt"] });
+                filter.insert(
+                    "kind",
+                    doc! { "$nin": ["compile", "verify_attempt", "verify_research"] },
+                );
             }
             None => {}
         }

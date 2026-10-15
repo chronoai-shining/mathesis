@@ -22,6 +22,7 @@ mod cma;
 mod deposits;
 mod network;
 mod papers;
+mod research;
 mod review;
 mod solving;
 
@@ -45,6 +46,7 @@ pub(crate) fn routes() -> Router<Arc<App>> {
         .merge(solving::routes())
         .merge(papers::routes())
         .merge(review::routes())
+        .merge(research::routes())
         .merge(network::routes())
         .merge(cma::routes())
         .merge(deposits::routes())

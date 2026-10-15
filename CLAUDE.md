@@ -173,6 +173,20 @@ arithmetic overflow produce explicit non-results. A source audit must establish
 correspondence to the manuscript; computation alone changes no policy or credit.
 See `docs/COMPUTATION_REPLAY.md` for the input and limits.
 
+Private research obligations are a separate author-authorized path after a source
+audit. A current unresolved hypothesis or bridge retains its exact source, query
+receipts and complete joint binding. The submitting author supplies the full goal,
+authorizes 1–5 private proof attempts with an expiry within 30 days, and confirms
+the independently elaborated and independently inspected target in a cookie session.
+At most three target preparations are admitted, with one inspector-directed
+regeneration each. The existing verifier checks attempts under source, target,
+authorization and live-lease fences. Research histories are append-only in the
+private referee aggregate; solutions/modules use GridFS. Private verification
+receives no public proof credit and does not change correctness, coverage or
+publication. An author can request a fresh source audit of a checked result;
+its frozen trigger adds internal evidence only to newly admitted rounds.
+See `docs/RESEARCH_OBLIGATIONS.md`.
+
 ## 2. Repository layout
 
 The root contains exactly: `.github/ api/ web/ sdk/ infra/ docs/ CLAUDE.md

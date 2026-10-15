@@ -148,6 +148,15 @@ impl App {
         }
         let paper = self.submission(caller, id).await?;
         let (mut file, stored) = self.referee_file(id).await?;
+        if let Some(key) = logical_step
+            .strip_prefix("research:")
+            .and_then(|s| s.split(':').next())
+            && !self.research_active(caller, id, key).await?
+        {
+            return Err(CoreError::conflict(
+                "research authorization expired or changed",
+            ));
+        }
         if let Some(attempt) = file
             .agent_steps
             .get(key)

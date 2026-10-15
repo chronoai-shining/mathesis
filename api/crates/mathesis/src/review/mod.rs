@@ -18,6 +18,7 @@ pub(crate) mod mapping;
 mod methodology_tests;
 mod open_problems;
 mod referee;
+mod research;
 mod sources;
 mod worker;
 
@@ -40,6 +41,8 @@ pub use mathesis_core::ports::{JobLease, LeasedJob};
 /// The stored form of a job kind: `compile` or `stage:<stage>`.
 pub fn kind_key(kind: JobKind) -> String {
     match kind {
+        JobKind::ResearchTarget => "research_target".into(),
+        JobKind::VerifyResearch => "verify_research".into(),
         JobKind::ErrorReports => "error_reports".into(),
         JobKind::AgentAttempt => "agent_attempt".into(),
         JobKind::Compile => "compile".to_owned(),
@@ -58,6 +61,12 @@ pub fn kind_key(kind: JobKind) -> String {
 }
 
 pub fn parse_kind_key(key: &str) -> Option<JobKind> {
+    if key == "research_target" {
+        return Some(JobKind::ResearchTarget);
+    }
+    if key == "verify_research" {
+        return Some(JobKind::VerifyResearch);
+    }
     if key == "error_reports" {
         return Some(JobKind::ErrorReports);
     }
@@ -249,6 +258,8 @@ mod tests {
         for kind in [
             JobKind::Compile,
             JobKind::Referee,
+            JobKind::ResearchTarget,
+            JobKind::VerifyResearch,
             JobKind::Stage(Stage::Literature),
             JobKind::Stage(Stage::Escape),
         ] {

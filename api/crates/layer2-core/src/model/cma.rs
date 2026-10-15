@@ -25,6 +25,8 @@ pub enum CmaStepKind {
     Letter,
     LeanProbe,
     ConjectureTarget,
+    ResearchTarget,
+    ResearchFaithfulness,
     ProblemAudit,
     TargetFaithfulness,
     ErrorReportAudit,
@@ -41,6 +43,8 @@ impl CmaStepKind {
                 | Self::Letter
                 | Self::LeanProbe
                 | Self::ConjectureTarget
+                | Self::ResearchTarget
+                | Self::ResearchFaithfulness
                 | Self::ProblemAudit
                 | Self::TargetFaithfulness
         )
@@ -99,6 +103,16 @@ impl CmaStepIdentity {
                 claim: Some((*claim).into()),
                 target_generation: generation.strip_prefix('a').and_then(|g| g.parse().ok()),
                 round: None,
+            },
+            ["research", _, generation, "pass0" | "pass1"] => Self {
+                kind: CmaStepKind::ResearchTarget,
+                target_generation: generation.strip_prefix('a').and_then(|g| g.parse().ok()),
+                ..Self::default()
+            },
+            ["research", _, generation, "pass0" | "pass1", "faithfulness"] => Self {
+                kind: CmaStepKind::ResearchFaithfulness,
+                target_generation: generation.strip_prefix('a').and_then(|g| g.parse().ok()),
+                ..Self::default()
             },
             ["error-report", _] => Self {
                 kind: CmaStepKind::ErrorReportAudit,

@@ -109,7 +109,11 @@ impl App {
                     .await?;
                 for s in page.items {
                     if let Some(file) = self.ports.referees.get(&s.id).await?
-                        && !file.finding_responses.is_empty()
+                        && (!file.finding_responses.is_empty()
+                            || file
+                                .recheck_requests
+                                .iter()
+                                .any(|t| t.starts_with("research:")))
                         && file.current().is_none_or(|r| {
                             r.recheck_requests != file.recheck_requests || !r.is_settled()
                         })

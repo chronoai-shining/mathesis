@@ -991,6 +991,7 @@ async fn compile_and_verification_jobs_are_available_while_reviews_are_leased() 
         ("review", JobKind::Referee),
         ("compile", JobKind::Compile),
         ("verify", JobKind::VerifyAttempt),
+        ("research-verify", JobKind::VerifyResearch),
     ] {
         ReviewQueue::enqueue(store, &paper.into(), kind)
             .await
@@ -1026,6 +1027,15 @@ async fn compile_and_verification_jobs_are_available_while_reviews_are_leased() 
             .unwrap()
             .kind,
         JobKind::VerifyAttempt
+    );
+    assert_eq!(
+        store
+            .claim_in(Some(JobLane::Verify))
+            .await
+            .unwrap()
+            .unwrap()
+            .kind,
+        JobKind::VerifyResearch
     );
     database.drop().await;
 }
@@ -1405,5 +1415,107 @@ async fn archive_text_search_and_formalization_receipts_survive_reconnect() {
             .is_empty()
     );
     reopened.shutdown().await;
+    db.drop().await;
+}
+
+#[tokio::test]
+async fn research_attempt_sources_survive_offline_collection_from_gridfs_history() {
+    let Some(db) = TestDb::open().await else {
+        return;
+    };
+    let store = &db.store;
+    let solution = BlobStore::put(store, b"private research solution", "text/plain")
+        .await
+        .unwrap();
+    let module = BlobStore::put(store, b"private research module", "text/plain")
+        .await
+        .unwrap();
+    store.raw("papers.files").update_many(doc! {"_id":{"$in":[&solution.id,&module.id]}},
+        doc! {"$set":{"uploadDate":mongodb::bson::DateTime::from_chrono(Utc::now()-chrono::Duration::days(10))}}).await.unwrap();
+    let mut file = RefereeFile::new("research-history".into());
+    file.research_obligations.push(ResearchObligation {
+        id: "research".into(),
+        candidate: ResearchCandidate {
+            digest: "fixture".into(),
+            subject: CoverageSubject {
+                submission: file.id.clone(),
+                version: 1,
+                claims_revision: 1,
+                round: 1,
+                claim: "C1".into(),
+                source_digest: "source".into(),
+                claim_digest: "claim".into(),
+            },
+            gap: ResearchGap::Bridge { index: 0 },
+            unresolved_text: "bridge".into(),
+            original_statement: "claim".into(),
+            receipt_ids: vec![],
+            binding: KnowledgeBinding {
+                premises: vec![],
+                relation: BindingRelation::Implies,
+                parameters: vec![],
+                hypotheses: vec![],
+                argument: "fixture".into(),
+                unresolved: vec![],
+                source_lineage: vec![],
+            },
+        },
+        goal: ResearchGoal {
+            definitions: vec![],
+            hypotheses: vec![],
+            quantifiers: "all".into(),
+            conclusion: "fixture".into(),
+            correspondence: "fixture".into(),
+        },
+        budget: ResearchBudget {
+            max_attempts: 1,
+            expires_at: Utc::now(),
+        },
+        consent: RESEARCH_CONSENT.into(),
+        authorized_by: "author".into(),
+        authorized_at: Utc::now(),
+        events: vec![ResearchEvent::AttemptAdmitted {
+            attempt: Box::new(Attempt {
+                id: "attempt".into(),
+                owner: "author".into(),
+                entrant: Entrant {
+                    id: "author".into(),
+                    name: "Author".into(),
+                    kind: EntrantKind::Person,
+                    owner: None,
+                    retired: false,
+                    revision: 0,
+                },
+                target_digest: "target".into(),
+                solution_digest: "solution".into(),
+                solution: solution.clone(),
+                modules: std::collections::BTreeMap::from([("Lemma".into(), module.clone())]),
+                note: "Private".into(),
+                submitted_at: Utc::now(),
+                receipt: None,
+                invalidated: None,
+                attribution: None,
+            }),
+        }],
+    });
+    // Force the normal checksummed GridFS history representation.
+    file.agent_steps.insert(
+        "large".into(),
+        AgentStep {
+            cma_attempts: vec![],
+            version: 1,
+            claims_revision: 1,
+            progress: serde_json::json!({"answer":"x".repeat(600_000)}),
+        },
+    );
+    RefereeStore::insert(store, &file).await.unwrap();
+    let read = RefereeStore::get(store, &file.id).await.unwrap().unwrap();
+    assert_eq!(read.research_obligations, file.research_obligations);
+    let audit = store.storage_audit().await.unwrap();
+    assert!(!audit.orphan_files.contains(&solution.id));
+    assert!(!audit.orphan_files.contains(&module.id));
+    store.collect_orphan_files_offline().await.unwrap();
+    assert!(BlobStore::get(store, &solution.id).await.unwrap().is_some());
+    assert!(BlobStore::get(store, &module.id).await.unwrap().is_some());
     db.drop().await;
 }

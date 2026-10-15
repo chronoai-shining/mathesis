@@ -162,6 +162,8 @@ const STEP_LABELS = {
   letter: 'Letter',
   lean_probe: 'Lean probe',
   conjecture_target: 'Conjecture target',
+  research_target: 'Private research target',
+  research_faithfulness: 'Research target inspection',
   problem_audit: 'Paper problem audit',
   target_faithfulness: 'Target faithfulness audit',
   error_report_audit: 'Error report audit',
