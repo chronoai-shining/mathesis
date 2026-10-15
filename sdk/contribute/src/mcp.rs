@@ -13,6 +13,12 @@ const PROTOCOL_VERSION: &str = "2025-06-18";
 fn tools() -> Value {
     let string = |description: &str| json!({ "type": "string", "description": description });
     json!([
+        {"name":"research", "description":"Read private audited research candidates, author-authorized goals, targets and independent verification receipts.","inputSchema":{"type":"object","properties":{"id":string("Submission id")},"required":["id"]}},
+        {"name":"adopt-research", "description":"Authorize a precise private research goal and bounded attempts/deadline. Requires the submitting author's explicit research consent. Confirmation of the resulting exact Lean target is browser-session only.","inputSchema":{"type":"object","properties":{"id":string("Submission id"),"obligation":{"type":"object","description":"NewResearchObligation: exact round, claim, gap, candidate_digest, complete goal (definitions, hypotheses, quantifiers, conclusion, correspondence), budget (max_attempts 1–5, expires_at within 30 days), consent research-obligation-2026-10-16"}},"required":["id","obligation"]}},
+        {"name":"stop-research", "description":"Revoke new and live work on one private research obligation; retains its history.","inputSchema":{"type":"object","properties":{"id":string("Submission id"),"key":string("Obligation id"),"reason":string("Reason")},"required":["id","key","reason"]}},
+        {"name":"research-attempt", "description":"Submit bounded Lean sources against an author-confirmed private target. Receipt comes only from the independent verifier and grants no public credit.","inputSchema":{"type":"object","properties":{"id":string("Submission id"),"key":string("Obligation id"),"attempt":{"type":"object","properties":{"target_digest":string("Exact confirmed target digest"),"solution":string("Solution.lean"),"modules":{"type":"object","additionalProperties":{"type":"string"}},"note":string("Optional private note")},"required":["target_digest","solution"],"additionalProperties":false}},"required":["id","key","attempt"]}},
+        {"name":"research-attempt-status", "description":"Read the exact private solution, modules and verifier receipt.","inputSchema":{"type":"object","properties":{"id":string("Submission id"),"key":string("Obligation id"),"attempt":string("Attempt id")},"required":["id","key","attempt"]}},
+        {"name":"recheck-research", "description":"Ask a fresh private audit to assess how a checked target relates to the original claim; does not establish external coverage or change publication by itself.","inputSchema":{"type":"object","properties":{"id":string("Submission id"),"key":string("Obligation id"),"attempt":string("Attempt id")},"required":["id","key","attempt"]}},
         {"name":"formalization-opportunities", "description":"Discover current public author-confirmed Lean targets and independently verified contributions. Filter paper results or conjectures, open targets, verified proofs or disproofs.", "inputSchema":{"type":"object","properties":{"q":string("Statement, paper or author words"),"kind":{"enum":["paper","conjecture"]},"status":{"enum":["open","verified","disproved"]},"limit":{"type":"integer","minimum":1,"maximum":100},"before":string("next_before cursor")}}},
         {"name":"formalizations", "description":"List your private formalization deposits.", "inputSchema":{"type":"object","properties":{}}},
         {"name":"formalization-project", "description":"Download your complete deposited source project and attribution as reusable submission JSON.", "inputSchema":{"type":"object","properties":{"id":string("Deposit id")},"required":["id"]}},
@@ -90,6 +96,12 @@ fn call(client: &Client, name: &str, args: &Value) -> Result<Value, String> {
         "papers" => client.papers(args),
         "paper" => client.paper(required("record")?),
         "review" => client.review(required("id")?),
+        "research" => client.research(required("id")?),
+        "adopt-research" => client.adopt_research(required("id")?, &args["obligation"]),
+        "stop-research" => client.stop_research(required("id")?, required("key")?, required("reason")?),
+        "research-attempt" => client.research_attempt(required("id")?, required("key")?, &args["attempt"]),
+        "research-attempt-status" => client.research_attempt_status(required("id")?, required("key")?, required("attempt")?),
+        "recheck-research" => client.recheck_research(required("id")?, required("key")?, required("attempt")?),
         "knowledge-response" => client.knowledge_response(required("id")?, required("receipt")?),
         "respond-review" => client.respond_review(required("id")?, &args["response"]),
         "verification-bundle" => client.verification_bundle(required("record")?, required("claim")?, required("attempt")?),

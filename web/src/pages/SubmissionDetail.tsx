@@ -18,6 +18,7 @@ import { LatexText, MacrosProvider } from '../components/Markdown';
 import { StageTimeline } from '../components/StageTimeline';
 import { StatementSummary } from '../components/StatementSummary';
 import { PaperStanding } from '../components/PaperStanding';
+import { ResearchWorkspace } from '../components/ResearchWorkspace';
 import { RefereeWorkspace } from '../components/referee';
 import { Async, Badge, DateText, ExternalLink, Fold, Loading } from '../components/ui';
 import {
@@ -241,6 +242,7 @@ export function Workspace({
           />
         ) : null}
 
+        {state !== 'draft' && (isAuthor || isStaff) ? <ResearchWorkspace submission={s} /> : null}
         {state === 'draft' ? <DraftNotice submission={s} /> : null}
         {state === 'draft' && isAuthor ? (
           <section aria-labelledby="confirm-h">

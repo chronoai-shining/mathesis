@@ -1302,6 +1302,405 @@
           }
         }
       }
+    },
+    "/submissions/{id}/research": {
+      "get": {
+        "summary": "Read private current research candidates and history",
+        "description": "Private to authors and staff. Mutations require the submitting author. Checked research never grants public credit or automatically changes coverage/publication.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResearchView"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "404": {
+            "description": "Resource unavailable to caller"
+          },
+          "409": {
+            "description": "Source, target, authorization or budget changed"
+          },
+          "422": {
+            "description": "Invalid bounded input"
+          }
+        }
+      },
+      "post": {
+        "summary": "Authorize an exact private research obligation",
+        "description": "Private to authors and staff. Mutations require the submitting author. Checked research never grants public credit or automatically changes coverage/publication.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResearchView"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "404": {
+            "description": "Resource unavailable to caller"
+          },
+          "409": {
+            "description": "Source, target, authorization or budget changed"
+          },
+          "422": {
+            "description": "Invalid bounded input"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewResearchObligation"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/submissions/{id}/research/{key}/stop": {
+      "post": {
+        "summary": "Stop private research and retain its evidence",
+        "description": "Private to authors and staff. Mutations require the submitting author. Checked research never grants public credit or automatically changes coverage/publication.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResearchView"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "404": {
+            "description": "Resource unavailable to caller"
+          },
+          "409": {
+            "description": "Source, target, authorization or budget changed"
+          },
+          "422": {
+            "description": "Invalid bounded input"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "reason": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "reason"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "/submissions/{id}/research/{key}/target/response": {
+      "post": {
+        "summary": "Submitting author confirms or rejects the exact target in a cookie session",
+        "description": "Private to authors and staff. Mutations require the submitting author. Checked research never grants public credit or automatically changes coverage/publication.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResearchView"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "404": {
+            "description": "Resource unavailable to caller"
+          },
+          "409": {
+            "description": "Source, target, authorization or budget changed"
+          },
+          "422": {
+            "description": "Invalid bounded input"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "digest": {
+                    "type": "string"
+                  },
+                  "confirm": {
+                    "type": "boolean"
+                  },
+                  "comment": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "digest",
+                  "confirm"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "/submissions/{id}/research/{key}/attempts": {
+      "post": {
+        "summary": "Submit a bounded private attempt for independent verification",
+        "description": "Private to authors and staff. Mutations require the submitting author. Checked research never grants public credit or automatically changes coverage/publication.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResearchView"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "404": {
+            "description": "Resource unavailable to caller"
+          },
+          "409": {
+            "description": "Source, target, authorization or budget changed"
+          },
+          "422": {
+            "description": "Invalid bounded input"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResearchAttemptInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/submissions/{id}/research/{key}/attempts/{attempt}": {
+      "get": {
+        "summary": "Read private attempt sources and the verifier receipt",
+        "description": "Private to authors and staff. Mutations require the submitting author. Checked research never grants public credit or automatically changes coverage/publication.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "attempt",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "404": {
+            "description": "Resource unavailable to caller"
+          },
+          "409": {
+            "description": "Source, target, authorization or budget changed"
+          },
+          "422": {
+            "description": "Invalid bounded input"
+          }
+        }
+      }
+    },
+    "/submissions/{id}/research/{key}/attempts/{attempt}/recheck": {
+      "post": {
+        "summary": "Request a fresh source audit of a checked internal research result",
+        "description": "Private to authors and staff. Mutations require the submitting author. Checked research never grants public credit or automatically changes coverage/publication.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "attempt",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "404": {
+            "description": "Resource unavailable to caller"
+          },
+          "409": {
+            "description": "Source, target, authorization or budget changed"
+          },
+          "422": {
+            "description": "Invalid bounded input"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -2023,7 +2422,8 @@
         "type": "object",
         "properties": {
           "schema_version": {
-            "const": 2
+            "type": "integer",
+            "const": 3
           },
           "service": {
             "const": "Orchestra"
@@ -2207,6 +2607,9 @@
               "null"
             ],
             "description": "Applied publication decision, including pending knowledge evidence. Null for private review-only requests."
+          },
+          "research": {
+            "$ref": "#/components/schemas/ResearchView"
           }
         },
         "required": [
@@ -2216,7 +2619,8 @@
           "version",
           "claims_revision",
           "source_sha256",
-          "review"
+          "review",
+          "research"
         ]
       },
       "FormalizationOpportunity": {
@@ -3039,6 +3443,167 @@
           "explanation",
           "checked_at"
         ]
+      },
+      "ResearchGoal": {
+        "type": "object",
+        "properties": {
+          "definitions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "hypotheses": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "quantifiers": {
+            "type": "string"
+          },
+          "conclusion": {
+            "type": "string"
+          },
+          "correspondence": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "definitions",
+          "hypotheses",
+          "quantifiers",
+          "conclusion",
+          "correspondence"
+        ],
+        "additionalProperties": false
+      },
+      "ResearchGap": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "enum": [
+              "hypothesis",
+              "bridge"
+            ]
+          },
+          "index": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "kind",
+          "index"
+        ],
+        "additionalProperties": false
+      },
+      "ResearchBudget": {
+        "type": "object",
+        "properties": {
+          "max_attempts": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Future expiry within 30 days of admission."
+          }
+        },
+        "required": [
+          "max_attempts",
+          "expires_at"
+        ],
+        "additionalProperties": false
+      },
+      "NewResearchObligation": {
+        "type": "object",
+        "properties": {
+          "round": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "claim": {
+            "type": "string"
+          },
+          "gap": {
+            "$ref": "#/components/schemas/ResearchGap"
+          },
+          "candidate_digest": {
+            "type": "string"
+          },
+          "goal": {
+            "$ref": "#/components/schemas/ResearchGoal"
+          },
+          "budget": {
+            "$ref": "#/components/schemas/ResearchBudget"
+          },
+          "consent": {
+            "const": "research-obligation-2026-10-16"
+          }
+        },
+        "required": [
+          "round",
+          "claim",
+          "gap",
+          "candidate_digest",
+          "goal",
+          "budget",
+          "consent"
+        ],
+        "additionalProperties": false
+      },
+      "ResearchAttemptInput": {
+        "type": "object",
+        "properties": {
+          "target_digest": {
+            "type": "string"
+          },
+          "solution": {
+            "type": "string",
+            "maxLength": 1048576
+          },
+          "modules": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 2000
+          }
+        },
+        "required": [
+          "target_digest",
+          "solution"
+        ],
+        "additionalProperties": false
+      },
+      "ResearchView": {
+        "type": "object",
+        "required": [
+          "candidates",
+          "obligations"
+        ],
+        "properties": {
+          "candidates": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "description": "Exact digest-bound current audited gap, CoverageSubject, complete joint binding and receipt identities."
+            }
+          },
+          "obligations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "description": "Immutable authorization and append-only events, projected state, target and attempt receipts."
+            }
+          }
+        }
       }
     }
   }

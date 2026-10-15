@@ -468,6 +468,8 @@ pub struct NewFindingResponse {
 /// Every round and letter of one paper.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RefereeFile {
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub research_obligations: Vec<super::ResearchObligation>,
     /// Append-only query admissions, actual receipts and source-audited readings.
     /// Historical files have no fabricated knowledge observations.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -493,6 +495,7 @@ impl RefereeFile {
     pub fn new(id: SubmissionId) -> Self {
         Self {
             id,
+            research_obligations: vec![],
             knowledge_events: vec![],
             finding_responses: vec![],
             agent_steps: Default::default(),

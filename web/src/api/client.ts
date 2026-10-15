@@ -1,4 +1,10 @@
-import type { LeanPreflight } from './types';
+import type {
+  ResearchView,
+  NewResearchObligation,
+  ResearchAttemptInput,
+  ResearchAttempt,
+  LeanPreflight,
+} from './types';
 import type {
   LeanDeposit,
   FormalizationOpportunity,
@@ -229,6 +235,26 @@ export function versionBody(source: File, note: string, processingConsent?: stri
 }
 
 export interface ApiClient {
+  research(id: string, o?: RequestOptions): Promise<ResearchView>;
+  adoptResearch(id: string, input: NewResearchObligation): Promise<ResearchView>;
+  stopResearch(id: string, key: string, reason: string): Promise<ResearchView>;
+  respondResearchTarget(
+    id: string,
+    key: string,
+    input: { digest: string; confirm: boolean; comment?: string },
+  ): Promise<ResearchView>;
+  submitResearchAttempt(
+    id: string,
+    key: string,
+    input: ResearchAttemptInput,
+  ): Promise<ResearchView>;
+  researchAttempt(
+    id: string,
+    key: string,
+    attempt: string,
+  ): Promise<{ attempt: ResearchAttempt; solution: string; modules: Record<string, string> }>;
+  recheckResearch(id: string, key: string, attempt: string): Promise<{ requested: boolean }>;
+
   getCma(options?: RequestOptions): Promise<MyCmaStatus>;
   setCmaWorkspace(input: { workspace_id: string; expected_revision: number }): Promise<MyCmaStatus>;
   disconnectCma(): Promise<MyCmaStatus>;
@@ -418,6 +444,18 @@ export function createApiClient(fetchImpl: FetchLike = (input, init) => fetch(in
   const page = (p: PageParams) => ({ before: p.before, limit: p.limit });
 
   const client: ApiClient = {
+    research: (id, o) => request('GET', sub(id, '/research'), undefined, o),
+    adoptResearch: (id, input) => request('POST', sub(id, '/research'), input),
+    stopResearch: (id, key, reason) =>
+      request('POST', sub(id, `/research/${seg(key)}/stop`), { reason }),
+    respondResearchTarget: (id, key, input) =>
+      request('POST', sub(id, `/research/${seg(key)}/target/response`), input),
+    submitResearchAttempt: (id, key, input) =>
+      request('POST', sub(id, `/research/${seg(key)}/attempts`), input),
+    researchAttempt: (id, key, attempt) =>
+      request('GET', sub(id, `/research/${seg(key)}/attempts/${seg(attempt)}`)),
+    recheckResearch: (id, key, attempt) =>
+      request('POST', sub(id, `/research/${seg(key)}/attempts/${seg(attempt)}/recheck`)),
     session: (o) => request('GET', '/auth/session', undefined, o),
     logout: () => request('POST', '/auth/logout'),
     policy: (o) => request('GET', api('/policy'), undefined, o),

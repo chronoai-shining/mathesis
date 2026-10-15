@@ -15,6 +15,7 @@ mod papers;
 mod people;
 mod records;
 mod referee;
+mod research;
 mod review;
 mod review_report;
 pub use review_report::ReviewReport;

@@ -149,6 +149,8 @@ pub enum JobKind {
     Compile,
     Referee,
     LeanStatement,
+    ResearchTarget,
+    VerifyResearch,
     OpenProblems,
     VerifyAttempt,
     ErrorReports,
@@ -166,7 +168,7 @@ impl JobKind {
     pub fn lane(self) -> JobLane {
         match self {
             Self::Compile => JobLane::Compile,
-            Self::VerifyAttempt => JobLane::Verify,
+            Self::VerifyAttempt | Self::VerifyResearch => JobLane::Verify,
             _ => JobLane::Review,
         }
     }

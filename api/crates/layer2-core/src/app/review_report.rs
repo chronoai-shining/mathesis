@@ -20,6 +20,7 @@ pub struct ReviewReport {
     pub decision: Option<crate::policy::Decision>,
     pub claims: Vec<Claim>,
     pub review: RefereeView,
+    pub research: ResearchView,
 }
 impl App {
     pub async fn review_report(
@@ -46,7 +47,8 @@ impl App {
         }
         let version = submission.current_version();
         Ok(ReviewReport {
-            schema_version: 2,
+            schema_version: 3,
+            research: self.research_obligations(caller, id).await?,
             evidence_by_version: submission
                 .versions
                 .iter()
@@ -94,6 +96,36 @@ impl ReviewReport {
                     "- {} · {} bytes · SHA-256 {} — {}",
                     file.descriptor.path, file.bytes, file.sha256, file.descriptor.description
                 );
+            }
+        }
+        for entry in &self.research.obligations {
+            let _ = writeln!(
+                out,
+                "\n## Private research obligation {}\n\nState: {}\n\n{}\n\nCorrespondence: {}\n\nChecked targets are internal evidence only. The original claim requires a fresh independent audit.\n",
+                entry.obligation.id,
+                entry.state,
+                entry.obligation.goal.statement(),
+                entry.obligation.goal.correspondence
+            );
+            if let Some(target) = &entry.target {
+                let _ = writeln!(
+                    out,
+                    "Target SHA-256: {} · toolchain {}\n",
+                    target.digest, target.toolchain
+                );
+            }
+            for attempt in &entry.attempts {
+                if let Some(receipt) = &attempt.receipt {
+                    let _ = writeln!(
+                        out,
+                        "Attempt {}: {:?} · target {} · solution {} · checked {}\n",
+                        attempt.id,
+                        receipt.verdict,
+                        receipt.target_digest,
+                        receipt.solution_digest,
+                        receipt.checked_at
+                    );
+                }
             }
         }
         for round in &self.review.rounds {

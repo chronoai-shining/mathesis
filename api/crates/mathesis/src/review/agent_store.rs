@@ -73,7 +73,7 @@ impl Worker {
                 if state.deleted {
                     continue;
                 }
-                let superseded = paper
+                let mut superseded = paper
                     .current_version()
                     .is_none_or(|v| v.number != step.version)
                     || paper.claims_revision != step.claims_revision
@@ -81,6 +81,17 @@ impl Worker {
                         paper.status,
                         SubmissionStatus::Draft | SubmissionStatus::Withdrawn
                     );
+                if let Some(step) = step.cma_attempts.last()
+                    && let Some(key) = step
+                        .step
+                        .strip_prefix("research:")
+                        .and_then(|s| s.split(':').next())
+                {
+                    superseded |= !self
+                        .app
+                        .research_active(&self.auditor_account, &paper.id, key)
+                        .await?;
+                }
                 let expired = chrono::Utc::now().timestamp().max(0) as u64 >= state.deadline;
                 if !superseded && !expired && state.answer.is_none() && state.failure.is_none() {
                     continue;
@@ -126,6 +137,7 @@ impl Worker {
         };
         // Preserve initial keys of already-admitted conversations; successors use their saved ordinal.
         let initial_step = if step.starts_with("target:")
+            || step.starts_with("research:")
             || step.starts_with("agent-attempt:")
             || step.starts_with("error-report:")
         {
@@ -171,6 +183,18 @@ impl RunStore for AgentStore {
             .submission(&self.caller, &self.job.submission)
             .await
             .map_err(|_| fence())?;
+        if let Some(key) = self
+            .logical_step
+            .strip_prefix("research:")
+            .and_then(|s| s.split(':').next())
+            && !self
+                .app
+                .research_active(&self.caller, &paper.id, key)
+                .await
+                .map_err(|_| fence())?
+        {
+            return Ok(false);
+        }
         Ok(paper
             .current_version()
             .is_some_and(|v| v.number == self.version)

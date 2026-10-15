@@ -988,3 +988,14 @@ private feedback may complete. Explicit proof errors retain their existing block
 After restoring the source, staff can use the existing referee restart route on
 the same manuscript version; a new round preserves all previous evidence.
 `review_only` still has no publication decision or record.
+
+### Private research obligations
+
+`GET|POST /submissions/{id}/research` reads or adopts an exact audited missing
+hypothesis/bridge. The submitting author controls target confirmation,
+`/{key}/target/response` (cookie session only), bounded attempts
+(`/{key}/attempts`), stop (`/{key}/stop`) and fresh review of a checked attempt
+(`/{key}/attempts/{attempt}/recheck`). Authors and staff can read exact private
+attempt sources at `/{key}/attempts/{attempt}`. Research does not require public
+acceptance and never grants automatic credit, coverage or publication. See
+[RESEARCH_OBLIGATIONS.md](RESEARCH_OBLIGATIONS.md) for bodies, bounds and receipts.

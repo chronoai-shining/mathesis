@@ -1,6 +1,7 @@
 use std::{collections::BTreeSet, sync::Arc};
 
 mod knowledge;
+mod research;
 
 use chrono::Datelike;
 

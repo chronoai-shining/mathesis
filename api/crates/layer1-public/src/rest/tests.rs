@@ -939,7 +939,33 @@ async fn private_review_reports_are_downloadable_only_by_author_and_responses_ar
     )
     .await
     .1;
-    assert_eq!(report["schema_version"], 2);
+    assert_eq!(report["schema_version"], 3);
+    assert_eq!(report["research"]["obligations"], serde_json::json!([]));
+    let research = format!("/submissions/{id}/research");
+    assert_eq!(
+        call(&app, "GET", &research, Some("author"), None).await.0,
+        StatusCode::OK
+    );
+    assert_eq!(
+        call(&app, "GET", &research, Some("outsider"), None).await.0,
+        StatusCode::NOT_FOUND
+    );
+    assert_eq!(
+        call(&app, "GET", &research, None, None).await.0,
+        StatusCode::UNAUTHORIZED
+    );
+    assert_eq!(
+        call(
+            &app,
+            "POST",
+            &research,
+            Some("author"),
+            Some(serde_json::json!({"consent":"research-obligation-2026-10-16"}))
+        )
+        .await
+        .0,
+        StatusCode::UNPROCESSABLE_ENTITY
+    );
     assert_eq!(report["review_scope"], "Boundary cases");
     let path = format!("/submissions/{id}/review.md");
     let request = Request::builder()

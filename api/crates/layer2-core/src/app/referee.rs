@@ -62,6 +62,33 @@ impl App {
                         serde_json::json!({"author_response":response,"original_finding":concern}),
                     );
                 }
+            } else if let Some((key, attempt_id)) = trigger
+                .strip_prefix("research:")
+                .and_then(|s| s.split_once(':'))
+            {
+                if let Some(task) = file.research_obligations.iter().find(|t| {
+                    t.id == key
+                        && t.candidate.subject.version == round.version
+                        && t.candidate.subject.claims_revision == round.claims_revision
+                }) && let Some(attempt) = task
+                    .attempts()
+                    .into_iter()
+                    .find(|a| a.id == attempt_id && a.verified())
+                {
+                    let target = task.events.iter().find_map(|e| match e {
+                        crate::model::ResearchEvent::TargetPrepared { target }
+                            if target.digest == attempt.target_digest =>
+                        {
+                            Some(target)
+                        }
+                        _ => None,
+                    });
+                    let checked = self.research_attempt(caller, id, key, attempt_id).await?;
+                    evidence.push(serde_json::json!({"kind":"internal_research_evidence", "obligation":task.id,
+                        "source_audit":task.candidate, "authorized_goal":task.goal, "target":target,
+                        "checked_attempt":checked,
+                        "limits":"This is internal evidence for the exact checked target. Independently audit correspondence to the original claim and all remaining premises. It is not external baseline coverage, novelty, publication or contribution credit."}));
+                }
             } else if let Some(report_id) = trigger.strip_prefix("error-report:") {
                 if let Some(report) = self
                     .all_error_reports()

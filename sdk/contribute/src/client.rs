@@ -195,6 +195,51 @@ impl Client {
     pub fn review(&self, id: &str) -> ApiResult<Value> {
         self.get(&format!("/submissions/{}/review", segment(id)))
     }
+    pub fn research(&self, id: &str) -> ApiResult<Value> {
+        self.get(&format!("/submissions/{}/research", segment(id)))
+    }
+    pub fn adopt_research(&self, id: &str, body: &Value) -> ApiResult<Value> {
+        self.post(&format!("/submissions/{}/research", segment(id)), body)
+    }
+    pub fn stop_research(&self, id: &str, key: &str, reason: &str) -> ApiResult<Value> {
+        self.post(
+            &format!(
+                "/submissions/{}/research/{}/stop",
+                segment(id),
+                segment(key)
+            ),
+            &json!({"reason":reason}),
+        )
+    }
+    pub fn research_attempt(&self, id: &str, key: &str, body: &Value) -> ApiResult<Value> {
+        self.post(
+            &format!(
+                "/submissions/{}/research/{}/attempts",
+                segment(id),
+                segment(key)
+            ),
+            body,
+        )
+    }
+    pub fn research_attempt_status(&self, id: &str, key: &str, attempt: &str) -> ApiResult<Value> {
+        self.get(&format!(
+            "/submissions/{}/research/{}/attempts/{}",
+            segment(id),
+            segment(key),
+            segment(attempt)
+        ))
+    }
+    pub fn recheck_research(&self, id: &str, key: &str, attempt: &str) -> ApiResult<Value> {
+        self.post(
+            &format!(
+                "/submissions/{}/research/{}/attempts/{}/recheck",
+                segment(id),
+                segment(key),
+                segment(attempt)
+            ),
+            &json!({}),
+        )
+    }
     pub fn knowledge_response(&self, id: &str, receipt: &str) -> ApiResult<Value> {
         self.get(&format!(
             "/submissions/{}/referee/knowledge/{}",
