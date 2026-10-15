@@ -158,6 +158,17 @@ restart a settled review on the same manuscript version after restoring the
 knowledge source; previous rounds and queries stay immutable. Review-only requests
 remain private and never receive a publication decision.
 
+New rounds also pin `computation_contract: 1`. An attachment explicitly declaring
+`replay_protocol: mathesis.rational-projection-amgm.v1` requests bounded exact
+rational replay of a fixed three-projection matrix expression. The worker stores
+its actual result against the immutable source/attachment, round and claims
+revision before model admission. Retries reuse receipts; old contract-0 rounds
+retain their prompts. Oracle, audit, advice, letter and private author reports
+share the saved finite result. No uploaded code runs. Invalid inputs and checked
+arithmetic overflow produce explicit non-results. A source audit must establish
+correspondence to the manuscript; computation alone changes no policy or credit.
+See `docs/COMPUTATION_REPLAY.md` for the input and limits.
+
 ## 2. Repository layout
 
 The root contains exactly: `.github/ api/ web/ sdk/ infra/ docs/ CLAUDE.md

@@ -3,6 +3,7 @@ import { ReviewFindings } from './ReviewFindings';
 import { ReviewProgress } from './ReviewProgress';
 import { MethodologyEvidence } from './MethodologyEvidence';
 import { CoverageEvidence, KnowledgeQueries } from './KnowledgeEvidence';
+import { ComputationEvidence } from './ComputationEvidence';
 import { hasWaitingResponse, RECHECK_WAITING, reviewProgressText } from '../lib/reviewProgress';
 import { useApi } from '../api/context';
 import type { RefereeResource } from '../api/useReferee';
@@ -131,7 +132,12 @@ export function RefereeWorkspace(
                     Download readable report
                   </a>
                 </div>
-                {current ? <KnowledgeQueries round={current} submissionId={submission.id} /> : null}
+                {current ? (
+                  <>
+                    <ComputationEvidence round={current} />
+                    <KnowledgeQueries round={current} submissionId={submission.id} />
+                  </>
+                ) : null}
                 <ReviewFindings submission={submission} file={file} onChange={resource.replace} />
                 {file.letters.length > 0 ? <SentLetters letters={file.letters} authorView /> : null}
                 {current?.audit?.state.state === 'done' ? (
@@ -151,7 +157,10 @@ export function RefereeWorkspace(
                           <h3>
                             Round {round.number} · source version {round.version}
                           </h3>
-                          <KnowledgeQueries round={round} submissionId={submission.id} />
+                          <>
+                            <ComputationEvidence round={round} />
+                            <KnowledgeQueries round={round} submissionId={submission.id} />
+                          </>
                           {round.audit?.state.state === 'done' ? (
                             <AuditView audit={round.audit.state.result} />
                           ) : null}
@@ -379,7 +388,10 @@ function RoundView({
         {round.letter ? <StepProgress name={STEP_NAMES.letter} step={round.letter} /> : null}
         {round.formal ? <StepProgress name={STEP_NAMES.formal} step={round.formal} /> : null}
       </ol>
-      <KnowledgeQueries round={round} submissionId={submission.id} />
+      <>
+        <ComputationEvidence round={round} />
+        <KnowledgeQueries round={round} submissionId={submission.id} />
+      </>
       {sent.length > 0 ? (
         <SentLetters letters={[...sent]} authorView showSender />
       ) : round.letter?.state.state === 'done' ? (

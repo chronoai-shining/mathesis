@@ -341,3 +341,5 @@ mod defer_tests {
         assert!(jobs.claim().await.unwrap().is_none());
     }
 }
+
+mod computation;

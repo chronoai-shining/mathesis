@@ -917,6 +917,8 @@ impl App {
     fn push_round(&self, file: &mut RefereeFile, submission: &Submission, version: u32) {
         let number = file.rounds.last().map_or(1, |r| r.number + 1);
         file.rounds.push(RefereeRound {
+            computation_contract: 1,
+            computation_receipts: vec![],
             knowledge_contract: 2,
             review_contract: crate::model::REVIEW_CONTRACT,
             source_sha256: submission

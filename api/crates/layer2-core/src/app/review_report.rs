@@ -109,6 +109,21 @@ impl ReviewReport {
                     round.review_contract, round.claims_revision
                 );
             }
+            for receipt in &round.computation_receipts {
+                let _ = writeln!(
+                    out,
+                    "### Replayed finite computation — {}\n\nState: {:?} · protocol: {}\n\nExact value: {}/{}\n\nInput SHA-256: {} · source version {} · claims revision {}\n\n{}\n",
+                    receipt.attachment.descriptor.path,
+                    receipt.state,
+                    receipt.protocol,
+                    receipt.numerator.as_deref().unwrap_or("unavailable"),
+                    receipt.denominator.as_deref().unwrap_or("unavailable"),
+                    receipt.attachment.sha256,
+                    receipt.version,
+                    receipt.claims_revision,
+                    receipt.explanation
+                );
+            }
             if round.knowledge_contract > 0 {
                 let _ = writeln!(
                     out,

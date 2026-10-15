@@ -2150,6 +2150,16 @@
                       "items": {
                         "$ref": "#/components/schemas/KnowledgeEvent"
                       }
+                    },
+                    "computation_contract": {
+                      "type": "integer",
+                      "description": "1 enables requested finite replay before model admission. Historical absent/0 rounds retain their prompt bytes."
+                    },
+                    "computation_receipts": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ComputationReceipt"
+                      }
                     }
                   }
                 }
@@ -2425,6 +2435,13 @@
           },
           "bytes": {
             "type": "integer"
+          },
+          "replay_protocol": {
+            "type": "string",
+            "enum": [
+              "mathesis.rational-projection-amgm.v1"
+            ],
+            "description": "Optional explicit request for bounded exact replay of this certificate/computation file. Other uploads remain unexecuted."
           }
         },
         "required": [
@@ -2948,6 +2965,79 @@
               }
             }
           }
+        ]
+      },
+      "ComputationReceipt": {
+        "type": "object",
+        "description": "Private worker-produced finite arithmetic receipt. Does not verify manuscript faithfulness, Lean proof or coverage.",
+        "properties": {
+          "protocol": {
+            "type": "string",
+            "enum": [
+              "mathesis.rational-projection-amgm.v1"
+            ]
+          },
+          "round": {
+            "type": "integer"
+          },
+          "version": {
+            "type": "integer"
+          },
+          "claims_revision": {
+            "type": "integer"
+          },
+          "source_sha256": {
+            "type": "string"
+          },
+          "attachment": {
+            "$ref": "#/components/schemas/EvidenceAttachment"
+          },
+          "state": {
+            "enum": [
+              "counterexample",
+              "not_counterexample",
+              "invalid_input",
+              "arithmetic_limit"
+            ]
+          },
+          "dimension": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 1,
+            "maximum": 6
+          },
+          "numerator": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "denominator": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "explanation": {
+            "type": "string"
+          },
+          "checked_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "protocol",
+          "round",
+          "version",
+          "claims_revision",
+          "source_sha256",
+          "attachment",
+          "state",
+          "explanation",
+          "checked_at"
         ]
       }
     }
