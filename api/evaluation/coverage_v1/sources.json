@@ -1,0 +1,182 @@
+{
+  "pigeonhole": {
+    "source_commit": "e7dcc89974fd44cabd0f10781eccc135eddf8d1c",
+    "repo_path": "D5/S0/Diagonal/PigeonholeFiber.lean",
+    "source_sha256": "sha256:e39ed439518df37d03a49789c644662cc10efd1277fcdcd1c569a56e53d51443",
+    "source_url": "https://github.com/the-omega-institute/trureturing/blob/e7dcc89974fd44cabd0f10781eccc135eddf8d1c/D5/S0/Diagonal/PigeonholeFiber.lean",
+    "frozen_node_id": "sha256:75d0088a6e1c62287bb2b1b8b1e50c7a028a5b2e2639acc9d9841c420b11a3e4",
+    "freeze_status": "frozen",
+    "declarations": [
+      {
+        "declaration_name_key": "ns(ns(ns(ns(ns(n0,2:D5),2:S0),8:Diagonal),15:PigeonholeFiber),24:finite_reading_has_fiber)",
+        "kind": "theorem",
+        "statement_id": "sha256:7055ad403a73e564741999ceb43535300eeb0a5af556401ff847379f29eb8e9e",
+        "name": "D5.S0.Diagonal.PigeonholeFiber.finite_reading_has_fiber"
+      }
+    ]
+  },
+  "cassini": {
+    "source_commit": "e7dcc89974fd44cabd0f10781eccc135eddf8d1c",
+    "repo_path": "D5/S1/Recurrence/CassiniFricke.lean",
+    "source_sha256": "sha256:cb60539f80c35f5000805dd7c12e4dc394ae391940d5818fd5763fd0595618e0",
+    "source_url": "https://github.com/the-omega-institute/trureturing/blob/e7dcc89974fd44cabd0f10781eccc135eddf8d1c/D5/S1/Recurrence/CassiniFricke.lean",
+    "frozen_node_id": "sha256:649af8a810da928e5ce93c8e317d12172be96acecb89fa81e39d1a5fef1131a3",
+    "freeze_status": "frozen",
+    "declarations": [
+      {
+        "declaration_name_key": "ns(ns(ns(ns(ns(n0,2:D5),2:S1),10:Recurrence),13:CassiniFricke),14:cassini_fricke)",
+        "kind": "theorem",
+        "statement_id": "sha256:f05570cff54f73232c864699f78cc21ad43c1cf7b7783bf104bd92b40e7ced87",
+        "name": "D5.S1.Recurrence.CassiniFricke.cassini_fricke"
+      }
+    ]
+  },
+  "projection_amgm": {
+    "source_commit": "e7dcc89974fd44cabd0f10781eccc135eddf8d1c",
+    "repo_path": "D5/S3/Quantum/Matrix/ProjectionAMGMRefutation.lean",
+    "source_sha256": "sha256:ec5625a575cd67b31e65da276b25c675be0117196725df83fba2a8cc5122c17f",
+    "source_url": "https://github.com/the-omega-institute/trureturing/blob/e7dcc89974fd44cabd0f10781eccc135eddf8d1c/D5/S3/Quantum/Matrix/ProjectionAMGMRefutation.lean",
+    "frozen_node_id": "sha256:42ce981a2bf917940386285df05fa1ffd3807d94008438ae674cfcbf8ab94258",
+    "freeze_status": "frozen",
+    "declarations": [
+      {
+        "declaration_name_key": "ns(ns(ns(ns(ns(ns(n0,2:D5),2:S3),7:Quantum),6:Matrix),24:ProjectionAMGMRefutation),6:result)",
+        "kind": "theorem",
+        "statement_id": "sha256:1102955d506661e51c92cba308c208b734ca14cc6690678bbdc81adc14ce3d91",
+        "name": "D5.S3.Quantum.Matrix.ProjectionAMGMRefutation.result"
+      },
+      {
+        "declaration_name_key": "ns(ns(ns(ns(ns(ns(nn(ns(ns(ns(ns(ns(ns(n0,8:_private),2:D5),2:S3),7:Quantum),6:Matrix),24:ProjectionAMGMRefutation),0),2:D5),2:S3),7:Quantum),6:Matrix),24:ProjectionAMGMRefutation),10:mean_mul_z)",
+        "kind": "theorem",
+        "statement_id": "sha256:e46673aa272e244c705e5b0398814a1dc7a6b56e5f734933d78900c2b3f7e843",
+        "name": "_private.D5.S3.Quantum.Matrix.ProjectionAMGMRefutation.0.D5.S3.Quantum.Matrix.ProjectionAMGMRefutation.mean_mul_z"
+      },
+      {
+        "declaration_name_key": "ns(ns(ns(ns(ns(ns(nn(ns(ns(ns(ns(ns(ns(n0,8:_private),2:D5),2:S3),7:Quantum),6:Matrix),24:ProjectionAMGMRefutation),0),2:D5),2:S3),7:Quantum),6:Matrix),24:ProjectionAMGMRefutation),12:word_product)",
+        "kind": "theorem",
+        "statement_id": "sha256:45e741be7dba05834a2a9b45f2f9e3dc536b0681d38b4f5b72ef2abc5af10333",
+        "name": "_private.D5.S3.Quantum.Matrix.ProjectionAMGMRefutation.0.D5.S3.Quantum.Matrix.ProjectionAMGMRefutation.word_product"
+      },
+      {
+        "declaration_name_key": "ns(ns(ns(ns(ns(ns(nn(ns(ns(ns(ns(ns(ns(n0,8:_private),2:D5),2:S3),7:Quantum),6:Matrix),24:ProjectionAMGMRefutation),0),2:D5),2:S3),7:Quantum),6:Matrix),24:ProjectionAMGMRefutation),13:sixPerms_univ)",
+        "kind": "theorem",
+        "statement_id": "sha256:b2fb2f62b438c164b138effc61875e32cc8b6e95947b03bfcf0bf3a60a14b38d",
+        "name": "_private.D5.S3.Quantum.Matrix.ProjectionAMGMRefutation.0.D5.S3.Quantum.Matrix.ProjectionAMGMRefutation.sixPerms_univ"
+      },
+      {
+        "declaration_name_key": "ns(ns(ns(ns(ns(ns(nn(ns(ns(ns(ns(ns(ns(n0,8:_private),2:D5),2:S3),7:Quantum),6:Matrix),24:ProjectionAMGMRefutation),0),2:D5),2:S3),7:Quantum),6:Matrix),24:ProjectionAMGMRefutation),20:quadratic_form_value)",
+        "kind": "theorem",
+        "statement_id": "sha256:663d51d4374c82e32aa66da2cd6dde61c19d59408d1fcf2b49962f30478a5b3e",
+        "name": "_private.D5.S3.Quantum.Matrix.ProjectionAMGMRefutation.0.D5.S3.Quantum.Matrix.ProjectionAMGMRefutation.quadratic_form_value"
+      },
+      {
+        "declaration_name_key": "ns(ns(ns(ns(ns(ns(nn(ns(ns(ns(ns(ns(ns(n0,8:_private),2:D5),2:S3),7:Quantum),6:Matrix),24:ProjectionAMGMRefutation),0),2:D5),2:S3),7:Quantum),6:Matrix),24:ProjectionAMGMRefutation),22:instance_is_projection)",
+        "kind": "theorem",
+        "statement_id": "sha256:a25191833fcba3f6c83092d955db04c8cf129f9097d435bf431228867b24f213",
+        "name": "_private.D5.S3.Quantum.Matrix.ProjectionAMGMRefutation.0.D5.S3.Quantum.Matrix.ProjectionAMGMRefutation.instance_is_projection"
+      },
+      {
+        "declaration_name_key": "ns(ns(ns(ns(ns(ns(nn(ns(ns(ns(ns(ns(ns(n0,8:_private),2:D5),2:S3),7:Quantum),6:Matrix),24:ProjectionAMGMRefutation),0),2:D5),2:S3),7:Quantum),6:Matrix),24:ProjectionAMGMRefutation),23:instance_not_posSemidef)",
+        "kind": "theorem",
+        "statement_id": "sha256:7ebfbe3a446c7db1f7fe2cd696480032bf520c719c119c56240c906449bd3f58",
+        "name": "_private.D5.S3.Quantum.Matrix.ProjectionAMGMRefutation.0.D5.S3.Quantum.Matrix.ProjectionAMGMRefutation.instance_not_posSemidef"
+      },
+      {
+        "declaration_name_key": "ns(ns(ns(ns(ns(ns(nn(ns(ns(ns(ns(ns(ns(n0,8:_private),2:D5),2:S3),7:Quantum),6:Matrix),24:ProjectionAMGMRefutation),0),2:D5),2:S3),7:Quantum),6:Matrix),24:ProjectionAMGMRefutation),7:v_dot_v)",
+        "kind": "theorem",
+        "statement_id": "sha256:ee35c887feabcaa650e8bcefd2674a9191137ee887ea161376178472d9f7a3af",
+        "name": "_private.D5.S3.Quantum.Matrix.ProjectionAMGMRefutation.0.D5.S3.Quantum.Matrix.ProjectionAMGMRefutation.v_dot_v"
+      },
+      {
+        "declaration_name_key": "ns(ns(ns(ns(ns(ns(nn(ns(ns(ns(ns(ns(ns(n0,8:_private),2:D5),2:S3),7:Quantum),6:Matrix),24:ProjectionAMGMRefutation),0),2:D5),2:S3),7:Quantum),6:Matrix),24:ProjectionAMGMRefutation),7:v_dot_z)",
+        "kind": "theorem",
+        "statement_id": "sha256:c07b5ac470ed1172d044c949e53cb5e4323fc20d815c0d7a50f6ee4f3dbbd411",
+        "name": "_private.D5.S3.Quantum.Matrix.ProjectionAMGMRefutation.0.D5.S3.Quantum.Matrix.ProjectionAMGMRefutation.v_dot_z"
+      },
+      {
+        "declaration_name_key": "ns(ns(ns(ns(ns(ns(nn(ns(ns(ns(ns(ns(ns(n0,8:_private),2:D5),2:S3),7:Quantum),6:Matrix),24:ProjectionAMGMRefutation),0),2:D5),2:S3),7:Quantum),6:Matrix),24:ProjectionAMGMRefutation),8:sym_form)",
+        "kind": "theorem",
+        "statement_id": "sha256:181a2cee04d985dd9d2d87dcd369b2d462b02b6697a8af1303a7058eec27af6a",
+        "name": "_private.D5.S3.Quantum.Matrix.ProjectionAMGMRefutation.0.D5.S3.Quantum.Matrix.ProjectionAMGMRefutation.sym_form"
+      },
+      {
+        "declaration_name_key": "ns(ns(ns(ns(ns(ns(nn(ns(ns(ns(ns(ns(ns(n0,8:_private),2:D5),2:S3),7:Quantum),6:Matrix),24:ProjectionAMGMRefutation),0),2:D5),2:S3),7:Quantum),6:Matrix),24:ProjectionAMGMRefutation),9:mean_form)",
+        "kind": "theorem",
+        "statement_id": "sha256:94ea19035a8c5bf76757373bedacc017b97d893816e95db23096b5cf30a4ba41",
+        "name": "_private.D5.S3.Quantum.Matrix.ProjectionAMGMRefutation.0.D5.S3.Quantum.Matrix.ProjectionAMGMRefutation.mean_form"
+      },
+      {
+        "declaration_name_key": "ns(ns(ns(ns(ns(ns(nn(ns(ns(ns(ns(ns(ns(n0,8:_private),2:D5),2:S3),7:Quantum),6:Matrix),24:ProjectionAMGMRefutation),0),2:D5),2:S3),7:Quantum),6:Matrix),24:ProjectionAMGMRefutation),9:word_form)",
+        "kind": "theorem",
+        "statement_id": "sha256:5294cf6ae915cf112dce345965fce3711b0e61a3f62c357289475eaae880ae13",
+        "name": "_private.D5.S3.Quantum.Matrix.ProjectionAMGMRefutation.0.D5.S3.Quantum.Matrix.ProjectionAMGMRefutation.word_form"
+      }
+    ]
+  },
+  "bonferroni": {
+    "source_commit": "e7dcc89974fd44cabd0f10781eccc135eddf8d1c",
+    "repo_path": "D5/S0/Asymptotics/Bonferroni/TailBounds.lean",
+    "source_sha256": "sha256:6fa9b4a5f3a39137b4950a930020470f92a46759cddff3d6cd417fd43807bfd0",
+    "source_url": "https://github.com/the-omega-institute/trureturing/blob/e7dcc89974fd44cabd0f10781eccc135eddf8d1c/D5/S0/Asymptotics/Bonferroni/TailBounds.lean",
+    "frozen_node_id": "sha256:186952903936f20b1800da52be255d59b580aec4dc8e4306d99a0622fc0c9e3c",
+    "freeze_status": "frozen",
+    "declarations": [
+      {
+        "declaration_name_key": "ns(ns(ns(ns(ns(ns(n0,2:D5),2:S0),11:Asymptotics),10:Bonferroni),10:TailBounds),31:capture_count_tail_eq_sum_exact)",
+        "kind": "theorem",
+        "statement_id": "sha256:b085e07c5a12e11fdf4f4343e355ad8b10a35296858bdc278bbad1f90cc0f379",
+        "name": "D5.S0.Asymptotics.Bonferroni.TailBounds.capture_count_tail_eq_sum_exact"
+      },
+      {
+        "declaration_name_key": "ns(ns(ns(ns(ns(ns(n0,2:D5),2:S0),11:Asymptotics),10:Bonferroni),10:TailBounds),37:capture_count_tail_le_binomial_moment)",
+        "kind": "theorem",
+        "statement_id": "sha256:f46e5a767c918ae7d6735510e5a5be9ea4b9069e36903bf41e20ce59e1c5f8ec",
+        "name": "D5.S0.Asymptotics.Bonferroni.TailBounds.capture_count_tail_le_binomial_moment"
+      },
+      {
+        "declaration_name_key": "ns(ns(ns(ns(ns(ns(n0,2:D5),2:S0),11:Asymptotics),10:Bonferroni),10:TailBounds),48:binomial_moment_sub_k_next_le_capture_count_tail)",
+        "kind": "theorem",
+        "statement_id": "sha256:769599e77df45b88e2f1c3717d84f56e4cb02e55a72fce6109411bd05a8bafc1",
+        "name": "D5.S0.Asymptotics.Bonferroni.TailBounds.binomial_moment_sub_k_next_le_capture_count_tail"
+      }
+    ]
+  },
+  "pure_state": {
+    "source_commit": "e7dcc89974fd44cabd0f10781eccc135eddf8d1c",
+    "repo_path": "D5/S3/Quantum/PureState/PureStateHandshake.lean",
+    "source_sha256": "sha256:9f29b33fe39e49184f63437bfcd205666d36ba87ee98b2892b46edd448b55b5b",
+    "source_url": "https://github.com/the-omega-institute/trureturing/blob/e7dcc89974fd44cabd0f10781eccc135eddf8d1c/D5/S3/Quantum/PureState/PureStateHandshake.lean",
+    "frozen_node_id": "sha256:5d3daa692c9efeeece4187741aa784c00042d57b1188eeedb903b516e0384bbd",
+    "freeze_status": "frozen",
+    "declarations": [
+      {
+        "declaration_name_key": "ns(ns(ns(ns(ns(ns(n0,2:D5),2:S3),7:Quantum),9:PureState),18:PureStateHandshake),20:pure_state_handshake)",
+        "kind": "theorem",
+        "statement_id": "sha256:3f3685dfb0637d23f5f799f8ec2e875fbc8fee9823e2940f31ba7983a7b83b1e",
+        "name": "D5.S3.Quantum.PureState.PureStateHandshake.pure_state_handshake"
+      }
+    ]
+  },
+  "turan": {
+    "source_commit": "e7dcc89974fd44cabd0f10781eccc135eddf8d1c",
+    "repo_path": "D5/S1/Recurrence/Turan/StrictlyIncreasingTail.lean",
+    "source_sha256": "sha256:76ab312076aa5371d1f9b8e386f2a233816f51518c281761974b68e8f28d2a91",
+    "source_url": "https://github.com/the-omega-institute/trureturing/blob/e7dcc89974fd44cabd0f10781eccc135eddf8d1c/D5/S1/Recurrence/Turan/StrictlyIncreasingTail.lean",
+    "frozen_node_id": "sha256:cafbf7ae2799979b3edc6a98a01272e06b2c1890bbf005f79cfe567d865cdb17",
+    "freeze_status": "frozen",
+    "declarations": [
+      {
+        "declaration_name_key": "ns(ns(ns(ns(ns(ns(n0,2:D5),2:S1),10:Recurrence),5:Turan),22:StrictlyIncreasingTail),36:weighted_turan_nonneg_of_strict_mono)",
+        "kind": "theorem",
+        "statement_id": "sha256:48932b0ee5eadfa41a9e8f38b9d1584142bd1184c677c6b2a577711c25055078",
+        "name": "D5.S1.Recurrence.Turan.StrictlyIncreasingTail.weighted_turan_nonneg_of_strict_mono"
+      },
+      {
+        "declaration_name_key": "ns(ns(ns(ns(ns(ns(ns(n0,2:D5),2:S1),10:Recurrence),5:Turan),22:StrictlyIncreasingTail),11:orthonormal),6:eq_def)",
+        "kind": "theorem",
+        "statement_id": "sha256:4b845fdfa9a1e4df3651527d6f10f5790282437e70559722ff70351ff8da5be1",
+        "name": "D5.S1.Recurrence.Turan.StrictlyIncreasingTail.orthonormal.eq_def"
+      }
+    ]
+  }
+}

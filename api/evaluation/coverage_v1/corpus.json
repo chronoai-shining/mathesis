@@ -1,0 +1,484 @@
+{
+  "schema": "mathesis.coverage-evaluation.v1",
+  "source_snapshot": {
+    "transport": "pages-source-publication.v1",
+    "digest": "sha256:6c92665f572be41df6f8fad0d246f4e141e9cf036196608239792f787121ec26",
+    "source_commit": "e7dcc89974fd44cabd0f10781eccc135eddf8d1c"
+  },
+  "label_status": "provisional_agent_transcriptions_with_replayable_checks; not human adjudication",
+  "cases": [
+    {
+      "id": "pigeonhole-renamed",
+      "family": "pigeonhole",
+      "split": "development",
+      "category": "renaming",
+      "domain": "combinatorics",
+      "input": {
+        "statement": "Let X and Y be sets of the same universe with |Y| < |X|. Any observation map h:X→Y takes the same value on two distinct inputs.",
+        "kind": "theorem"
+      },
+      "label": {
+        "relation": "covered",
+        "scope": "selected published premises; no global novelty label",
+        "evidence_kind": "source_and_argument",
+        "human_adjudicated": false,
+        "argument": "Instantiate Objects=X, Readings=Y, read=h; all hypotheses are identical.",
+        "sources": [
+          {
+            "family": "pigeonhole",
+            "statement_id": "sha256:7055ad403a73e564741999ceb43535300eeb0a5af556401ff847379f29eb8e9e",
+            "declaration_name_key": "ns(ns(ns(ns(ns(n0,2:D5),2:S0),8:Diagonal),15:PigeonholeFiber),24:finite_reading_has_fiber)"
+          }
+        ],
+        "check": null
+      }
+    },
+    {
+      "id": "pigeonhole-composed",
+      "family": "pigeonhole",
+      "split": "development",
+      "category": "multiple_premises",
+      "domain": "combinatorics",
+      "input": {
+        "statement": "Let finite sets A,B,C satisfy |C|≤|B|<|A|. For maps f:A→B and g:B→C, distinct a,a′ satisfy g(f(a))=g(f(a′)).",
+        "kind": "theorem"
+      },
+      "label": {
+        "relation": "covered",
+        "scope": "selected published premises; no global novelty label",
+        "evidence_kind": "source_and_argument",
+        "human_adjudicated": false,
+        "argument": "First use transitivity to derive |C|<|A|, then apply the source theorem to g∘f. Both cardinal premises form one joint premise set.",
+        "sources": [
+          {
+            "family": "pigeonhole",
+            "statement_id": "sha256:7055ad403a73e564741999ceb43535300eeb0a5af556401ff847379f29eb8e9e",
+            "declaration_name_key": "ns(ns(ns(ns(ns(n0,2:D5),2:S0),8:Diagonal),15:PigeonholeFiber),24:finite_reading_has_fiber)"
+          }
+        ],
+        "check": null
+      }
+    },
+    {
+      "id": "pigeonhole-non_strict",
+      "family": "pigeonhole",
+      "split": "development",
+      "category": "missing_assumption",
+      "domain": "combinatorics",
+      "input": {
+        "statement": "Let nonempty finite sets X,Y satisfy |Y|≤|X|. Every h:X→Y takes equal values at two distinct inputs.",
+        "kind": "conjecture"
+      },
+      "label": {
+        "relation": "refuted",
+        "scope": "selected published premises; no global novelty label",
+        "evidence_kind": "source_and_argument",
+        "human_adjudicated": false,
+        "argument": "Take X=Y={0} and h the identity. There are no two distinct inputs. The strict inequality cannot be dropped.",
+        "sources": [
+          {
+            "family": "pigeonhole",
+            "statement_id": "sha256:7055ad403a73e564741999ceb43535300eeb0a5af556401ff847379f29eb8e9e",
+            "declaration_name_key": "ns(ns(ns(ns(ns(n0,2:D5),2:S0),8:Diagonal),15:PigeonholeFiber),24:finite_reading_has_fiber)"
+          }
+        ],
+        "check": "singleton_injection"
+      }
+    },
+    {
+      "id": "cassini-renamed",
+      "family": "cassini",
+      "split": "development",
+      "category": "renaming",
+      "domain": "recurrences",
+      "input": {
+        "statement": "In a commutative ring R let p²=p+1, q²=q+1, p+q=1 and pq=−1; let m be a nonnegative integer. For u_j=a p^j+b q^j, u_(m+1)²−u_(m+1)u_m−u_m²=−5ab(−1)^m.",
+        "kind": "theorem"
+      },
+      "label": {
+        "relation": "covered",
+        "scope": "selected published premises; no global novelty label",
+        "evidence_kind": "source_and_argument",
+        "human_adjudicated": false,
+        "argument": "Rename φ=p, ψ=q, A=a, B=b, K=m. All four hypotheses remain.",
+        "sources": [
+          {
+            "family": "cassini",
+            "statement_id": "sha256:f05570cff54f73232c864699f78cc21ad43c1cf7b7783bf104bd92b40e7ced87",
+            "declaration_name_key": "ns(ns(ns(ns(ns(n0,2:D5),2:S1),10:Recurrence),13:CassiniFricke),14:cassini_fricke)"
+          }
+        ],
+        "check": null
+      }
+    },
+    {
+      "id": "cassini-specialized",
+      "family": "cassini",
+      "split": "development",
+      "category": "specialization",
+      "domain": "recurrences",
+      "input": {
+        "statement": "In a commutative ring R let p²=p+1, q²=q+1, p+q=1 and pq=−1; let m be a nonnegative integer. For v_j=p^j−q^j, v_(m+1)²−v_(m+1)v_m−v_m²=5(−1)^m.",
+        "kind": "theorem"
+      },
+      "label": {
+        "relation": "covered",
+        "scope": "selected published premises; no global novelty label",
+        "evidence_kind": "source_and_argument",
+        "human_adjudicated": false,
+        "argument": "Substitute A=1 and B=−1 in the source, then normalize −5·1·(−1)=5.",
+        "sources": [
+          {
+            "family": "cassini",
+            "statement_id": "sha256:f05570cff54f73232c864699f78cc21ad43c1cf7b7783bf104bd92b40e7ced87",
+            "declaration_name_key": "ns(ns(ns(ns(ns(n0,2:D5),2:S1),10:Recurrence),13:CassiniFricke),14:cassini_fricke)"
+          }
+        ],
+        "check": null
+      }
+    },
+    {
+      "id": "cassini-roots_dropped",
+      "family": "cassini",
+      "split": "development",
+      "category": "missing_assumption",
+      "domain": "recurrences",
+      "input": {
+        "statement": "For any integers p,q,a,b and m≥0, u_j=a p^j+b q^j satisfies u_(m+1)²−u_(m+1)u_m−u_m²=−5ab(−1)^m.",
+        "kind": "conjecture"
+      },
+      "label": {
+        "relation": "refuted",
+        "scope": "selected published premises; no global novelty label",
+        "evidence_kind": "source_and_argument",
+        "human_adjudicated": false,
+        "argument": "p=q=0, a=b=1, m=1 gives left side 0 and right side 5.",
+        "sources": [
+          {
+            "family": "cassini",
+            "statement_id": "sha256:f05570cff54f73232c864699f78cc21ad43c1cf7b7783bf104bd92b40e7ced87",
+            "declaration_name_key": "ns(ns(ns(ns(ns(n0,2:D5),2:S1),10:Recurrence),13:CassiniFricke),14:cassini_fricke)"
+          }
+        ],
+        "check": "cassini_zero_roots"
+      }
+    },
+    {
+      "id": "projection_amgm-original",
+      "family": "projection_amgm",
+      "split": "development",
+      "category": "settled_problem",
+      "domain": "matrices",
+      "input": {
+        "statement": "For real symmetric idempotent N×N matrices P_1,…,P_n, let M be their mean and S the average of all n! ordered products. For every n≥1,N, M^n−S is positive semidefinite.",
+        "kind": "conjecture"
+      },
+      "label": {
+        "relation": "refuted",
+        "scope": "selected published premises; no global novelty label",
+        "evidence_kind": "source_and_argument",
+        "human_adjudicated": false,
+        "argument": "The frozen result refutes exactly this universal claim at n=N=3. With v_i=2e_i−(1,1,1), P_i=v_i v_iᵀ/3 and z=(1,1,1), zᵀ(M³−S)z=−8/243. This labels the formal claim, not an independently checked bibliographic priority assertion.",
+        "sources": [
+          {
+            "family": "projection_amgm",
+            "statement_id": "sha256:1102955d506661e51c92cba308c208b734ca14cc6690678bbdc81adc14ce3d91",
+            "declaration_name_key": "ns(ns(ns(ns(ns(ns(n0,2:D5),2:S3),7:Quantum),6:Matrix),24:ProjectionAMGMRefutation),6:result)"
+          }
+        ],
+        "check": "projection_negative_form"
+      }
+    },
+    {
+      "id": "projection_amgm-renamed",
+      "family": "projection_amgm",
+      "split": "development",
+      "category": "renaming",
+      "domain": "matrices",
+      "input": {
+        "statement": "For any three orthogonal projections E,F,G on R³, ((E+F+G)/3)^3−(EFG+EGF+FEG+FGE+GEF+GFE)/6 is positive semidefinite.",
+        "kind": "conjecture"
+      },
+      "label": {
+        "relation": "refuted",
+        "scope": "selected published premises; no global novelty label",
+        "evidence_kind": "source_and_argument",
+        "human_adjudicated": false,
+        "argument": "The same three rank-one real symmetric projections satisfy all hypotheses; ordering conventions give the same symmetric average.",
+        "sources": [
+          {
+            "family": "projection_amgm",
+            "statement_id": "sha256:1102955d506661e51c92cba308c208b734ca14cc6690678bbdc81adc14ce3d91",
+            "declaration_name_key": "ns(ns(ns(ns(ns(ns(n0,2:D5),2:S3),7:Quantum),6:Matrix),24:ProjectionAMGMRefutation),6:result)"
+          }
+        ],
+        "check": "projection_negative_form"
+      }
+    },
+    {
+      "id": "projection_amgm-two_factors",
+      "family": "projection_amgm",
+      "split": "development",
+      "category": "scope_change",
+      "domain": "matrices",
+      "input": {
+        "statement": "For real symmetric idempotent N×N matrices P_1,…,P_n, let M be their mean and S the average of all n! ordered products. Restrict to n=2. The cited n=3 counterexample proves that M²−S fails to be positive semidefinite for some P_1,P_2.",
+        "kind": "conjecture"
+      },
+      "label": {
+        "relation": "refuted",
+        "scope": "selected published premises; no global novelty label",
+        "evidence_kind": "source_and_argument",
+        "human_adjudicated": false,
+        "argument": "For two symmetric projections, M²−S=(P_1−P_2)²/4, which is positive semidefinite. An n=3 refutation cannot be reused as an n=2 counterexample.",
+        "sources": [
+          {
+            "family": "projection_amgm",
+            "statement_id": "sha256:1102955d506661e51c92cba308c208b734ca14cc6690678bbdc81adc14ce3d91",
+            "declaration_name_key": "ns(ns(ns(ns(ns(ns(n0,2:D5),2:S3),7:Quantum),6:Matrix),24:ProjectionAMGMRefutation),6:result)"
+          }
+        ],
+        "check": "two_projection_identity"
+      }
+    },
+    {
+      "id": "bonferroni-upper",
+      "family": "bonferroni",
+      "split": "development",
+      "category": "equivalent_expression",
+      "domain": "probability",
+      "input": {
+        "statement": "Use the source finite independent listing model: A,Y finite, q:A×Y→R cell weights, f:Y→Y, w(s) the product of all |A|² cell weights, C(s) the number of rows equal to the f-twisted diagonal. Define T_k=Σ_{C(s)≥k}w(s) and B_k=Σ_s binom(C(s),k)w(s). If all q(a,y)≥0, then T_k≤B_k for every natural k.",
+        "kind": "theorem"
+      },
+      "label": {
+        "relation": "covered",
+        "scope": "selected published premises; no global novelty label",
+        "evidence_kind": "source_and_argument",
+        "human_adjudicated": false,
+        "argument": "The source identifies its subset-capture sum with B_k. Pointwise 1_{C≥k}≤binom(C,k), and w≥0 preserves the inequality under summation.",
+        "sources": [
+          {
+            "family": "bonferroni",
+            "statement_id": "sha256:f46e5a767c918ae7d6735510e5a5be9ea4b9069e36903bf41e20ce59e1c5f8ec",
+            "declaration_name_key": "ns(ns(ns(ns(ns(ns(n0,2:D5),2:S0),11:Asymptotics),10:Bonferroni),10:TailBounds),37:capture_count_tail_le_binomial_moment)"
+          }
+        ],
+        "check": null
+      }
+    },
+    {
+      "id": "bonferroni-bracket",
+      "family": "bonferroni",
+      "split": "development",
+      "category": "multiple_premises",
+      "domain": "probability",
+      "input": {
+        "statement": "Use the source finite independent listing model: A,Y finite, q:A×Y→R cell weights, f:Y→Y, w(s) the product of all |A|² cell weights, C(s) the number of rows equal to the f-twisted diagonal. Define T_k=Σ_{C(s)≥k}w(s) and B_k=Σ_s binom(C(s),k)w(s). If all q(a,y)≥0, then B_k−k B_(k+1)≤T_k≤B_k.",
+        "kind": "theorem"
+      },
+      "label": {
+        "relation": "covered",
+        "scope": "selected published premises; no global novelty label",
+        "evidence_kind": "source_and_argument",
+        "human_adjudicated": false,
+        "argument": "Combine the lower and upper source theorems, with the same q,f,k and nonnegative weights. Neither theorem by itself proves both bounds.",
+        "sources": [
+          {
+            "family": "bonferroni",
+            "statement_id": "sha256:f46e5a767c918ae7d6735510e5a5be9ea4b9069e36903bf41e20ce59e1c5f8ec",
+            "declaration_name_key": "ns(ns(ns(ns(ns(ns(n0,2:D5),2:S0),11:Asymptotics),10:Bonferroni),10:TailBounds),37:capture_count_tail_le_binomial_moment)"
+          },
+          {
+            "family": "bonferroni",
+            "statement_id": "sha256:769599e77df45b88e2f1c3717d84f56e4cb02e55a72fce6109411bd05a8bafc1",
+            "declaration_name_key": "ns(ns(ns(ns(ns(ns(n0,2:D5),2:S0),11:Asymptotics),10:Bonferroni),10:TailBounds),48:binomial_moment_sub_k_next_le_capture_count_tail)"
+          }
+        ],
+        "check": null
+      }
+    },
+    {
+      "id": "bonferroni-signed_weights",
+      "family": "bonferroni",
+      "split": "development",
+      "category": "missing_assumption",
+      "domain": "probability",
+      "input": {
+        "statement": "Use the source finite independent listing model: A,Y finite, q:A×Y→R cell weights, f:Y→Y, w(s) the product of all |A|² cell weights, C(s) the number of rows equal to the f-twisted diagonal. Define T_k=Σ_{C(s)≥k}w(s) and B_k=Σ_s binom(C(s),k)w(s). With arbitrary signed real q, T_1≤B_1.",
+        "kind": "conjecture"
+      },
+      "label": {
+        "relation": "refuted",
+        "scope": "selected published premises; no global novelty label",
+        "evidence_kind": "source_and_argument",
+        "human_adjudicated": false,
+        "argument": "Let |A|=3, Y a singleton, f its identity and every cell weight −1. The unique sample has weight (−1)^9=−1 and C=3, giving T_1=−1 and B_1=−3.",
+        "sources": [
+          {
+            "family": "bonferroni",
+            "statement_id": "sha256:f46e5a767c918ae7d6735510e5a5be9ea4b9069e36903bf41e20ce59e1c5f8ec",
+            "declaration_name_key": "ns(ns(ns(ns(ns(ns(n0,2:D5),2:S0),11:Asymptotics),10:Bonferroni),10:TailBounds),37:capture_count_tail_le_binomial_moment)"
+          }
+        ],
+        "check": "signed_capture"
+      }
+    },
+    {
+      "id": "pure_state-renamed",
+      "family": "pure_state",
+      "split": "holdout",
+      "category": "renaming",
+      "domain": "matrices",
+      "input": {
+        "statement": "For a finite complex vector v, put ρ=vv*. If v*v=1, then for every matrix H, ρ²=ρ and ρHρ=Tr(Hρ)ρ.",
+        "kind": "theorem"
+      },
+      "label": {
+        "relation": "covered",
+        "scope": "selected published premises; no global novelty label",
+        "evidence_kind": "source_and_argument",
+        "human_adjudicated": false,
+        "argument": "Apply pure_state_handshake to v,H and replace its middle scalar by the third conjunct. Both conjuncts are used.",
+        "sources": [
+          {
+            "family": "pure_state",
+            "statement_id": "sha256:3f3685dfb0637d23f5f799f8ec2e875fbc8fee9823e2940f31ba7983a7b83b1e",
+            "declaration_name_key": "ns(ns(ns(ns(ns(ns(n0,2:D5),2:S3),7:Quantum),9:PureState),18:PureStateHandshake),20:pure_state_handshake)"
+          }
+        ],
+        "check": null
+      }
+    },
+    {
+      "id": "pure_state-unnormalized_idempotence",
+      "family": "pure_state",
+      "split": "holdout",
+      "category": "missing_assumption",
+      "domain": "matrices",
+      "input": {
+        "statement": "For a finite complex vector v, put ρ=vv*. For arbitrary v, ρ²=ρ.",
+        "kind": "conjecture"
+      },
+      "label": {
+        "relation": "refuted",
+        "scope": "selected published premises; no global novelty label",
+        "evidence_kind": "source_and_argument",
+        "human_adjudicated": false,
+        "argument": "In dimension one with v=2, ρ=4 and ρ²=16. Normalization is necessary for this conclusion.",
+        "sources": [
+          {
+            "family": "pure_state",
+            "statement_id": "sha256:3f3685dfb0637d23f5f799f8ec2e875fbc8fee9823e2940f31ba7983a7b83b1e",
+            "declaration_name_key": "ns(ns(ns(ns(ns(ns(n0,2:D5),2:S3),7:Quantum),9:PureState),18:PureStateHandshake),20:pure_state_handshake)"
+          }
+        ],
+        "check": "unnormalized_density"
+      }
+    },
+    {
+      "id": "pure_state-unnormalized_sandwich",
+      "family": "pure_state",
+      "split": "holdout",
+      "category": "unnecessary_assumption",
+      "domain": "matrices",
+      "input": {
+        "statement": "For a finite complex vector v, put ρ=vv*. For arbitrary v and every matrix H, ρHρ=(v*Hv)ρ, without a normalization hypothesis.",
+        "kind": "theorem"
+      },
+      "label": {
+        "relation": "covered",
+        "scope": "selected published premises; no global novelty label",
+        "evidence_kind": "source_and_argument",
+        "human_adjudicated": false,
+        "argument": "The source second-conjunct proof expands finite sums and never uses hv; entrywise (vv*Hvv*)_ij=v_i(Σ_kl conjugate(v_k)H_kl v_l)conjugate(v_j). This is an algebraically checked relation, not a bind-only certificate obtained by applying the whole source theorem.",
+        "sources": [
+          {
+            "family": "pure_state",
+            "statement_id": "sha256:3f3685dfb0637d23f5f799f8ec2e875fbc8fee9823e2940f31ba7983a7b83b1e",
+            "declaration_name_key": "ns(ns(ns(ns(ns(ns(n0,2:D5),2:S3),7:Quantum),9:PureState),18:PureStateHandshake),20:pure_state_handshake)"
+          }
+        ],
+        "check": null
+      }
+    },
+    {
+      "id": "turan-renamed",
+      "family": "turan",
+      "split": "holdout",
+      "category": "renaming",
+      "domain": "recurrences",
+      "input": {
+        "statement": "Define q_0=1, q_1=(t−b_0)/a_1 and q_(j+2)=((t−b_(j+1))q_(j+1)−a_(j+1)q_j)/a_(j+2). Assume a_0=0, a_j strictly increasing, b_j nondecreasing, n≥1 and t≥b_n−2a_n. Then q_n²−(a_(n+1)/a_n)q_(n−1)q_(n+1)≥0.",
+        "kind": "theorem"
+      },
+      "label": {
+        "relation": "covered",
+        "scope": "selected published premises; no global novelty label",
+        "evidence_kind": "source_and_argument",
+        "human_adjudicated": false,
+        "argument": "All parameters, the canonical normalization, the monotonicity assumptions and the closed right-tail condition coincide with the source.",
+        "sources": [
+          {
+            "family": "turan",
+            "statement_id": "sha256:48932b0ee5eadfa41a9e8f38b9d1584142bd1184c677c6b2a577711c25055078",
+            "declaration_name_key": "ns(ns(ns(ns(ns(ns(n0,2:D5),2:S1),10:Recurrence),5:Turan),22:StrictlyIncreasingTail),36:weighted_turan_nonneg_of_strict_mono)"
+          }
+        ],
+        "check": null
+      }
+    },
+    {
+      "id": "turan-specialized",
+      "family": "turan",
+      "split": "holdout",
+      "category": "specialization",
+      "domain": "recurrences",
+      "input": {
+        "statement": "Define q_0=1, q_1=t and q_(j+2)=(t q_(j+1)−(j+1)q_j)/(j+2). For n≥1 and t≥−2n, q_n²−((n+1)/n)q_(n−1)q_(n+1)≥0.",
+        "kind": "theorem"
+      },
+      "label": {
+        "relation": "covered",
+        "scope": "selected published premises; no global novelty label",
+        "evidence_kind": "source_and_argument",
+        "human_adjudicated": false,
+        "argument": "a_0=0, strict increase and monotonicity of constant b hold. The tail condition specializes to t≥−2n.",
+        "sources": [
+          {
+            "family": "turan",
+            "statement_id": "sha256:48932b0ee5eadfa41a9e8f38b9d1584142bd1184c677c6b2a577711c25055078",
+            "declaration_name_key": "ns(ns(ns(ns(ns(ns(n0,2:D5),2:S1),10:Recurrence),5:Turan),22:StrictlyIncreasingTail),36:weighted_turan_nonneg_of_strict_mono)"
+          }
+        ],
+        "check": null
+      }
+    },
+    {
+      "id": "turan-tail_dropped",
+      "family": "turan",
+      "split": "holdout",
+      "category": "missing_assumption",
+      "domain": "recurrences",
+      "input": {
+        "statement": "Define q_0=1, q_1=(t−b_0)/a_1 and q_(j+2)=((t−b_(j+1))q_(j+1)−a_(j+1)q_j)/a_(j+2). Assume a_0=0, a_j strictly increasing, b_j nondecreasing, n≥1. For arbitrary real t the same weighted Turan inequality holds.",
+        "kind": "conjecture"
+      },
+      "label": {
+        "relation": "refuted",
+        "scope": "selected published premises; no global novelty label",
+        "evidence_kind": "source_and_argument",
+        "human_adjudicated": false,
+        "argument": "Take a_j=j, b_j=j, n=1 and t=−2. Then q_0=1, q_1=−2, q_2=5/2, so q_1²−2q_0q_2=−1. All remaining assumptions hold.",
+        "sources": [
+          {
+            "family": "turan",
+            "statement_id": "sha256:48932b0ee5eadfa41a9e8f38b9d1584142bd1184c677c6b2a577711c25055078",
+            "declaration_name_key": "ns(ns(ns(ns(ns(ns(n0,2:D5),2:S1),10:Recurrence),5:Turan),22:StrictlyIncreasingTail),36:weighted_turan_nonneg_of_strict_mono)"
+          }
+        ],
+        "check": "turan_outside_tail"
+      }
+    }
+  ]
+}
