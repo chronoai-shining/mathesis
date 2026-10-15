@@ -1,0 +1,19 @@
+{
+  "case_id": "cassini-specialized",
+  "exit_code": 0,
+  "stream_done": true,
+  "errors": [],
+  "oracle": {
+    "task_id": "86006085-6d16-4b7e-8924-9fd2884a3569",
+    "conversation_id": null,
+    "pool": "chrono-chatgpt-pro-pool",
+    "model_label": "chatgpt-6-pro",
+    "observed_model_switcher": "gpt_6",
+    "observed_model_effort": "pro",
+    "chatgpt_url": "https://chatgpt.com/c/6ad118d4-f43c-83ec-8310-781ca44fba86",
+    "usage_estimated": true
+  },
+  "elapsed_ms": 379028,
+  "response_sha256": "e03b1a054689ebfcddf6aba808807b7c56fcab71e28f1dbbf0aedccc54d84890",
+  "request_sha256": "15eda3336898da65d2365206cb1026c7348f9136265c813592fca16f16bfdcd4"
+}

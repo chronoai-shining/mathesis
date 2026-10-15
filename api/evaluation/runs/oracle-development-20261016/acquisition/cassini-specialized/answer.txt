@@ -1,0 +1,114 @@
+Referee assessmentC1 should be classified as special_case_of_known, not as an open question. It is a ring-valued specialization of the polynomial Euler–Cassini identity. The opened polynomial formulation supplies the relevant baseline without requiring division by  $p-q$  in the target ring. This is a literature-status assessment, not verification of a submitted proof. arXiv+1Scope limitation: No PDF was available through the conversation-file search. This report therefore evaluates the complete C1 statement supplied in your message, not an unseen manuscript or any additional questions it might contain.Well-posednessThe statement is well posed under the conventional interpretation that  $R$  is a commutative ring with identity. Its quantifiers should be made explicit: for every such  $R$ , every  $p,q\in R$  satisfying the four displayed relations, and every  $m\in\mathbb Z_{\ge0}$ , the asserted equality holds in  $R$ .Define  $v_j$  for every  $j\in\mathbb Z_{\ge0}$ , and interpret the integers on the right-hand side through the canonical map  $\mathbb Z\to R$ . In particular, the right-hand side means
+$$(5\cdot1_R)(-1_R)^m.$$
+The assertion is conditional on the existence of the specified elements; it does not assert that every ring contains them. There is no indexing problem at  $m=0$ .An important scope condition is that the proposed display must not silently replace “commutative ring” by “field of characteristic zero,” or assume that  $p-q$  is invertible. The relevant literature comparison is through polynomial identities, rather than a numerical radical formula interpreted directly in  $R$ . arXiv+1Opened literature and status comparisonThe decisive source is Generalized Fibonacci polynomials and Fibonomial coefficients [opened: arXiv:1306.6511]. I inspected the polynomial definitions, Proposition 1.1, and Theorem 4.1 with equation (16), including their page images. These provide the root-power correspondence and polynomial Cassini baseline. arXiv+1For corroboration, I opened Arithmetics of Some Sequences via 2-Determinants [opened: https://www.imvibl.org/buletin/bulletin_imvi_11_3_2021/bulletin_imvi_11_3_2021_517_526.pdf]. Its Proposition 2.1 treats the corresponding determinant identity for second-order recurrences. Its stated coefficient setting is integer-valued, so I do not treat it as a verbatim arbitrary-ring theorem. imvibl.org+1At the source-matching level, C1 introduces no additional mathematical obligation beyond specialization, denominator-clearing in the generic polynomial setting, recombination, and normalization using the stated relations. This supports the conditional bind_only assessment relative to that baseline; it is not a finding about the contents of an unsubmitted proof. No deduction or proof of C1 is presented here. arXiv+1Separate dimensions and display adviceCorrectness: not_checked for a submitted proof, because none was supplied. The assertion’s literature status is nevertheless a known special case.Proof escape: bind_only relative to the inspected baseline. This does not mean that all mathematical consequences lack content, nor does it rule out new content in some additional, separately stated theorem or method.Utility: The identity has ordinary general-theorem and expository utility: it states an exact uniform algebraic relation, not a bounded numerical experiment. That utility should not be described as a new result, computational improvement, or open-problem settlement.Information gain: No measurement is warranted; no explicit information model, task, readout, or supporting evidence was supplied.My feedback is to revise the display to “Known Cassini specialization,” clarify the unital-ring conventions, and supply the missing PDF for any manuscript-wide assessment. This feedback does not decide publication.JSON{
+  "recommendation": "revise",
+  "summary": "C1 is well posed under an explicit commutative-unital-ring convention and is a special_case_of_known: a specialization of polynomial Euler–Cassini identities. Relative to the opened baseline, its conditional proof obligation is bind_only. No submitted proof was checked, and no PDF was available in the conversation. Revise the display label rather than present C1 as an open question.",
+  "strengths": [
+    "The supplied assertion specifies its algebraic relations and includes the nonnegative-index range.",
+    "The target is a uniform algebraic identity rather than a finite numerical observation.",
+    "The arbitrary-ring scope can be retained in the literature comparison through polynomial identities."
+  ],
+  "concerns": [
+    "Displaying C1 as an open conjecture or unresolved question would misstate its status relative to the opened baseline.",
+    "The statement should explicitly specify a multiplicative identity, membership p,q in R, the domain of j, and the interpretation of integer constants.",
+    "A quotient formula must not be evaluated in R by assuming that p-q is invertible.",
+    "The referenced attachment was unavailable; additional manuscript content and PDF locations are not_checkable."
+  ],
+  "claims": [
+    {
+      "claim": "C1",
+      "correctness": "not_checked",
+      "shape": null,
+      "witnesses": [],
+      "note": "Correctness of a submitted proof is not_checked because none was supplied. Literature status is special_case_of_known. Conditional proof escape is bind_only relative to the inspected polynomial baseline, not by default from missing proof evidence. General-theorem utility is supported in the ordinary reference/expository sense, without incremental novelty or computational-performance credit. Information gain is unassessed and represented by null. No named open-problem settlement is claimed.",
+      "conjecture": {
+        "well_posed": true,
+        "well_posed_reason": "Read R as a commutative ring with identity, quantify universally over p,q in R satisfying all four displayed relations and m in the nonnegative integers, and define v_j for every nonnegative integer j. Integer constants denote their images in R. The assertion is conditional on the specified elements existing; it does not require every ring to contain them. The index m=0 is meaningful. These conventions should be explicit in the display.",
+        "status": "special_case_of_known",
+        "status_reason": "The inspected polynomial Binet correspondence and Euler–Cassini identity cover this specialization, including its arbitrary-ring interpretation after polynomial normalization.",
+        "named_works": [
+          "Generalized Fibonacci polynomials and Fibonomial coefficients [opened: arXiv:1306.6511]",
+          "Arithmetics of Some Sequences via 2-Determinants [opened: https://www.imvibl.org/buletin/bulletin_imvi_11_3_2021/bulletin_imvi_11_3_2021_517_526.pdf]"
+        ],
+        "known": [
+          "Generalized Fibonacci polynomials and Fibonomial coefficients [opened: arXiv:1306.6511]",
+          "Arithmetics of Some Sequences via 2-Determinants [opened: https://www.imvibl.org/buletin/bulletin_imvi_11_3_2021/bulletin_imvi_11_3_2021_517_526.pdf]"
+        ],
+        "escape": "bind_only",
+        "escape_reason": "This conditional assessment follows from an inspected sufficient baseline, not from the absence of a manuscript proof. The stated conclusion requires specialization and algebraic normalization of existing polynomial identities, without an additional construction, estimate, or constraint. No claim is made about possible new content in an unsubmitted method or a different, stronger assertion.",
+        "suggestions": [
+          "Label the display as a known Cassini specialization and cite the opened polynomial source.",
+          "Write 'commutative ring with identity', explicitly quantify p,q and m, define j as nonnegative, and interpret constants in R.",
+          "Retain the arbitrary-characteristic and zero-divisor scope; do not introduce an unsupported invertibility assumption on p-q.",
+          "The quadratic relations are redundant given the sum and product relations; either retain them as explanatory hypotheses or streamline the statement.",
+          "Any additional novelty claim should identify a separate mathematical obligation not already supplied by the recorded baseline."
+        ]
+      },
+      "methodology": {
+        "baseline": [
+          {
+            "statement": "R is a commutative ring, p,q are ring elements satisfying p^2=p+1, q^2=q+1, p+q=1 and pq=-1, m is a nonnegative integer, and v_j=p^j-q^j. A multiplicative identity and the domain j>=0 are the explicit conventions used in this review.",
+            "location": "User-supplied CONFIRMED STATEMENTS, C1, entire statement; repeated in SOURCE CONTEXT. No PDF location was available.",
+            "source": null
+          },
+          {
+            "statement": "Define U_0(s,t)=0, U_1(s,t)=1 and U_n(s,t)=s U_(n-1)(s,t)+t U_(n-2)(s,t) for n>=2, as polynomials in Z[s,t]. In the generic-root setting s=X+Y and t=-XY, Proposition 1.1 gives U_n(s,t)=(X^n-Y^n)/(X-Y), n>=0, with the quotient interpreted where its denominator is invertible.",
+            "location": "Version 2, Section 1, equation (2), equation (5), and Proposition 1.1; printed/PDF pages 2–3.",
+            "source": "Generalized Fibonacci polynomials and Fibonomial coefficients [opened: arXiv:1306.6511]"
+          },
+          {
+            "statement": "For the polynomials U_n just defined and n>=1, U_n(s,t)^2-U_(n-1)(s,t)U_(n+1)(s,t)=(-t)^(n-1).",
+            "location": "Version 2, Section 4, Theorem 4.1, specialization of the deformation parameter to 1 and the theorem's second index to 1; equation (16), printed/PDF page 11.",
+            "source": "Generalized Fibonacci polynomials and Fibonomial coefficients [opened: arXiv:1306.6511]"
+          }
+        ],
+        "searched": [
+          "Conversation Files semantic search: 'Statement-only evaluation cassini-specialized p²=p+1 q²=q+1 v_j=p^j−q^j'. The tool returned no files and reported that no files were present in the current conversation.",
+          "General web queries: 'Cassini identity Lucas sequences commutative ring roots difference powers'; '\"Cassini\" \"commutative ring\"'; '\"Fibonacci\" \"x^n\" \"y^n\" polynomial identity Cassini'; '\"commutative ring\" \"Fibonacci\" \"identity\" \"roots\"'.",
+          "Supplementary web queries: 'site.leanprover-community.github.io/mathlib4_docs \"Cassini\"'; 'site.stacks.math.columbia.edu polynomial ring universal property any ring evaluation'; '\"polynomial\" \"evaluation\" \"ring map\"' restricted to stacks.math.columbia.edu; and '\"MvPolynomial.eval₂Hom\"' restricted to leanprover-community.github.io. No theorem from these supplementary results was adopted as a baseline.",
+          "Opened arXiv metadata and version-2 PDF; inspected the definitions, root formula, and polynomial Cassini statement, including page images.",
+          "Opened the journal-hosted 2-determinants PDF; inspected Section 1 and Proposition 2.1, including page images. This was corroboration only, not an additional prerequisite or an arbitrary-ring theorem.",
+          "Attempted the second paper's DOI resolver endpoint; that endpoint was inaccessible, although the journal-hosted PDF was successfully opened. The reported-work locator therefore uses the opened PDF URL.",
+          "Search scope was targeted source matching through general web search, arXiv, and a journal-hosted primary paper. No exhaustive historical, MathSciNet, or zbMATH search was performed."
+        ],
+        "literature": "supported",
+        "binding_analysis": "The polynomial root formula is used only after clearing its denominator in the generic polynomial setting, before evaluation in R. The relevant parameter match is s=t=1, the Cassini index is n=m+1, and the root-difference normalization corresponds to v_j. Instantiation, recombination with the defining recurrence, and normalization under the stated sum/product relations account for C1's expression and constant. Polynomial evaluation preserves the arbitrary-ring scope without division in R. No independent projection or new auxiliary theorem is needed. This is a source-correspondence assessment, not a submitted proof or an attempted new proof.",
+        "delta": "No additional mathematical information beyond the recorded baseline is identified in C1. A future submission addressing exactly C1 would still have to present the full stated equality for every admissible commutative unital ring and every m>=0, including m=0 and rings with zero divisors or positive characteristic. Relative to the inspected baseline, that obligation is a specialization and normalization, not a new proposition, construction, bound, or constraint. Any extra mathematical contribution would require separate assessment.",
+        "escape": "bind_only",
+        "witnesses": [],
+        "utility": {
+          "kind": "general_theorem",
+          "status": "supported",
+          "rationale": "The identity has ordinary uniform algebraic and expository utility. This assessment does not attribute incremental theorem novelty, a new computational procedure, an independent application, or open-problem-settlement value to the submission. General pure mathematics does not require an artificial downstream consumer.",
+          "problem": "Determine the value of v_(m+1)^2-v_(m+1)v_m-v_m^2 uniformly under the stated ring and root relations.",
+          "progress": "The assertion is identified as a known exact Cassini specialization, rather than an unresolved question or a bounded positive experiment.",
+          "prerequisites": "A commutative unital ring R; p,q in R satisfying all four confirmed relations; m>=0; v_j defined for j>=0; the recorded polynomial root and Cassini identities.",
+          "discharge": "The confirmed text supplies the conditional hypotheses and definition. The opened baseline supports the statement-level match by specialization and polynomial normalization. No manuscript proof, executable checker, or computational certificate was supplied or verified."
+        },
+        "settlement": null,
+        "information_gain": null,
+        "limits": [
+          "No attachment was available. PDF content, pagination, bibliography, and any additional assertions are not_checkable.",
+          "Correctness remains not_checked for a submitted proof; shape is null and there are no live witnesses.",
+          "The arbitrary-ring interpretation uses denominator-cleared polynomial identities, not direct evaluation of a quotient at a potentially nonunit denominator.",
+          "The corroborating paper is not being promoted beyond its inspected coefficient setting.",
+          "Literature support concerns the sufficiency of this baseline, not exhaustive priority or novelty certification.",
+          "Utility is ordinary general-theorem/reference utility, not evidence of an additional research contribution.",
+          "No Trureturing registration, Lean compilation or verification, computational experiment, AURIC/FIB measurement, or information-gain certificate was performed.",
+          "All opened-source reports are model-reported and are not venue-verified references."
+        ]
+      }
+    }
+  ],
+  "limits": [
+    "Only the supplied C1 text was assessable; the requested PDF was unavailable.",
+    "Assertion status, submitted-proof correctness, proof escape, utility, and information gain have been assessed separately.",
+    "The conditional bind_only finding is based on a sufficient opened baseline, not on missing proof evidence alone.",
+    "No exhaustive literature search or historical-priority determination is claimed.",
+    "No submitted proof was checked and no proof or attack was attempted.",
+    "No named settlement was claimed; settlement is null.",
+    "No explicit information model or measurement evidence was supplied; information_gain is null.",
+    "This initial model-reported report is not an independent subsequent source audit, formal verification, or publication decision."
+  ],
+  "text": "Revise the display to identify C1 as a known Cassini specialization, clarify the ring conventions, and provide the missing PDF for any manuscript-wide review. The evidence supports the status correction; it does not support allegations about an unseen proof or a decision on publication."
+}

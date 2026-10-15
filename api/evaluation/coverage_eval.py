@@ -141,12 +141,20 @@ def score(data, freeze_hash, run, split):
         if label == "covered":
             counts["positive"] += 1
             domain["positive"] += 1
+        if label == "refuted":
+            counts["refuted"] += 1
+            domain["refuted"] += 1
         if p is None:
             states["missing_observation"] += 1
             continue
         states[p["query_status"]] += 1
         counts["correct_relation"] += p["relation"] == label
         counts["abstained"] += p["relation"] in {"candidate", "unknown"}
+        if label == "refuted":
+            found = p["relation"] == "refuted"
+            counts["refutation_detected"] += found
+            domain["refutation_detected"] += found
+            counts["refuted_reported_uncovered"] += p["relation"] == "uncovered"
         if label == "covered":
             found = p["relation"] == "covered"
             counts["detected"] += found
@@ -172,6 +180,9 @@ def score(data, freeze_hash, run, split):
         "split": split, "cases": len(cases), "observations": len(predictions),
         "label_status": data["label_status"], "query_states": dict(states),
         "coverage_recall": ratio(counts["detected"], counts["positive"]),
+        "refutation_recall": ratio(counts["refutation_detected"], counts["refuted"]),
+        "refuted_reported_uncovered": ratio(counts["refuted_reported_uncovered"], counts["refuted"]),
+        "relation_agreement_all_cases": ratio(counts["correct_relation"], len(cases)),
         "complete_premise_retrieval": ratio(counts["all_premises_retrieved"], counts["positive"]),
         "known_reported_uncovered": ratio(counts["known_reported_uncovered"], counts["positive"]),
         "unsupported_relation": ratio(counts["unsupported_relation"], counts["asserted_relation"]),
@@ -179,7 +190,8 @@ def score(data, freeze_hash, run, split):
         "unsupported_novelty_assertions": counts["unsupported_novelty"],
         "incomplete_novelty_assertions": counts["incomplete_novelty"],
         "per_domain": {name: {"cases": c["cases"], "coverage_recall":
-                       ratio(c["detected"], c["positive"])} for name, c in domains.items()},
+                       ratio(c["detected"], c["positive"]), "refutation_recall":
+                       ratio(c["refutation_detected"], c["refuted"])} for name, c in domains.items()},
         "latency_ms": {"observed": len(latencies), "mean":
                        sum(latencies) / len(latencies) if latencies else None},
         "cost_usd": {"observed": len(costs), "partial_total": sum(costs) if costs else None},

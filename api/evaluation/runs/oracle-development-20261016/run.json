@@ -1,0 +1,274 @@
+{
+  "schema": "mathesis.coverage-evaluation-run.v1",
+  "freeze_sha256": "4cbc93154e116f57923b3cf475904638640856a92e929573670b6a60c8bf884b",
+  "split": "development",
+  "implementation_revision": "cbc9b7c6da9e82eb492409168e52836c52349471",
+  "method": "contract 3 statement-only Oracle referee; no CMA source audit",
+  "model": [
+    [
+      "gpt_6",
+      "pro"
+    ]
+  ],
+  "snapshot": "not configured in the measured application revision",
+  "budget": {
+    "cases": 12,
+    "parallel_requests": 2,
+    "monetary_cost": "unmeasured"
+  },
+  "started_at_utc": "2026-10-15T18:08:15.705682+00:00",
+  "predictions": [
+    {
+      "id": "pigeonhole-renamed",
+      "relation": "covered",
+      "query_status": "not_configured",
+      "returned_sources": [],
+      "novelty_claim": false,
+      "latency_ms": 424816,
+      "cost_usd": null
+    },
+    {
+      "id": "pigeonhole-composed",
+      "relation": "covered",
+      "query_status": "not_configured",
+      "returned_sources": [],
+      "novelty_claim": false,
+      "latency_ms": 328817,
+      "cost_usd": null
+    },
+    {
+      "id": "pigeonhole-non_strict",
+      "relation": "refuted",
+      "query_status": "not_configured",
+      "returned_sources": [],
+      "novelty_claim": false,
+      "latency_ms": 346786,
+      "cost_usd": null
+    },
+    {
+      "id": "cassini-specialized",
+      "relation": "covered",
+      "query_status": "not_configured",
+      "returned_sources": [],
+      "novelty_claim": false,
+      "latency_ms": 379028,
+      "cost_usd": null
+    },
+    {
+      "id": "cassini-roots_dropped",
+      "relation": "refuted",
+      "query_status": "not_configured",
+      "returned_sources": [],
+      "novelty_claim": false,
+      "latency_ms": 466672,
+      "cost_usd": null
+    },
+    {
+      "id": "projection_amgm-original",
+      "relation": "uncovered",
+      "query_status": "not_configured",
+      "returned_sources": [],
+      "novelty_claim": true,
+      "latency_ms": 610969,
+      "cost_usd": null
+    },
+    {
+      "id": "projection_amgm-renamed",
+      "relation": "unknown",
+      "query_status": "not_configured",
+      "returned_sources": [],
+      "novelty_claim": false,
+      "latency_ms": 588821,
+      "cost_usd": null
+    },
+    {
+      "id": "projection_amgm-two_factors",
+      "relation": "refuted",
+      "query_status": "not_configured",
+      "returned_sources": [],
+      "novelty_claim": false,
+      "latency_ms": 344631,
+      "cost_usd": null
+    },
+    {
+      "id": "bonferroni-upper",
+      "relation": "covered",
+      "query_status": "not_configured",
+      "returned_sources": [],
+      "novelty_claim": false,
+      "latency_ms": 465007,
+      "cost_usd": null
+    },
+    {
+      "id": "bonferroni-bracket",
+      "relation": "covered",
+      "query_status": "not_configured",
+      "returned_sources": [],
+      "novelty_claim": false,
+      "latency_ms": 450899,
+      "cost_usd": null
+    },
+    {
+      "id": "bonferroni-signed_weights",
+      "relation": "unknown",
+      "query_status": "not_configured",
+      "returned_sources": [],
+      "novelty_claim": false,
+      "latency_ms": 430720,
+      "cost_usd": null
+    }
+  ],
+  "normalization": "known_true/special_case_of_known→covered; known_false→refuted; open→uncovered; unclear→unknown; explicit open+content→novelty assertion",
+  "evidence": [
+    {
+      "id": "pigeonhole-renamed",
+      "provider_task_id": "24a978da-03f3-4d73-818c-fc76fa8f4fd1",
+      "observed_model": [
+        "gpt_6",
+        "pro"
+      ],
+      "reported_status": "known_true",
+      "answer_sha256": "5e27fe259655ca0ec223ea298360d907839a7088b260df425b582f088f753a15",
+      "stream_sha256": "5778413bf97a6a0cbff1910825773ab9b112a9ca8435943ab47ffcf45665aa32",
+      "request_sha256": "a285cc98112896fac200af4cea60936f29f764e04ece8b2bae8c475645ffd15a",
+      "qualification": "Oracle statement reading; no independent source audit"
+    },
+    {
+      "id": "pigeonhole-composed",
+      "provider_task_id": "4a68f4ca-ac00-450e-95f3-6e5debb08016",
+      "observed_model": [
+        "gpt_6",
+        "pro"
+      ],
+      "reported_status": "special_case_of_known",
+      "answer_sha256": "f883aee9ce46c7aa6b66a9c9fcfee24e79057195a2be5db286e2be3ecca80f22",
+      "stream_sha256": "f8649488ad28550e198bbff06d783a9eab1b1c3dc432aec4e789f51bfe3830df",
+      "request_sha256": "bd03d1d47bbed1de1acc36e8ab1cc0f179bec423959c40a9201cb4e64dfa9942",
+      "qualification": "Oracle statement reading; no independent source audit"
+    },
+    {
+      "id": "pigeonhole-non_strict",
+      "provider_task_id": "fb01fee3-94c6-4ae7-9ac3-ef249a0699fd",
+      "observed_model": [
+        "gpt_6",
+        "pro"
+      ],
+      "reported_status": "known_false",
+      "answer_sha256": "5b01eca42edfeb4471fee158b296165455bcd4d87a3b59bd3f994e5afdff23c4",
+      "stream_sha256": "9ea054e704e4afcdcddbf29867dcd0074521fae66b6f3734a87c9773aeb21253",
+      "request_sha256": "dc661c61fb085609d3e68c77fc470c681491bb3c370a2ecfece6b99d02ad6541",
+      "qualification": "Oracle statement reading; no independent source audit"
+    },
+    {
+      "id": "cassini-specialized",
+      "provider_task_id": "86006085-6d16-4b7e-8924-9fd2884a3569",
+      "observed_model": [
+        "gpt_6",
+        "pro"
+      ],
+      "reported_status": "special_case_of_known",
+      "answer_sha256": "093310ad69120eedee3a9b511e974f2a9a4810dcfec978b03e99c9e11e3ec9ee",
+      "stream_sha256": "e03b1a054689ebfcddf6aba808807b7c56fcab71e28f1dbbf0aedccc54d84890",
+      "request_sha256": "15eda3336898da65d2365206cb1026c7348f9136265c813592fca16f16bfdcd4",
+      "qualification": "Oracle statement reading; no independent source audit"
+    },
+    {
+      "id": "cassini-roots_dropped",
+      "provider_task_id": "13fd85fa-6af5-4c03-a5b3-2422805a6b34",
+      "observed_model": [
+        "gpt_6",
+        "pro"
+      ],
+      "reported_status": "known_false",
+      "answer_sha256": "bf0ee207b7b00943c2b550e72ffa3d32c49fa406e34c3e6f002389fec02c7346",
+      "stream_sha256": "ef98c40c5b153d558956f1b62ea5ef2c4857afbffbb2cd24dbe341ab68bfb0df",
+      "request_sha256": "e76a8032c3e9602f2d5b6cb9b344f9937df836e6a1c8d0b02506ebe5e05963d5",
+      "qualification": "Oracle statement reading; no independent source audit"
+    },
+    {
+      "id": "projection_amgm-original",
+      "provider_task_id": "c06b40aa-3fa9-4bcd-97fd-c0b11926e982",
+      "observed_model": [
+        "gpt_6",
+        "pro"
+      ],
+      "reported_status": "open",
+      "answer_sha256": "3f7387a7ba3f48059df9999fc0df65669bb0c5b84e9ee33277f41427efb0b49f",
+      "stream_sha256": "e2ebc7a188c52a328c0dbd66eaf35305394a56719add6f364135135d8ae9f245",
+      "request_sha256": "9418f0cead823662e93dc7f7a5639d970b0d9323e8f249bd09da7a2749ebb987",
+      "qualification": "Oracle statement reading; no independent source audit"
+    },
+    {
+      "id": "projection_amgm-renamed",
+      "provider_task_id": "f47bf604-1b6e-4bd2-bbdd-1ee2d902bd40",
+      "observed_model": [
+        "gpt_6",
+        "pro"
+      ],
+      "reported_status": "unclear",
+      "answer_sha256": "624b7ee700ee4995e33dd0d75ec7aca95c0bb8a13acb20d866dad1c9c9565696",
+      "stream_sha256": "b900bdf84c73259ebed0d7a1a5ff7b5cdccd15898dce543c4d6ecda3caa884bb",
+      "request_sha256": "381cebdd20aeca3ad13cc0fa709d3d0fe263671b21ef6dd00ead261b57feb6a0",
+      "qualification": "Oracle statement reading; no independent source audit"
+    },
+    {
+      "id": "projection_amgm-two_factors",
+      "provider_task_id": "4f81eeab-87e9-43f1-98d5-44b0dd1b3bce",
+      "observed_model": [
+        "gpt_6",
+        "pro"
+      ],
+      "reported_status": "known_false",
+      "answer_sha256": "250c0f52c599c47bb922fc7d5385d62757c942a515662579757d7d8bb4e43e1c",
+      "stream_sha256": "baea3e909d356a99f29f0cb6234b1bb8d38b1b4c1225811b43a7fb3198c2a30f",
+      "request_sha256": "650fb50ff22431890f2fe6aab9d2dcfeec6ddae94144e0b84c13202e7ed34666",
+      "qualification": "Oracle statement reading; no independent source audit"
+    },
+    {
+      "id": "bonferroni-upper",
+      "provider_task_id": "d0fb75f5-b12c-4e52-99ba-f6cec8b55c80",
+      "observed_model": [
+        "gpt_6",
+        "pro"
+      ],
+      "reported_status": "special_case_of_known",
+      "answer_sha256": "1480832bc7c6925d7f9b27a9798bdadd5980b368f77184316810cc2f8c55c8e1",
+      "stream_sha256": "cee9fb18ad195b60b24132ae62a6a6f63e7342ae62fba51847ce50ac8d731e69",
+      "request_sha256": "e695a8cee493a785ec974c19048123467831c5c883f4d026c7fdc1c9a696e45c",
+      "qualification": "Oracle statement reading; no independent source audit"
+    },
+    {
+      "id": "bonferroni-bracket",
+      "provider_task_id": "2270c93b-9fef-4fa1-9858-249ff9cfd12f",
+      "observed_model": [
+        "gpt_6",
+        "pro"
+      ],
+      "reported_status": "special_case_of_known",
+      "answer_sha256": "ee99a8a7e749461ad5146381d6eed641bacd96e011fc0eee5d2e4c09e17090b2",
+      "stream_sha256": "c66e3969791f4d40da7e26eed5fb970979f55fb7645ba73988104d13548ced77",
+      "request_sha256": "18c20ba6864da56afabd048c71da386f81d4b8624bb5bf1f75044525ec27bbb4",
+      "qualification": "Oracle statement reading; no independent source audit"
+    },
+    {
+      "id": "bonferroni-signed_weights",
+      "provider_task_id": "2e07cca6-7190-43bb-9b71-6e73b38e406d",
+      "observed_model": [
+        "gpt_6",
+        "pro"
+      ],
+      "reported_status": "unclear",
+      "answer_sha256": "7bc0149ce9c7afd771d2c1de203e4b851d2ecc38e5cf3239e4d4980f1f1609ea",
+      "stream_sha256": "98423467150563c3987f74c07e7e48f063ae1dbe9d677eac9d733672bb09cee6",
+      "request_sha256": "e63097b3a3a387e73a0e674a7ed59d35a0db77ffb7bf5265d31d05d15e65cfe9",
+      "qualification": "Oracle statement reading; no independent source audit"
+    }
+  ],
+  "acquisition_failures": [
+    {
+      "id": "cassini-renamed",
+      "reason": "transport_incomplete",
+      "receipt_sha256": "8f39c7a91c48a7c14eacb49d8254e87ae715cb9e07d0aad7a8c6c07fd09c76e3"
+    }
+  ]
+}

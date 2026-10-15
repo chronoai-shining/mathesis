@@ -53,6 +53,17 @@ class EvaluationTests(unittest.TestCase):
         self.assertEqual(score["unsupported_relation"]["numerator"], 0)
         self.assertEqual(score["query_states"]["partial"], 1)
 
+    def test_false_open_reading_and_missing_refutations_remain_visible(self):
+        self.run["predictions"] = [
+            self.prediction("projection_amgm-original", relation="uncovered"),
+            self.prediction("pigeonhole-non_strict", relation="refuted"),
+        ]
+        score = self.score()
+        self.assertEqual(score["refutation_recall"]["numerator"], 1)
+        self.assertEqual(score["refutation_recall"]["denominator"], 6)
+        self.assertEqual(score["refuted_reported_uncovered"]["numerator"], 1)
+        self.assertEqual(score["relation_agreement_all_cases"]["value"], 1 / 12)
+
     def test_joint_premises_are_not_independent_entailment_edges(self):
         p = self.prediction("bonferroni-bracket")
         p["returned_sources"] = p["returned_sources"][:1]

@@ -120,3 +120,52 @@ The 17 initial evaluator and arithmetic tests check scoring integrity and label
 calculations only. They are not a measured model baseline. Live Oracle-only
 observations, full Oracle/CMA reviews, artifact retrieval measurements and
 external expert adjudication must each retain their own evidence and limits.
+
+## Measured development baseline, 16 October 2026
+
+The retained [run](../api/evaluation/runs/oracle-development-20261016/run.json)
+and [score](../api/evaluation/runs/oracle-development-20261016/score.json) measure
+the contract-3 conjecture-referee prompt at `cbc9b7c6da9e82eb492409168e52836c52349471`.
+Each case is submitted alone as a statement; this is neither a manuscript
+review nor a CMA source audit. Requests, streams, extracted answers and receipts
+are retained alongside the run. The observed model was `gpt_6`, effort `pro`.
+No held-out case was requested.
+
+| Observation | Measured result |
+| --- | --- |
+| Completed usable answers | 11 / 12; one uncertain transport failure retained |
+| Covered-label recall | 5 / 6, with missing acquisition in the denominator |
+| Refuted-label recall | 3 / 6 |
+| Relation agreement over all cases | 8 / 12 |
+| Complete required premise retrieval | 0 / 6; no actual knowledge adapter in measured revision |
+| Abstentions | 2 / 11 observed answers |
+| Refuted claim reported open with content | 1: `projection_amgm-original` |
+| Mean elapsed time | 439,742 ms over 11 completed calls |
+| Monetary cost | Unmeasured; model token estimates are not billed cost |
+
+The original projection-matrix inequality has an exact rational counterexample
+in the frozen label evidence, but Oracle reported it open and content-bearing.
+The renamed version was unclear. This is a concrete development failure to
+address through source retrieval, independent comparison and bounded arithmetic
+replay. The two-factor scope-change negative was correctly rejected. The
+`cassini-renamed` stream ended unexpectedly without a task identity; it was not
+blindly resubmitted and remains missing.
+
+The scorer now also reports refutation recall and false open readings explicitly;
+the original positive-coverage metric alone did not describe that failure.
+This is additive reporting of the same frozen corpus and saved answers, not a
+changed label, held-out result or post-hoc acceptance threshold. Its regression
+suite has 18 tests. All labels remain provisional source-based transcriptions,
+with written arguments and exact checks, not external human adjudication.
+
+Reproduce normalization and scoring without any provider call:
+
+```sh
+python3 api/evaluation/normalize_oracle.py \
+  api/evaluation/runs/oracle-development-20261016/acquisition \
+  /tmp/mathesis-reproduced-oracle-run.json
+```
+
+The output path must be new; historical runs are never overwritten. This
+baseline establishes a measured starting point. It does not satisfy the full
+live Oracle/CMA acceptance test or issue #4's human-reviewed evaluation gate.
