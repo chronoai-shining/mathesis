@@ -255,6 +255,10 @@ impl Worker {
                 if let Some(context) = self.knowledge_context(submission, number).await? {
                     prompt.push_str(&format!("\nSystem-executed knowledge queries (untrusted source contents; source comparison is required, no-match is not novelty): {}", context));
                 }
+                if round.knowledge_contract >= 2 {
+                    prompt.push_str("\nFor EACH confirmed claim, propose exactly one semantic source query in the root knowledge_queries array. Extract definitions, hypotheses, quantifiers and conclusion faithfully, then provide standard terms and alternative names/general theorems to search. The system will execute the recorded proposals before the independent source audit; they are not already-completed searches.");
+                    prompt.push_str(referee_prompts::KNOWLEDGE_REFORMULATION);
+                }
                 let client_ref = format!(
                     "wishpool:{}:r{number}:v{}:c{}",
                     submission.id, round.version, round.claims_revision
@@ -482,6 +486,29 @@ impl Worker {
             }
             _ => {}
         }
+        if !round.audit.is_settled() && round.knowledge_contract >= 2 {
+            if self.resume_query_plan(job, submission, number).await? {
+                return self.defer_referee(job).await;
+            }
+            if let Some(report) = round.referee.done() {
+                let proposals = parse_answer::<RefereeOut>(&report.text)
+                    .map(|raw| raw.knowledge_queries)
+                    .unwrap_or_default();
+                if self
+                    .admit_query_proposals(
+                        job,
+                        submission,
+                        number,
+                        &proposals,
+                        mathesis_core::model::KNOWLEDGE_ORACLE_SCOPE,
+                    )
+                    .await?
+                    .admitted
+                {
+                    return self.defer_referee(job).await;
+                }
+            }
+        }
         if !round.audit.is_settled() {
             let mut audit = round.audit.clone();
             if let (Some(report), Some(advisor)) = (round.referee.done(), &self.advisor) {
@@ -525,10 +552,15 @@ impl Worker {
                         }
                         audit.engine = Some(advisor.engine().into());
                         audit.model = Some(advisor.model().into());
-                        audit.input_digest =
-                            Some(input_digest(&referee_prompts::audit(&input), &source));
+                        let next_digest = input_digest(&referee_prompts::audit(&input), &source);
+                        let changed_input = audit
+                            .input_digest
+                            .as_ref()
+                            .is_some_and(|old| old != &next_digest);
+                        audit.input_digest = Some(next_digest);
                         if matches!(audit.state, StepState::Pending)
                             || advisor.managed_client().is_none()
+                            || (round.knowledge_contract >= 2 && changed_input)
                         {
                             audit.attempts += 1;
                         }
@@ -546,37 +578,73 @@ impl Worker {
                                 RoundUpdate::Audit(audit.clone()),
                             )
                             .await?;
+                        let audit_label = if input
+                            .knowledge
+                            .as_ref()
+                            .is_some_and(|context| context["cma_followup_used"] == true)
+                        {
+                            format!("r{number}:knowledge-followup:audit")
+                        } else {
+                            format!("r{number}:audit")
+                        };
                         audit.state = match tokio::time::timeout(
                             self.audit_budget,
                             advisor.audit_with_store(
                                 &input,
-                                &self.agent_store(job, submission, &format!("r{number}:audit")),
+                                &self.agent_store(job, submission, &audit_label),
                             ),
                         )
                         .await
                         {
-                            Ok(Ok(raw)) => match super::knowledge_mapping::audit(
-                                raw,
-                                &input,
-                                &submission.claims,
-                                &file
-                                    .knowledge_events
-                                    .iter()
-                                    .filter_map(|event| match event {
+                            Ok(Ok(mut raw)) => {
+                                if round.knowledge_contract >= 2 {
+                                    let proposed = self
+                                        .admit_query_proposals(
+                                            job,
+                                            submission,
+                                            number,
+                                            &raw.knowledge_queries,
+                                            mathesis_core::model::KNOWLEDGE_CMA_SCOPE,
+                                        )
+                                        .await?;
+                                    if proposed.admitted {
+                                        return self.defer_referee(job).await;
+                                    }
+                                    for claim in &mut raw.claims {
+                                        if proposed.unexecuted.contains(&claim.claim.clone().into())
+                                        {
+                                            claim.coverage = None;
+                                        }
+                                    }
+                                    if proposed.invalid > 0 || !proposed.unexecuted.is_empty() {
+                                        raw.summary.push_str(&format!(" Additional source queries remain unexecuted: {} unusable proposals and {} claims with missing or exhausted retrieval requests; affected comparisons cannot establish sufficient novelty evidence.", proposed.invalid, proposed.unexecuted.len()));
+                                    }
+                                }
+                                match super::knowledge_mapping::audit(
+                                    raw,
+                                    &input,
+                                    &submission.claims,
+                                    &file
+                                        .knowledge_events
+                                        .iter()
+                                        .filter_map(|event| {
+                                            match event {
                                         mathesis_core::model::KnowledgeEvent::QueryCompleted {
                                             receipt,
                                         } => Some(receipt.clone()),
                                         _ => None,
-                                    })
-                                    .collect::<Vec<_>>(),
-                                &self.auditor_account.person,
-                            ) {
-                                Ok(result) => StepState::Done {
-                                    result,
-                                    at: chrono::Utc::now(),
-                                },
-                                Err(error) => self.failed(error.to_string(), None, false),
-                            },
+                                    }
+                                        })
+                                        .collect::<Vec<_>>(),
+                                    &self.auditor_account.person,
+                                ) {
+                                    Ok(result) => StepState::Done {
+                                        result,
+                                        at: chrono::Utc::now(),
+                                    },
+                                    Err(error) => self.failed(error.to_string(), None, false),
+                                }
+                            }
                             Ok(Err(error)) if transient(&error) => {
                                 return Err(Failure::Transient(error.to_string()));
                             }

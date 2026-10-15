@@ -110,3 +110,50 @@ describe('private knowledge evidence', () => {
     expect(container).toBeEmptyDOMElement();
   });
 });
+
+it('requires a semantic result for every queried claim under contract 2', () => {
+  const raw = { ...receipt, state: 'complete' as const, limits: [], retryable: false };
+  const semantic = { ...raw, id: 'query:semantic', scopes: ['mathesis.semantic-query.v1:oracle'] };
+  const round = { ...queuedRound, knowledge_contract: 2 };
+  const { rerender } = render(
+    <KnowledgeQueries
+      submissionId="private-paper"
+      round={{ ...round, knowledge_events: [{ event: 'query_completed', receipt: raw }] }}
+    />,
+  );
+  expect(
+    screen.getByText(/Required semantic queries have no recorded result for: C1/),
+  ).toBeInTheDocument();
+  expect(screen.queryByText(/The recorded bounded searches completed/)).toBeNull();
+  rerender(
+    <KnowledgeQueries
+      submissionId="private-paper"
+      round={{
+        ...round,
+        knowledge_events: [
+          { event: 'query_completed', receipt: raw },
+          { event: 'query_completed', receipt: semantic },
+        ],
+      }}
+    />,
+  );
+  expect(screen.getByText(/The recorded bounded searches completed/)).toBeInTheDocument();
+  rerender(
+    <KnowledgeQueries
+      submissionId="private-paper"
+      round={{
+        ...round,
+        knowledge_events: [
+          { event: 'query_completed', receipt: semantic },
+          {
+            event: 'query_completed',
+            receipt: { ...raw, id: 'query:c2', subject: { ...raw.subject, claim: 'C2' } },
+          },
+        ],
+      }}
+    />,
+  );
+  expect(
+    screen.getByText(/Required semantic queries have no recorded result for: C2/),
+  ).toBeInTheDocument();
+});

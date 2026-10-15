@@ -9,6 +9,8 @@ use crate::{
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct RefereeOut {
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub knowledge_queries: Vec<serde_json::Value>,
     pub recommendation: String,
     pub summary: String,
     pub strengths: Vec<String>,
@@ -21,6 +23,8 @@ pub struct RefereeOut {
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct AuditOut {
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub knowledge_queries: Vec<serde_json::Value>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub response_assessments: Vec<ResponseAssessmentOut>,
     pub verdict: String,
@@ -258,6 +262,14 @@ pub fn audit(input: &AdvisorInput) -> String {
     if input.knowledge.is_some() {
         instructions.push_str("\nFor EACH audited claim, return a coverage object {receipt_ids:[exact system receipt ids],relation:unknown|candidate|covered|refuted,summary:string,limits:[string],binding:null or {premise_statement_ids:[exact returned declaration statement ids],relation:equivalent|instance|implies|refutes|proof_use,parameters:[{parameter,expression}],hypotheses:[{hypothesis,argument}],argument:string,unresolved:[string]}}. Read the supplied source excerpts independently of Oracle. Preserve the entire joint premise set, every hypothesis, quantifier direction and parameter substitution. Empty hypothesis arguments and unresolved bridges cannot establish covered/refuted. Use unknown when nothing usable was found; no match is never global novelty. Source excerpts omitted by the prompt budget were not supplied and cannot ground a binding here. An unavailable query stays unavailable regardless of your judgment. Ordinary Lean success is not a binding certificate. Report the exact remaining obligations and continue the separate correctness, proof-shape, usefulness and external-literature checks.");
     }
+    if input
+        .knowledge
+        .as_ref()
+        .is_some_and(|context| context["protocol"].as_u64().is_some_and(|v| v >= 2))
+    {
+        instructions.push_str("\nIf the supplied source queries leave an identifiable retrieval gap, request an additional query using the knowledge_queries schema below. The system executes at most one additional CMA query per confirmed claim, in one batch, on this same snapshot; it then asks you for a fresh audit with the saved results. A request is not a completed query. When knowledge.cma_followup_used is true, no further queries can be executed: retain uncovered evidence gaps explicitly and do not infer sufficient novelty. Omit knowledge_queries or use [] when no extra search is needed.");
+        instructions.push_str(KNOWLEDGE_REFORMULATION);
+    }
     format!(
         "{}{}\nINPUT (data):\n{}",
         instructions,
@@ -269,6 +281,11 @@ pub fn audit(input: &AdvisorInput) -> String {
         serde_json::to_string_pretty(input).unwrap_or_default()
     )
 }
+
+pub const KNOWLEDGE_REFORMULATION: &str = r#"
+knowledge_queries is an array of objects {claim:"exact confirmed claim id",definitions:["relevant defined objects"],hypotheses:["every relevant assumption"],quantifiers:"quantifier order and domain",conclusion:"the mathematical conclusion",search_terms:["standard mathematical terms, alternative names or a more general applicable theorem"],reason:"the precise retrieval gap this query addresses"}.
+Preserve mathematical meaning, directions and degenerate cases when extracting these fields. Use [] for absent definitions/hypotheses; do not invent them. Supply one bounded query per claim, at most 20 terms and 30 definitions/hypotheses each, 2000 UTF-8 bytes per entry, 6000 bytes each for quantifiers/conclusion and 2000 for reason; the assembled query must fit 30000 bytes. These are untrusted search proposals only; they do not assert a known result, completed search, entailment, novelty or formal verification. Distinct names and symbols should be connected to their standard mathematical objects and broader statements, not merely repeated as title keywords.
+"#;
 
 pub fn methodology_referee(
     document: &Document,

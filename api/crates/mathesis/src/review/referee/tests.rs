@@ -91,6 +91,9 @@ impl Oracle for FakeOracle {
 #[derive(Default)]
 struct FakeAdvisor {
     knowledge_inputs: Mutex<Vec<Option<serde_json::Value>>>,
+    request_more_knowledge: AtomicBool,
+    request_beyond_knowledge_budget: AtomicBool,
+    malformed_knowledge_query: AtomicBool,
     advice: AtomicUsize,
     letters: AtomicUsize,
     fail_advice: bool,
@@ -243,7 +246,27 @@ impl Advisor for FakeAdvisor {
                 .exists()
         );
         assert!(!input.referee.text.is_empty());
+        let followup_used = input
+            .knowledge
+            .as_ref()
+            .is_some_and(|context| context["cma_followup_used"] == true);
+        let mut knowledge_queries = if self.request_more_knowledge.load(Ordering::SeqCst)
+            && (!followup_used || self.request_beyond_knowledge_budget.load(Ordering::SeqCst))
+        {
+            fixture_semantic_queries()
+        } else {
+            vec![]
+        };
+        if followup_used && self.request_beyond_knowledge_budget.load(Ordering::SeqCst) {
+            knowledge_queries[0]["search_terms"] =
+                serde_json::json!(["an additional unresolved retrieval gap"]);
+        }
+        if self.malformed_knowledge_query.load(Ordering::SeqCst) {
+            knowledge_queries =
+                vec![serde_json::json!({"claim": "invented", "reason": "missing source"})];
+        }
         Ok(AuditOut {
+            knowledge_queries,
             concerns: if self.followup_concern && input.followup.is_none() {
                 vec![mathesis_review::referee_prompts::AuditedConcernOut {
                     concern: "The domain of the compactness argument needs clarification.".into(),
@@ -543,7 +566,7 @@ impl World {
 
     async fn run_round(&self) {
         let mut job = self.job().await;
-        for _ in 0..12 {
+        for _ in 0..20 {
             match self.worker.referee_job(&job).await {
                 Ok(false) => return,
                 Ok(true) => {
@@ -562,8 +585,18 @@ impl World {
     }
 }
 
+fn fixture_semantic_queries() -> Vec<serde_json::Value> {
+    ["C1", "C2"].into_iter().map(|claim| serde_json::json!({
+        "claim":claim,"definitions":["gaps in the fixture's mathematical domain"],
+        "hypotheses":[],"quantifiers":"Every gap in the confirmed domain",
+        "conclusion":if claim == "C1" { "Every gap is finite" } else { "Every gap is small" },
+        "search_terms":["compactness", "finite gap", "bounded"],
+        "reason":"Inspect standard compactness and finiteness terminology beyond the fixture label"
+    })).collect()
+}
+
 fn completed(recommendation: &str) -> ReviewResult<OracleStatus> {
-    Ok(OracleStatus::Completed { model: None, text: serde_json::json!({"recommendation":recommendation,"summary":"A review",
+    Ok(OracleStatus::Completed { model: None, text: serde_json::json!({"recommendation":recommendation,"summary":"A review","knowledge_queries":fixture_semantic_queries(),
         "claims":[{"claim":"C1","shape":"content","witnesses":["A compactness lemma"],"known":"A reported source [opened: https://example.test/reported-work]","note":"The intermediate argument"},
             {"claim":"C2","shape":"bind_only"}], "limits":["Computation was not reproduced"]}).to_string() })
 }
@@ -696,8 +729,8 @@ async fn formalization_budget_failure_follows_delivered_letter_and_defers_job() 
     w.worker.formalizer = Some(formalizer.clone());
     w.worker.formal_budget = Duration::from_secs(3600 + 300);
     let mut job = w.job().await;
-    // Submit, report, audit, decision + advice, then deliver letter.
-    for _ in 0..5 {
+    // Submit/report, admit/execute reformulations, audit, decision/advice, letter.
+    for _ in 0..7 {
         assert!(w.worker.referee_job(&job).await.unwrap());
         job = w.claim_referee().await;
     }
@@ -1206,7 +1239,14 @@ async fn prepare_audit(w: &World) -> LeasedJob {
         job = w.worker.jobs.claim().await.unwrap().unwrap();
     }
     assert!(w.file().await.current().unwrap().referee.done().is_some());
-    job
+    for _ in 0..3 {
+        let file = w.file().await;
+        if file.current().unwrap().knowledge_contract < 2 || file.knowledge_events.iter().any(|event| matches!(event,
+            mathesis_core::model::KnowledgeEvent::QueryCompleted { receipt } if receipt.scopes.iter().any(|s| s == mathesis_core::model::KNOWLEDGE_ORACLE_SCOPE))) { return job; }
+        assert!(w.worker.referee_job(&job).await.unwrap());
+        job = w.worker.jobs.claim().await.unwrap().unwrap();
+    }
+    panic!("semantic source query did not complete before audit")
 }
 
 #[tokio::test]
@@ -1554,7 +1594,7 @@ async fn conjecture_pipeline_displays_before_letter_then_generates_and_regenerat
     use mathesis_core::model::{
         AuthenticationMethod, LeanStatementResponse, SubmissionKind, SubmissionStatus,
     };
-    let answer = serde_json::json!({"recommendation":"accept","summary":"Open conjecture", "claims":[{"claim":"C2","conjecture":{
+    let answer = serde_json::json!({"recommendation":"accept","summary":"Open conjecture","knowledge_queries":fixture_semantic_queries(), "claims":[{"claim":"C2","conjecture":{
         "well_posed":true,"well_posed_reason":"Defined symbols", "status":"open","status_reason":"Open as far as available material establishes", "named_works":[],
         "escape":"content","escape_reason":"Needs a new bound","suggestions":["Give the boundary case"]}}]}).to_string();
     let w = World::new_kind(
@@ -1568,7 +1608,7 @@ async fn conjecture_pipeline_displays_before_letter_then_generates_and_regenerat
     .await;
     let mut job = w.job().await;
     // Admission, report, audit; publication is applied in the next call before advice/letter.
-    for _ in 0..4 {
+    for _ in 0..6 {
         assert!(w.worker.referee_job(&job).await.unwrap());
         job = w.jobs.claim().await.unwrap().unwrap();
     }
@@ -2361,6 +2401,7 @@ async fn every_cma_identity_uses_saved_author_account_workspace_and_hides_transp
     let prompt = "Every gap is finite. You are advising";
     for label in [
         "r1:audit",
+        "r1:knowledge-followup:audit",
         "r1:advice",
         "r1:letter",
         "r1:formal",
@@ -2387,7 +2428,7 @@ async fn every_cma_identity_uses_saved_author_account_workspace_and_hides_transp
             .unwrap();
     }
     let file = w.file().await;
-    assert_eq!(file.agent_steps.len(), 10);
+    assert_eq!(file.agent_steps.len(), 11);
     for step in file.agent_steps.values() {
         let attempt = &step.cma_attempts[0];
         assert_eq!(attempt.payer, mathesis_core::model::CmaPayer::Author);
@@ -2398,7 +2439,7 @@ async fn every_cma_identity_uses_saved_author_account_workspace_and_hides_transp
             mathesis_core::model::CmaStepKind::LegacyUnknown
         );
     }
-    assert_eq!(mock.author.created.load(Ordering::SeqCst), 10);
+    assert_eq!(mock.author.created.load(Ordering::SeqCst), 11);
     assert_eq!(mock.operator.created.load(Ordering::SeqCst), 0);
     let requests = mock.requests.lock().await;
     for (token, _, path, _, body) in requests.iter() {
@@ -2789,11 +2830,7 @@ async fn real_worker_dispatches_all_submission_cma_steps_for_author_and_operator
             checker: FakeFormalizer::default(),
         }));
         // The provider admitted the author mutation, but its first receipt is lost.
-        let mut job = w.job().await;
-        for _ in 0..2 {
-            assert!(w.worker.referee_job(&job).await.unwrap());
-            job = w.claim_referee().await;
-        }
+        let mut job = prepare_audit(&w).await;
         mock.uncertain_create.store(true, Ordering::SeqCst);
         mock.creation_outage.store(true, Ordering::SeqCst);
         tokio::select! {
@@ -3860,14 +3897,14 @@ async fn real_source_queries_are_durable_and_reach_oracle_and_independent_audit(
             .is_err()
     );
     w.jobs.defer(&next_job, Duration::ZERO).await.unwrap();
-    let context = w.worker.knowledge_context(&w.paper, 1).await.unwrap();
     let mut replacement = LocalKnowledge::new();
     replacement.publication.bundle_digest =
         mathesis_review::knowledge::sha256(b"new configured publication");
     let replacement = Arc::new(replacement);
     w.worker.knowledge = Some(replacement.clone());
     w.run_round().await;
-    assert_eq!(replacement.calls.load(Ordering::SeqCst), 0);
+    assert_eq!(replacement.calls.load(Ordering::SeqCst), 2);
+    let context = w.worker.knowledge_context(&w.paper, 1).await.unwrap();
     let updated = w.file().await;
     assert_eq!(
         &updated.knowledge_events[..file.knowledge_events.len()],
@@ -3875,7 +3912,7 @@ async fn real_source_queries_are_durable_and_reach_oracle_and_independent_audit(
     );
     assert_eq!(
         updated.knowledge_events.len(),
-        file.knowledge_events.len() + 2
+        file.knowledge_events.len() + 6
     );
     assert_eq!(
         w.advisor.knowledge_inputs.lock().await.as_slice(),
@@ -3972,7 +4009,7 @@ async fn unavailable_knowledge_is_recorded_and_shared_as_a_limit() {
             _ => None,
         })
         .collect::<Vec<_>>();
-    assert_eq!(receipts.len(), 2);
+    assert_eq!(receipts.len(), 4);
     assert!(
         receipts
             .iter()
@@ -4070,4 +4107,414 @@ async fn query_timeout_unavailability_and_corruption_keep_distinct_receipts() {
         );
         assert_eq!(w.oracle.submitted.load(Ordering::SeqCst), 0);
     }
+}
+
+#[tokio::test]
+async fn semantic_plans_are_atomic_and_resume_all_queries_after_a_lost_lease() {
+    use mathesis_core::model::{KNOWLEDGE_ORACLE_SCOPE, KnowledgeEvent};
+    let mut w = World::new(vec![], true).await;
+    w.worker
+        .app
+        .begin_referee_round(&w.worker.referee_account, &w.paper.id)
+        .await
+        .unwrap();
+    let job = w.job().await;
+    w.worker
+        .query_confirmed_claims(&job, &w.paper, 1)
+        .await
+        .unwrap();
+    let before = w.file().await;
+    let mut invalid = fixture_semantic_queries();
+    invalid[1]["claim"] = serde_json::json!("invented");
+    let rejected = w
+        .worker
+        .admit_query_proposals(&job, &w.paper, 1, &invalid, KNOWLEDGE_ORACLE_SCOPE)
+        .await
+        .unwrap();
+    assert!(!rejected.admitted);
+    assert_eq!(rejected.invalid, 1);
+    assert_eq!(w.file().await, before);
+    let admitted = w
+        .worker
+        .admit_query_proposals(
+            &job,
+            &w.paper,
+            1,
+            &fixture_semantic_queries(),
+            KNOWLEDGE_ORACLE_SCOPE,
+        )
+        .await
+        .unwrap();
+    assert!(admitted.admitted);
+    let saved = w.file().await;
+    assert_eq!(
+        saved.knowledge_events.len(),
+        before.knowledge_events.len() + 2
+    );
+    assert!(
+        saved.knowledge_events[before.knowledge_events.len()..]
+            .iter()
+            .all(|event| matches!(event, KnowledgeEvent::QueryAdmitted { .. }))
+    );
+    let saved_plan = saved.knowledge_events[before.knowledge_events.len()..]
+        .iter()
+        .map(|event| {
+            let KnowledgeEvent::QueryAdmitted { intent } = event else {
+                panic!()
+            };
+            intent.clone()
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(
+        w.worker
+            .app
+            .admit_knowledge_plan_leased(
+                &w.worker.referee_account,
+                &job,
+                w.jobs.as_ref(),
+                saved_plan.clone()
+            )
+            .await
+            .unwrap(),
+        saved
+    );
+    let mut second_batch = saved_plan;
+    for intent in &mut second_batch {
+        intent.query.push_str(" extra search");
+        intent.id.push_str(":extra");
+        intent.request_digest = mathesis_core::model::KnowledgeQueryReceipt::request_digest(
+            &intent.subject,
+            &intent.snapshot,
+            &intent.index_revision,
+            &intent.query,
+            &intent.scopes,
+        );
+    }
+    assert!(
+        w.worker
+            .app
+            .admit_knowledge_plan_leased(
+                &w.worker.referee_account,
+                &job,
+                w.jobs.as_ref(),
+                second_batch
+            )
+            .await
+            .is_err()
+    );
+    assert_eq!(w.file().await, saved);
+    let mut failing = LocalKnowledge::new();
+    failing.reclaim = Some((w.jobs.clone(), job.clone()));
+    w.worker.knowledge = Some(Arc::new(failing));
+    assert!(matches!(
+        w.worker.resume_query_plan(&job, &w.paper, 1).await,
+        Err(Failure::LeaseLost)
+    ));
+    assert_eq!(w.file().await.knowledge_events, saved.knowledge_events);
+    let resumed_job = w.job().await;
+    let source = Arc::new(LocalKnowledge::new());
+    w.worker.knowledge = Some(source.clone());
+    assert!(
+        w.worker
+            .resume_query_plan(&resumed_job, &w.paper, 1)
+            .await
+            .unwrap()
+    );
+    assert_eq!(source.calls.load(Ordering::SeqCst), 2);
+    let complete = w.file().await;
+    assert_eq!(
+        complete.knowledge_events.len(),
+        saved.knowledge_events.len() + 2
+    );
+    assert!(
+        !w.worker
+            .admit_query_proposals(
+                &resumed_job,
+                &w.paper,
+                1,
+                &fixture_semantic_queries(),
+                KNOWLEDGE_ORACLE_SCOPE
+            )
+            .await
+            .unwrap()
+            .admitted
+    );
+    assert!(
+        !w.worker
+            .resume_query_plan(&resumed_job, &w.paper, 1)
+            .await
+            .unwrap()
+    );
+    assert_eq!(w.file().await, complete);
+}
+
+#[tokio::test]
+async fn cma_additional_queries_precede_a_fresh_audit_and_preserve_the_snapshot() {
+    use mathesis_core::model::{CmaStepIdentity, CmaStepKind, KNOWLEDGE_CMA_SCOPE, KnowledgeEvent};
+    let w = World::new(vec![completed("accept")], true).await;
+    w.advisor
+        .request_more_knowledge
+        .store(true, Ordering::SeqCst);
+    let job = prepare_audit(&w).await;
+    assert!(w.worker.referee_job(&job).await.unwrap());
+    let intermediate = w.file().await;
+    assert!(intermediate.current().unwrap().audit.done().is_none());
+    assert_eq!(intermediate.knowledge_events.iter().filter(|event| matches!(event,
+        KnowledgeEvent::QueryAdmitted { intent } if intent.scopes.iter().any(|s| s == KNOWLEDGE_CMA_SCOPE))).count(), 2);
+    assert!(!intermediate.knowledge_events.iter().any(|event| matches!(event,
+        KnowledgeEvent::QueryCompleted { receipt } if receipt.scopes.iter().any(|s| s == KNOWLEDGE_CMA_SCOPE))));
+    w.run_round().await;
+    assert_eq!(w.advisor.audits.load(Ordering::SeqCst), 2);
+    let inputs = w.advisor.knowledge_inputs.lock().await;
+    assert_eq!(
+        inputs[0].as_ref().unwrap()["receipts"]
+            .as_array()
+            .unwrap()
+            .len(),
+        4
+    );
+    assert_eq!(
+        inputs[1].as_ref().unwrap()["receipts"]
+            .as_array()
+            .unwrap()
+            .len(),
+        6
+    );
+    assert_eq!(inputs[1].as_ref().unwrap()["cma_followup_used"], true);
+    let file = w.file().await;
+    let snapshots: BTreeSet<_> = file
+        .knowledge_events
+        .iter()
+        .filter_map(|event| match event {
+            KnowledgeEvent::QueryCompleted { receipt } => receipt.snapshot.clone(),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(snapshots.len(), 1);
+    assert!(
+        file.current()
+            .unwrap()
+            .audit
+            .done()
+            .unwrap()
+            .claims
+            .iter()
+            .all(|c| c.coverage.as_ref().unwrap().receipt_ids.len() == 3)
+    );
+    let kind = CmaStepIdentity::from_label("r1:knowledge-followup:audit");
+    assert_eq!(kind.kind, CmaStepKind::Audit);
+    assert_eq!(kind.round, Some(1));
+    use mathesis_review::cma::RunStore;
+    assert_ne!(
+        w.worker.agent_store(&job, &w.paper, "r1:audit").key(),
+        w.worker
+            .agent_store(&job, &w.paper, "r1:knowledge-followup:audit")
+            .key()
+    );
+}
+
+#[tokio::test]
+async fn exhausted_additional_query_budget_is_an_explicit_pending_limit() {
+    let w = World::new(vec![completed("accept")], true).await;
+    w.advisor
+        .request_more_knowledge
+        .store(true, Ordering::SeqCst);
+    w.advisor
+        .request_beyond_knowledge_budget
+        .store(true, Ordering::SeqCst);
+    w.run_round().await;
+    assert_eq!(w.advisor.audits.load(Ordering::SeqCst), 2);
+    let file = w.file().await;
+    assert!(
+        file.current()
+            .unwrap()
+            .audit
+            .done()
+            .unwrap()
+            .summary
+            .contains("queries remain unexecuted")
+    );
+    assert!(
+        file.current()
+            .unwrap()
+            .audit
+            .done()
+            .unwrap()
+            .claims
+            .iter()
+            .find(|c| c.claim.as_str() == "C1")
+            .unwrap()
+            .coverage
+            .is_none()
+    );
+    assert!(matches!(
+        w.worker
+            .app
+            .submission(&w.author, &w.paper.id)
+            .await
+            .unwrap()
+            .decision,
+        Some(mathesis_core::policy::Decision::Pending { .. })
+    ));
+    assert!(
+        file.letters[0]
+            .body
+            .starts_with("Your publication decision is pending")
+    );
+}
+
+#[tokio::test]
+async fn contract_one_replays_original_source_query_prompt_without_semantic_work() {
+    use mathesis_core::model::KnowledgeEvent;
+    let mut w = World::new(vec![completed("accept")], true).await;
+    let source = Arc::new(LocalKnowledge::new());
+    w.worker.knowledge = Some(source.clone());
+    w.worker
+        .app
+        .begin_referee_round(&w.worker.referee_account, &w.paper.id)
+        .await
+        .unwrap();
+    let mut file = w.file().await;
+    file.rounds[0].knowledge_contract = 1;
+    mathesis_core::ports::RefereeStore::replace(w.stores.as_ref(), &file, file.revision)
+        .await
+        .unwrap();
+    w.run_round().await;
+    assert_eq!(source.calls.load(Ordering::SeqCst), 2);
+    assert_eq!(
+        w.file()
+            .await
+            .knowledge_events
+            .iter()
+            .filter(|e| matches!(e, KnowledgeEvent::QueryCompleted { .. }))
+            .count(),
+        2
+    );
+    let paper = w
+        .worker
+        .app
+        .submission(&w.author, &w.paper.id)
+        .await
+        .unwrap();
+    let context = w
+        .worker
+        .knowledge_context(&paper, 1)
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(context["protocol"], 1);
+    assert!(context.get("cma_followup_used").is_none());
+    let mut expected = referee_prompts::methodology_referee(
+        &mathesis_review::Document {
+            title: paper.title.clone(),
+            abstract_text: paper.abstract_text.clone(),
+            text: None,
+        },
+        &mapping::confirmed_statements(&paper.claims),
+        &serde_json::to_value(&paper.claims).unwrap(),
+        false,
+    );
+    expected.push_str(&format!(
+        "\nAuthor-requested review context (untrusted): {}",
+        serde_json::json!({"purpose":paper.purpose,"review_scope":paper.review_scope})
+    ));
+    expected.push_str(&format!("\nSystem-executed knowledge queries (untrusted source contents; source comparison is required, no-match is not novelty): {}", context));
+    assert_eq!(w.oracle.prompts.lock().await.as_slice(), &[expected]);
+    assert!(matches!(paper.status, SubmissionStatus::Accepted { .. }));
+}
+
+#[tokio::test]
+async fn missing_or_unusable_oracle_semantic_queries_cannot_be_replaced_by_raw_searches() {
+    use mathesis_core::model::{KnowledgeEvent, KnowledgeQueryState};
+    for proposals in [
+        vec![],
+        vec![fixture_semantic_queries()[1].clone()], // Only the supporting claim.
+        vec![serde_json::json!({"claim":"C1", "reason":"missing mathematical fields"})],
+        vec![
+            fixture_semantic_queries()[0].clone(),
+            serde_json::json!({"claim":"C2"}),
+        ],
+    ] {
+        let OracleStatus::Completed { text, .. } = completed("accept").unwrap() else {
+            panic!()
+        };
+        let mut raw: serde_json::Value = serde_json::from_str(&text).unwrap();
+        raw["knowledge_queries"] = serde_json::json!(proposals);
+        let w = World::new(
+            vec![Ok(OracleStatus::Completed {
+                model: None,
+                text: raw.to_string(),
+            })],
+            true,
+        )
+        .await;
+        w.run_round().await;
+        let paper = w
+            .worker
+            .app
+            .submission(&w.author, &w.paper.id)
+            .await
+            .unwrap();
+        assert!(matches!(
+            paper.decision,
+            Some(mathesis_core::policy::Decision::Pending { .. })
+        ));
+        let file = w.file().await;
+        assert!(file.current().unwrap().audit.done().is_some());
+        assert_eq!(file.letters.len(), 1);
+        let dossier = w
+            .worker
+            .app
+            .review_report(&w.author, &w.paper.id)
+            .await
+            .unwrap();
+        assert!(
+            dossier
+                .markdown()
+                .contains("Required semantic query has no recorded result for statement C1")
+        );
+        let context = w
+            .worker
+            .knowledge_context(&paper, 1)
+            .await
+            .unwrap()
+            .unwrap();
+        assert!(
+            context["missing_semantic_claims"]
+                .as_array()
+                .unwrap()
+                .contains(&serde_json::json!("C1"))
+        );
+        assert!(
+            file.knowledge_events
+                .iter()
+                .filter_map(|e| match e {
+                    KnowledgeEvent::QueryCompleted { receipt } => Some(receipt),
+                    _ => None,
+                })
+                .all(|r| r.state == KnowledgeQueryState::Complete)
+        );
+    }
+}
+
+#[tokio::test]
+async fn unassignable_cma_retrieval_gap_cannot_leave_any_comparison_complete() {
+    let w = World::new(vec![completed("accept")], true).await;
+    w.advisor
+        .malformed_knowledge_query
+        .store(true, Ordering::SeqCst);
+    w.run_round().await;
+    let file = w.file().await;
+    let audit = file.current().unwrap().audit.done().unwrap();
+    assert!(audit.claims.iter().all(|c| c.coverage.is_none()));
+    assert!(audit.summary.contains("queries remain unexecuted"));
+    assert!(matches!(
+        w.worker
+            .app
+            .submission(&w.author, &w.paper.id)
+            .await
+            .unwrap()
+            .decision,
+        Some(mathesis_core::policy::Decision::Pending { .. })
+    ));
 }

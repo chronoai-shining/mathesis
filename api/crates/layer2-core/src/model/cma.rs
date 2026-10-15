@@ -68,6 +68,11 @@ impl CmaStepIdentity {
                 round: round[1..].parse().ok(),
                 ..Self::default()
             },
+            [round, "knowledge-followup", "audit"] if round.starts_with('r') => Self {
+                kind: CmaStepKind::Audit,
+                round: round[1..].parse().ok(),
+                ..Self::default()
+            },
             ["problem", claim, round, "audit"] => Self {
                 kind: CmaStepKind::ProblemAudit,
                 claim: Some((*claim).into()),

@@ -28,8 +28,30 @@ export function KnowledgeQueries({
   const pending = events.filter(
     (e) => e.event === 'query_admitted' && !receipts.some((r) => r.id === e.intent.id),
   );
+  const queriedClaims = new Set(
+    events.flatMap((e) =>
+      e.event === 'query_admitted'
+        ? [e.intent.subject.claim]
+        : e.event === 'query_completed'
+          ? [e.receipt.subject.claim]
+          : [],
+    ),
+  );
+  const missingSemantic =
+    round.knowledge_contract >= 2
+      ? [...queriedClaims].filter(
+          (claim) =>
+            !receipts.some(
+              (r) =>
+                r.subject.claim === claim && r.scopes.includes('mathesis.semantic-query.v1:oracle'),
+            ),
+        )
+      : [];
   const incomplete =
-    receipts.some((r) => r.state !== 'complete') || pending.length > 0 || receipts.length === 0;
+    receipts.some((r) => r.state !== 'complete') ||
+    pending.length > 0 ||
+    receipts.length === 0 ||
+    missingSemantic.length > 0;
   return (
     <section aria-label="Knowledge search evidence" className="report">
       <h3>Knowledge search</h3>
@@ -49,6 +71,9 @@ export function KnowledgeQueries({
         </p>
       ) : null}
       {pending.length ? <p>{pending.length} admitted queries are awaiting a result.</p> : null}
+      {missingSemantic.length ? (
+        <p>Required semantic queries have no recorded result for: {missingSemantic.join(', ')}.</p>
+      ) : null}
       {receipts.map((receipt) => (
         <details key={receipt.id} className="history">
           <summary>
