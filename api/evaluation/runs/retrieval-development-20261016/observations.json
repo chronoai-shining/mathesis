@@ -1,0 +1,98 @@
+[
+  {
+    "id": "pigeonhole-renamed",
+    "state": "complete",
+    "latency_ms": 11437,
+    "request_sha256": "14e4dc15760210976ea83b3647902ed21c97528208c21f1875c74c4b8905a084",
+    "exit_code": 0,
+    "response_sha256": "de3a37d95f93f59083e778976004872bc3c22da01064a9cb3c8d2ff67c9b0e79"
+  },
+  {
+    "id": "pigeonhole-composed",
+    "state": "complete",
+    "latency_ms": 10611,
+    "request_sha256": "892c3841e5f9678462156f63827ffe73d48134bdfcba33203d478c87f814033a",
+    "exit_code": 0,
+    "response_sha256": "722489cce1551a7cfd3477ba8b7a5ee53973763c62823063ee83f3644de53c8a"
+  },
+  {
+    "id": "pigeonhole-non_strict",
+    "state": "complete",
+    "latency_ms": 10209,
+    "request_sha256": "4a6e85bae42e6e185beeea40806c53bfaa06ac23aa4cf644a266740fcdd1df1f",
+    "exit_code": 0,
+    "response_sha256": "6e45654064d19a9589e2d03e4461890a32a947a25af2b6d56a185d785e87e556"
+  },
+  {
+    "id": "cassini-renamed",
+    "state": "complete",
+    "latency_ms": 10261,
+    "request_sha256": "aea4a86204433797cfb33cf124192185f4e10a1838ecc39a86bb520a62212650",
+    "exit_code": 0,
+    "response_sha256": "d8732ceaed44a20bd2314d5d740a4ff5fafd64bc16309e572cb04533f3ccb4ef"
+  },
+  {
+    "id": "cassini-specialized",
+    "state": "complete",
+    "latency_ms": 10122,
+    "request_sha256": "0ca93f387b3c2efb1477bf57b6f50fcade5aa66fcd614fe5d14328fcaa903431",
+    "exit_code": 0,
+    "response_sha256": "d8732ceaed44a20bd2314d5d740a4ff5fafd64bc16309e572cb04533f3ccb4ef"
+  },
+  {
+    "id": "cassini-roots_dropped",
+    "state": "complete",
+    "latency_ms": 10153,
+    "request_sha256": "ac7f372132bf07d34c91a70d04cfd80cd7e33c46eef15f559fecb257b0e289a1",
+    "exit_code": 0,
+    "response_sha256": "0fd8a5461b604c553237eaf2b87bd28933f0371835b839126bed6cad541a08ad"
+  },
+  {
+    "id": "projection_amgm-original",
+    "state": "complete",
+    "latency_ms": 10109,
+    "request_sha256": "c3376b91a94ab980fdbe3b60df16ee42256e30051f8a1aa52f264ef7272eaf3f",
+    "exit_code": 0,
+    "response_sha256": "adece15a462e8974bfd5aaf6f68a400188474a127331d36dcd34ebd17a0a336d"
+  },
+  {
+    "id": "projection_amgm-renamed",
+    "state": "complete",
+    "latency_ms": 10309,
+    "request_sha256": "c213ca72b4f315063323c36db88a3fbb34e5de51314546cd001aea9557df5651",
+    "exit_code": 0,
+    "response_sha256": "39722b8846da3fed866464dcbb6680dcc3cdb8e1414be29ea777d8f5c125abf3"
+  },
+  {
+    "id": "projection_amgm-two_factors",
+    "state": "complete",
+    "latency_ms": 10215,
+    "request_sha256": "a1c952140636c7d07714f5d179be82c504de393c13c55e1f0c83ea3e5c54f472",
+    "exit_code": 0,
+    "response_sha256": "32fb8c2434659d7bdabcd70359f1a7de48d8a8bf8928f540437008002b11f2c3"
+  },
+  {
+    "id": "bonferroni-upper",
+    "state": "complete",
+    "latency_ms": 10259,
+    "request_sha256": "193fd33c8c9ffffe70b06fa2b763bcd28299736561f1c9f0d9169121c252418d",
+    "exit_code": 0,
+    "response_sha256": "c16f9aa6c52373ac3d683f78eb299c741b3d3ff9befee0b46fd4153ac273013c"
+  },
+  {
+    "id": "bonferroni-bracket",
+    "state": "complete",
+    "latency_ms": 10359,
+    "request_sha256": "6d077a509ad9670259af2da8d3a404cdf1fdfed1ad5bb818c4d1a1da2b928412",
+    "exit_code": 0,
+    "response_sha256": "d1c84bb435af236563b1a797d45b7c6d01fb9597faff43d617c705ac9e2ed847"
+  },
+  {
+    "id": "bonferroni-signed_weights",
+    "state": "complete",
+    "latency_ms": 10194,
+    "request_sha256": "3541dd011aac0967db439b8a1134a5598d9f859f20b85b6d18083f084d044d79",
+    "exit_code": 0,
+    "response_sha256": "c2c6da31681a9d3a5ef29f9f0fa2c81945bce3802933f5cd85b9ae9d3483209a"
+  }
+]

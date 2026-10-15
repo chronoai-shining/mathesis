@@ -66,3 +66,21 @@ class OracleStreamIntegrity(unittest.TestCase):
         self.assertFalse(done)
         self.assertTrue(parse_stream(text + 'data: [DONE]\n')[3])
         self.assertTrue(parse_stream(text + 'data: invalid\n')[2])
+
+class SemanticQueryBounds(unittest.TestCase):
+    def test_reformulation_preserves_fields_and_uses_utf8_byte_bounds(self):
+        from semantic_retrieval_eval import query_text
+        proposal = {'claim': 'C1', 'definitions': ['a finite map'], 'hypotheses': ['strict cardinal inequality'],
+                    'quantifiers': 'for every map, there exist distinct points', 'conclusion': 'equal images',
+                    'search_terms': ['pigeonhole'], 'reason': 'find the general theorem'}
+        query = query_text(proposal)
+        for phrase in ['a finite map', 'strict cardinal inequality', 'there exist distinct points', 'equal images', 'pigeonhole']:
+            self.assertIn(phrase, query)
+        self.assertNotIn('find the general theorem', query)
+        proposal['quantifiers'] = '数' * 2001
+        with self.assertRaises(EvaluationError):
+            query_text(proposal)
+        proposal['quantifiers'] = 'for all'
+        proposal['claim'] = 'C2'
+        with self.assertRaises(EvaluationError):
+            query_text(proposal)

@@ -1,0 +1,17 @@
+{
+  "schema": "mathesis.retrieval-run.v1",
+  "split": "development",
+  "freeze_sha256": "4cbc93154e116f57923b3cf475904638640856a92e929573670b6a60c8bf884b",
+  "implementation_revision": "029d3d12e50698da93918c9b1f39b2c9bc64e856",
+  "binary_sha256": "3fc665e9c124f1cafbd243096300f2663cffcc0e22015112bf736fbf669f82b8",
+  "index_revision": "sha256:2838a557bfddda5a1f9410e0dcf596a67112c0ec0f163c4cf1a787abcce15d2b",
+  "snapshot": "sha256:6c92665f572be41df6f8fad0d246f4e141e9cf036196608239792f787121ec26",
+  "started_at_utc": "2026-10-15T20:40:21.551612+00:00",
+  "method": "Question label plus confirmed statement; diagnostic top 10, scored at 6 and 10",
+  "limits": [
+    "No provider call or model judgment.",
+    "Diagnostic responses are not admitted review receipts.",
+    "Per-query latency includes a cold Mongo/GridFS load.",
+    "No held-out case queried; no human-adjudicated labels."
+  ]
+}
