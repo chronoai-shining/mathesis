@@ -165,16 +165,18 @@ export function Fold({
   title,
   hint,
   className,
+  open = false,
   children,
 }: {
   id: string;
   title: string;
   hint?: ReactNode;
   className?: string;
+  open?: boolean;
   children: ReactNode;
 }) {
   return (
-    <details className={className ? `fold ${className}` : 'fold'}>
+    <details open={open} className={className ? `fold ${className}` : 'fold'}>
       <summary>
         <h2 id={id}>{title}</h2>
         {hint !== undefined ? <span className="fold-hint">{hint}</span> : null}

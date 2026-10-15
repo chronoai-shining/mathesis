@@ -39,7 +39,6 @@ export function ConjectureView({ detail: c }: { detail: ConjectureDetail }) {
         <h1>
           <InlineLatex source={s.title} />
         </h1>
-        <p className="small muted">Reviewed by GPT Pro and audited by Codex</p>
         <ReportError record={s.record} subject={{ kind: 'statement', claim: s.claim }} />
         <div className="status-card">
           <h2>
@@ -70,7 +69,7 @@ export function ConjectureView({ detail: c }: { detail: ConjectureDetail }) {
                 record={s.record}
                 subject={{ kind: 'target', claim: s.claim, digest: c.target.digest }}
               />
-              <details>
+              <details open>
                 <summary>View Target.lean</summary>
                 <pre>
                   <code>{c.target.lean}</code>
@@ -123,7 +122,7 @@ export function ConjectureView({ detail: c }: { detail: ConjectureDetail }) {
             <pre>
               <code>{winner.solution}</code>
             </pre>
-            <details>
+            <details open>
               <summary>Verification receipt</summary>
               <pre>{JSON.stringify(winner.receipt, null, 2)}</pre>
             </details>

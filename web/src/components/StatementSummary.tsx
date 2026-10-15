@@ -68,8 +68,12 @@ export function StatementSummary({
     );
   };
   return (
-    <section className="statements" aria-labelledby="statement-summary-h">
+    <section className="statements" aria-label="Statements" aria-labelledby="statement-summary-h">
       <h2 id="statement-summary-h">Statements</h2>
+      <p className="small muted">
+        Claims confirmed from this version of the manuscript. Select one to see its full wording and
+        the review reading.
+      </p>
       {main.length > 0 ? (
         <>
           <h3 className="statements-group">

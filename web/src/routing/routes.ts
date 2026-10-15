@@ -17,6 +17,8 @@ export type Route =
   | { kind: 'queue' }
   | { kind: 'submission'; id: string }
   | { kind: 'people' }
+  | { kind: 'authors' }
+  | { kind: 'author'; name: string }
   | { kind: 'contribute' }
   | { kind: 'tasks'; submission?: string; taskKind?: TaskKind }
   | { kind: 'task'; id: string }
@@ -85,6 +87,8 @@ export function parseRoute(pathname: string, search = ''): Route {
         return { kind: 'queue' };
       case 'people':
         return { kind: 'people' };
+      case 'authors':
+        return { kind: 'authors' };
       case 'contribute':
         return { kind: 'contribute' };
       case 'tasks': {
@@ -107,6 +111,8 @@ export function parseRoute(pathname: string, search = ''): Route {
     return { kind: 'conjecture', record: second as string, claim: segments[2] as string };
   if (segments.length === 2 && second !== undefined) {
     switch (first) {
+      case 'authors':
+        return { kind: 'author', name: second };
       case 'entrants':
         return { kind: 'entrant', id: second };
       case 'papers':
@@ -163,6 +169,10 @@ export function routePath(route: Route): string {
       return `/submissions/${seg(route.id)}`;
     case 'people':
       return '/people';
+    case 'authors':
+      return '/authors';
+    case 'author':
+      return `/authors/${seg(route.name)}`;
     case 'contribute':
       return '/contribute';
     case 'tasks': {

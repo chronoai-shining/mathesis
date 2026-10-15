@@ -262,9 +262,10 @@ export function ConfirmStatements({
         <button
           type="submit"
           className="button"
+          aria-label="Check statements and start Orchestra review"
           disabled={busy || (rows.length > 10 && reviewed.size !== rows.length)}
         >
-          {busy ? 'Starting review…' : 'Check statements and start Orchestra review'}
+          {busy ? 'Starting review…' : 'Confirm statements and start review'}
         </button>
       </div>
       <InlineError error={error} />
