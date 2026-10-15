@@ -94,6 +94,13 @@ export const AI_USE_DESCRIPTIONS: { readonly [K in AiUseLevel]: string } = {
   substantial: 'AI systems produced substantial parts of the proofs or text.',
   primarily: 'The mathematics was produced primarily by AI systems.',
 };
+/** The compact disclosure stored when an author chooses an AI-use level. */
+export const AI_DISCLOSURE_STATEMENTS: { readonly [K in AiUseLevel]: string } = {
+  none: 'No AI system contributed to the mathematics or the text.',
+  assisted: 'AI tools assisted with search, editing or routine steps.',
+  substantial: 'AI systems produced substantial parts of the proofs or text.',
+  primarily: 'The mathematics was produced primarily by AI systems.',
+};
 export const AI_USES = Object.keys(AI_USE_LABELS) as AiUseLevel[];
 
 export const CLAIM_KIND_LABELS: { readonly [K in ClaimKind]: string } = {

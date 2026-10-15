@@ -20,6 +20,13 @@ export function sourceFileProblem(file: Pick<File, 'name' | 'size'>): string | n
   return null;
 }
 
+export function pdfCopyProblem(file: Pick<File, 'name' | 'size'>): string | null {
+  if (!file.name.toLowerCase().endsWith('.pdf')) return 'Choose a PDF reading copy.';
+  if (file.size === 0) return 'The PDF is empty.';
+  if (file.size > MAX_SOURCE_BYTES) return 'The PDF must be at most 30 MB.';
+  return null;
+}
+
 /** Bare DOIs accepted by Layer 2: at most 256 characters and no whitespace. */
 export function isDoi(value: string): boolean {
   const slash = value.indexOf('/');

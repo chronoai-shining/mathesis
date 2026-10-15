@@ -7,8 +7,14 @@ import { PROCESSING_CONSENT_VERSION, PROCESSING_CONSENT_TEXT } from '../api/type
 import type { AiUseLevel, SubmissionKind } from '../api/types';
 import { useSession } from '../auth/session';
 import { Field, InlineError, Loading, SignInPrompt } from '../components/ui';
-import { AI_USES, AI_USE_DESCRIPTIONS, AI_USE_LABELS, formatBytes } from '../lib/labels';
-import { SOURCE_ACCEPT, buildNewPaper, sourceFileProblem } from '../lib/upload';
+import {
+  AI_DISCLOSURE_STATEMENTS,
+  AI_USES,
+  AI_USE_DESCRIPTIONS,
+  AI_USE_LABELS,
+  formatBytes,
+} from '../lib/labels';
+import { SOURCE_ACCEPT, buildNewPaper, pdfCopyProblem, sourceFileProblem } from '../lib/upload';
 import { LatexText } from '../components/Markdown';
 import { Link, useRouter } from '../routing/router';
 
@@ -95,9 +101,9 @@ export function SubmitForm({ reviewOnly = false }: { reviewOnly?: boolean } = {}
   const typed = kind === 'conjecture' && mode === 'type';
   const { navigate } = useRouter();
   const [file, setFile] = useState<File | null>(null);
+  const [pdfCopy, setPdfCopy] = useState<File | null>(null);
   const [evidence, setEvidence] = useState<EvidenceInput[]>([]);
   const [aiLevel, setAiLevel] = useState<AiUseLevel>('none');
-  const [aiStatement, setAiStatement] = useState('');
   const [msc, setMsc] = useState('');
   const [doi, setDoi] = useState('');
   const [openToContributors, setOpen] = useState(false);
@@ -105,6 +111,7 @@ export function SubmitForm({ reviewOnly = false }: { reviewOnly?: boolean } = {}
   const [error, setError] = useState<unknown>(null);
 
   const fileProblem = file ? sourceFileProblem(file) : null;
+  const pdfProblem = pdfCopy ? pdfCopyProblem(pdfCopy) : null;
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
@@ -117,7 +124,17 @@ export function SubmitForm({ reviewOnly = false }: { reviewOnly?: boolean } = {}
       setError(fileProblem);
       return;
     }
-    const metadata = buildNewPaper({ aiLevel, aiStatement, msc, doi, openToContributors });
+    if (!typed && pdfProblem) {
+      setError(pdfProblem);
+      return;
+    }
+    const metadata = buildNewPaper({
+      aiLevel,
+      aiStatement: AI_DISCLOSURE_STATEMENTS[aiLevel],
+      msc,
+      doi,
+      openToContributors,
+    });
     if (!metadata.ok) {
       setError(metadata.error);
       return;
@@ -150,7 +167,18 @@ export function SubmitForm({ reviewOnly = false }: { reviewOnly?: boolean } = {}
         .map((name) => ({ name }));
     }
     setBusy(true);
-    (typed ? Promise.resolve(undefined) : withEvidence(file as File, evidence))
+    const attachments = pdfCopy
+      ? [
+          ...evidence,
+          {
+            file: pdfCopy,
+            kind: 'supplement' as const,
+            description: 'Author-provided PDF reading copy.',
+            claims: [],
+          },
+        ]
+      : evidence;
+    (typed ? Promise.resolve(undefined) : withEvidence(file as File, attachments))
       .then((source) => api.createSubmission(metadata.value, source))
       .then(
         (s) => {
@@ -299,6 +327,24 @@ export function SubmitForm({ reviewOnly = false }: { reviewOnly?: boolean } = {}
               onChange={(e) => setFile(e.target.files?.[0] ?? null)}
             />
           </Field>
+          <Field
+            label="PDF reading copy (optional)"
+            htmlFor="pdf-copy"
+            hint="Useful for reading. LaTeX is still required for statement extraction, compilation and review. At most 30 MB."
+          >
+            <input
+              id="pdf-copy"
+              type="file"
+              accept="application/pdf,.pdf"
+              onChange={(e) => setPdfCopy(e.target.files?.[0] ?? null)}
+            />
+          </Field>
+          {pdfCopy ? (
+            <p className="small" aria-live="polite">
+              {pdfCopy.name} · {formatBytes(pdfCopy.size)}
+              {pdfProblem ? <span className="form-error"> — {pdfProblem}</span> : null}
+            </p>
+          ) : null}
           <EvidencePicker value={evidence} onChange={setEvidence} />
           {file ? (
             <p className="small" aria-live="polite">
@@ -333,7 +379,11 @@ export function SubmitForm({ reviewOnly = false }: { reviewOnly?: boolean } = {}
       <p className="hint">Reviews and letters are only shown to you.</p>
 
       <fieldset className="radio-list">
-        <legend>Use of AI</legend>
+        <legend>AI use in this work</legend>
+        <p className="hint">
+          Choose the closest description. Add fuller disclosure directly in the manuscript if
+          needed.
+        </p>
         {AI_USES.map((level) => (
           <label key={level} className="radio">
             <input
@@ -349,19 +399,6 @@ export function SubmitForm({ reviewOnly = false }: { reviewOnly?: boolean } = {}
           </label>
         ))}
       </fieldset>
-      <Field
-        label="AI disclosure statement"
-        htmlFor="ai-statement"
-        hint="Which systems were used and for what, or that none were. Only shown to you and staff."
-      >
-        <textarea
-          id="ai-statement"
-          rows={3}
-          required
-          value={aiStatement}
-          onChange={(e) => setAiStatement(e.target.value)}
-        />
-      </Field>
 
       <div className="form-row">
         <Field label="MSC 2020 codes (optional)" htmlFor="msc" hint="e.g. 11B83, 05D10">

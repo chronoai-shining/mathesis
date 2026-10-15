@@ -88,7 +88,7 @@ export function RefereeWorkspace(props: WorkspaceProps & { resource: RefereeReso
                           file.letters.filter((l) => l.round === current.number),
                           includeFormal,
                         )
-                      : 'Confirm your statements to start the review.'}
+                      : 'Your review will start after the quick statement check above.'}
                 </p>
                 {current ? <ReviewProgress round={current} includeFormal={includeFormal} /> : null}
                 <p className="small muted">

@@ -83,6 +83,10 @@ describe('paper workspace', () => {
     const user = userEvent.setup();
 
     const form = await screen.findByRole('form', { name: 'Confirm statements' });
+    expect(screen.queryByRole('heading', { name: 'Orchestra review' })).toBeNull();
+    expect(
+      screen.getByRole('heading', { name: 'One quick check before review' }),
+    ).toBeInTheDocument();
     expect(screen.getByText(/has no number; using "Conjecture"/)).toBeInTheDocument();
     // The statement is rendered with KaTeX.
     expect(form.querySelector('.katex')).not.toBeNull();
@@ -92,7 +96,9 @@ describe('paper workspace', () => {
     await user.selectOptions(within(form).getByLabelText('Kind of C2'), 'proposition');
     await user.selectOptions(within(form).getByLabelText('Role of C3'), 'main');
     await user.click(within(form).getByRole('checkbox', { name: 'Exclude C4' }));
-    await user.click(screen.getByRole('button', { name: 'Confirm statements and start review' }));
+    await user.click(
+      screen.getByRole('button', { name: 'Check statements and start Orchestra review' }),
+    );
 
     expect(confirmClaims).toHaveBeenCalledWith('sub-draft', [
       { id: 'C1', kind: 'theorem', role: 'main', depends_on: ['C2'] },
@@ -162,7 +168,7 @@ describe('paper workspace', () => {
     );
     renderWithApp(<SubmissionDetailPage id="sub-draft" />, api);
     await userEvent.click(
-      await screen.findByRole('button', { name: 'Confirm statements and start review' }),
+      await screen.findByRole('button', { name: 'Check statements and start Orchestra review' }),
     );
     expect(await screen.findByText('claim dependencies contain a cycle')).toBeInTheDocument();
   });

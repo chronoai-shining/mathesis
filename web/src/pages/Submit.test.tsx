@@ -1,5 +1,6 @@
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { strFromU8, unzipSync } from 'fflate';
 import { describe, expect, it, vi } from 'vitest';
 import { ApiError } from '../api/client';
 import { author, draft } from '../test/fixtures';
@@ -26,7 +27,6 @@ describe('SubmitPage', () => {
     ).toBeInTheDocument();
     expect(screen.queryByLabelText('arXiv identifier (optional)')).toBeNull();
     await user.click(screen.getByRole('radio', { name: /^Substantial/ }));
-    await user.type(screen.getByLabelText('AI disclosure statement'), 'A model drafted Lemma 2.');
     await user.type(screen.getByLabelText('MSC 2020 codes (optional)'), '11b83 05d10');
     await user.type(
       screen.getByLabelText('DOI (optional)'),
@@ -47,7 +47,10 @@ describe('SubmitPage', () => {
         review_scope: '',
         processing_consent: 'ai-review-2026-10-11',
         make_public_after_acceptance: true,
-        ai_disclosure: { level: 'substantial', statement: 'A model drafted Lemma 2.' },
+        ai_disclosure: {
+          level: 'substantial',
+          statement: 'AI systems produced substantial parts of the proofs or text.',
+        },
         msc: ['11B83', '05D10'],
         doi: '10.48550/arXiv.2609.33421',
         open_to_contributors: true,
@@ -65,7 +68,6 @@ describe('SubmitPage', () => {
       await screen.findByLabelText('LaTeX source'),
       new File(['x'], 'paper.tex', { type: 'application/x-tex' }),
     );
-    await user.type(screen.getByLabelText('AI disclosure statement'), 'None.');
     await user.type(screen.getByLabelText('DOI (optional)'), '2609.33421');
     if (
       !(screen.getByRole('checkbox', { name: /I agree that the source/ }) as HTMLInputElement)
@@ -75,6 +77,37 @@ describe('SubmitPage', () => {
     await user.click(screen.getByRole('button', { name: 'Upload and read statements' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('"2609.33421" is not a DOI');
     expect(createSubmission).not.toHaveBeenCalled();
+  });
+
+  it('keeps an optional PDF reading copy beside the LaTeX source', async () => {
+    const createSubmission = vi.fn(async () => draft);
+    renderWithApp(<SubmitPage />, fakeApi({ createSubmission }, author));
+    const user = userEvent.setup();
+    await user.upload(
+      await screen.findByLabelText('LaTeX source'),
+      new File(['\\documentclass{article}'], 'paper.tex', { type: 'application/x-tex' }),
+    );
+    await user.upload(
+      screen.getByLabelText('PDF reading copy (optional)'),
+      new File(['%PDF-1.7'], 'paper.pdf', { type: 'application/pdf' }),
+    );
+    await user.click(screen.getByRole('checkbox', { name: /I agree that the source/ }));
+    await user.click(screen.getByRole('button', { name: 'Upload and read statements' }));
+
+    const source = (createSubmission.mock.calls as unknown as [unknown, File][])[0]?.[1];
+    expect(createSubmission).toHaveBeenCalled();
+    expect(source).toBeInstanceOf(File);
+    expect((source as File).name).toBe('mathesis-source.zip');
+    const files = unzipSync(new Uint8Array(await (source as File).arrayBuffer()));
+    const manifest = JSON.parse(strFromU8(files['mathesis-evidence.json']!)) as {
+      files: { path: string; description: string; kind: string }[];
+    };
+    expect(manifest.files).toContainEqual({
+      path: 'evidence/paper.pdf',
+      description: 'Author-provided PDF reading copy.',
+      kind: 'supplement',
+      claims: [],
+    });
   });
 
   it('lets an author supply names omitted from an anonymous source without linking accounts', async () => {
@@ -87,7 +120,6 @@ describe('SubmitPage', () => {
       screen.getByLabelText('Authors (optional)'),
       '  Ada Example  \n\nBenoit Example',
     );
-    await user.type(screen.getByLabelText('AI disclosure statement'), 'None.');
     await user.click(screen.getByRole('checkbox', { name: /I agree that the source/ }));
     await user.click(screen.getByRole('button', { name: 'Upload and read statements' }));
     expect(createSubmission).toHaveBeenCalledWith(
@@ -109,7 +141,6 @@ describe('SubmitPage', () => {
     const input = await screen.findByLabelText('LaTeX source');
 
     await user.upload(input, new File(['%PDF'], 'paper.pdf', { type: 'application/pdf' }));
-    await user.type(screen.getByLabelText('AI disclosure statement'), 'None.');
     if (
       !(screen.getByRole('checkbox', { name: /I agree that the source/ }) as HTMLInputElement)
         .checked
@@ -140,7 +171,6 @@ describe('SubmitPage', () => {
     await user.click(publication);
     const source = new File(['source'], 'note.tex', { type: 'application/x-tex' });
     await user.upload(screen.getByLabelText('LaTeX source'), source);
-    await user.type(screen.getByLabelText('AI disclosure statement'), 'No AI was used.');
     if (
       !(screen.getByRole('checkbox', { name: /I agree that the source/ }) as HTMLInputElement)
         .checked
@@ -164,7 +194,6 @@ describe('SubmitPage', () => {
     await user.type(screen.getByLabelText('Statement'), 'Every $n > 1$ has the property.');
     await user.type(screen.getByLabelText('Background (optional)'), 'Let $n$ be a natural number.');
     await user.type(screen.getByLabelText('Origin (optional)'), 'my own');
-    await user.type(screen.getByLabelText('AI disclosure statement'), 'No AI was used.');
     const preview = screen.getByLabelText('Statement preview');
     expect(preview.querySelector('.katex')).not.toBeNull();
     expect(screen.getByRole('checkbox', { name: 'Make public after acceptance' })).toBeChecked();
@@ -200,7 +229,6 @@ it('requires explicit AI processing consent, unchecked on a fresh upload', async
     await screen.findByLabelText('LaTeX source'),
     new File(['source'], 'paper.tex', { type: 'text/plain' }),
   );
-  await user.type(screen.getByLabelText('AI disclosure statement'), 'None.');
   expect(screen.getByRole('checkbox', { name: /I agree that the source/ })).not.toBeChecked();
   await user.click(screen.getByRole('button', { name: 'Upload and read statements' }));
   expect(createSubmission).not.toHaveBeenCalled();
@@ -221,7 +249,6 @@ it('requests a private review with a focus and no public contribution switches',
     screen.getByLabelText(/What should the review focus/),
     'Check the boundary case.',
   );
-  await user.type(screen.getByLabelText('AI disclosure statement'), 'None.');
   await user.click(screen.getByRole('checkbox', { name: /I agree that the source/ }));
   await user.click(screen.getByRole('button', { name: 'Upload and read statements' }));
   expect(createSubmission).toHaveBeenCalledWith(

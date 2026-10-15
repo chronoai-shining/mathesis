@@ -807,7 +807,7 @@ export type CmaAttemptView = {
 
 export const PROCESSING_CONSENT_VERSION = 'ai-review-2026-10-11';
 export const PROCESSING_CONSENT_TEXT =
-  'I agree that the source and statements are processed by third-party AI services (OpenAI ChatGPT via the Oracle broker, Codex on CMA) for review.';
+  'I agree that the source and statements may be processed by external AI systems for mathematical review.';
 export type ErrorSubject =
   | { kind: 'statement'; claim: string }
   | { kind: 'target'; claim: string; digest: string }

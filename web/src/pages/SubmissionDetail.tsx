@@ -229,7 +229,7 @@ export function Workspace({
         {reviewed && (isAuthor || isStaff) ? (
           <StatementSummary submission={s} round={currentReview} />
         ) : null}
-        {isStaff || isAuthor ? (
+        {(state !== 'draft' || isStaff) && (isStaff || isAuthor) ? (
           <RefereeWorkspace
             key={`${s.id}-${isStaff}`}
             submission={s}
@@ -243,7 +243,11 @@ export function Workspace({
         {state === 'draft' ? <DraftNotice submission={s} /> : null}
         {state === 'draft' && isAuthor ? (
           <section aria-labelledby="confirm-h">
-            <h2 id="confirm-h">Confirm the statements</h2>
+            <h2 id="confirm-h">One quick check before review</h2>
+            <p className="lede">
+              We found these mathematical statements in your source. Keep the defaults when they
+              look right, change only anything we read incorrectly, and start your Orchestra review.
+            </p>
             <ConfirmStatements
               key={`${s.id}-${s.versions.length}`}
               submission={s}

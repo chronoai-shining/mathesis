@@ -30,10 +30,13 @@ export function HomePage() {
         <p className="eyebrow">An open home for mathematical research</p>
         <h1 id="intro-heading">Where mathematics takes form.</h1>
         <p className="lede">
-          Publish papers and conjectures. Get a deep research review. Contribute Lean proofs that
-          others can independently check.
+          Submit a paper, short note, or conjecture. Mathesis gives it a deep research review and a
+          durable home for the mathematics that follows.
         </p>
         <div className="intro-actions">
+          <Link to={{ kind: 'submit' }} className="button">
+            Submit a paper or conjecture <Arrow />
+          </Link>
           <Link to={{ kind: 'papers' }} className="button">
             Browse papers <Arrow />
           </Link>
@@ -43,9 +46,23 @@ export function HomePage() {
         </div>
         <p className="small">
           <Link className="text-link" to={{ kind: 'submit', intake: 'review' }}>
-            Request a private research review <Arrow />
+            Request a private review without publication <Arrow />
           </Link>
         </p>
+        <div className="submission-paths" aria-label="Ways to submit">
+          <Link to={{ kind: 'submit' }} className="submission-path">
+            <strong>Paper or short note</strong>
+            <span>Upload your source, confirm the extracted statements, and start review.</span>
+          </Link>
+          <Link to={{ kind: 'submit' }} className="submission-path">
+            <strong>Conjecture</strong>
+            <span>Type a precise question or upload its LaTeX source, even without a proof.</span>
+          </Link>
+          <Link to={{ kind: 'submit', intake: 'lean' }} className="submission-path">
+            <strong>Lean formalization</strong>
+            <span>Send existing Lean sources for independent verification against a target.</span>
+          </Link>
+        </div>
       </section>
 
       <div className="archive-layout">

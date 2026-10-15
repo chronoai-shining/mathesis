@@ -28,9 +28,8 @@ export function PolicyPage() {
         <h2>Third-party AI review</h2>
         <p>{PROCESSING_CONSENT_TEXT}</p>
         <p>
-          Uploads require explicit agreement. We store the consent version and time. The source and
-          statements go to OpenAI ChatGPT through the Oracle broker and to Codex on CMA. Private
-          review material stays private to authors and staff.
+          Uploads require explicit agreement. We store the consent version and time. Private review
+          material stays private to authors and staff.
         </p>
       </section>
       <header className="page-head">
