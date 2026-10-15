@@ -10,6 +10,7 @@ mod blobs;
 mod cma;
 mod domain;
 mod jobs;
+pub(crate) mod knowledge;
 mod maintenance;
 mod network;
 mod referees;
@@ -117,6 +118,9 @@ impl MongoStore {
             .create_index(plain(doc! { "state": 1, "available_at": 1 }))
             .await?;
         self.raw(REFEREE_FILES)
+            .create_index(unique(doc! { "id": 1 }))
+            .await?;
+        self.raw(knowledge::KNOWLEDGE_SNAPSHOTS)
             .create_index(unique(doc! { "id": 1 }))
             .await?;
         self.raw("cma_bindings")

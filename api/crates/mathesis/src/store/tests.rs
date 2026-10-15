@@ -58,6 +58,154 @@ fn uuid_like() -> String {
         .collect()
 }
 
+#[tokio::test]
+async fn knowledge_snapshots_survive_restart_and_preserve_large_index_and_artifacts() {
+    use mathesis_review::knowledge::{
+        DeclarationIdentity, PublicationIdentity, PublishedDeclaration, index::SourceIndex, sha256,
+    };
+    let Some(db) = TestDb::open().await else {
+        return;
+    };
+    let publication = PublicationIdentity {
+        bundle_digest: sha256(b"publication"),
+        source_commit: "a".repeat(40),
+        source_tree: "b".repeat(40),
+    };
+    let source = "x".repeat(1_800_000);
+    let catalog = (0..10)
+        .map(|i| PublishedDeclaration {
+            identity: DeclarationIdentity {
+                snapshot: publication.bundle_digest.clone(),
+                module_path: format!("M{i}.lean"),
+                name_key: "x".into(),
+                statement_id: sha256(format!("decl{i}").as_bytes()),
+                type_sha256: sha256(b"type"),
+            },
+            name: "x".into(),
+            kind: "theorem".into(),
+            frozen_node_id: sha256(format!("node{i}").as_bytes()),
+            freeze_status: "frozen".into(),
+            source_sha256: sha256(source.as_bytes()),
+            axioms: vec![],
+            module_imports: vec![],
+            prerequisite_frozen_node_ids: vec![],
+        })
+        .collect();
+    let index = SourceIndex::build(publication.clone(), catalog, |_| {
+        Ok(source.as_bytes().to_vec())
+    })
+    .unwrap();
+    let blob = db.store.put_knowledge_index(&index).await.unwrap();
+    assert!(blob.bytes > 16 * 1024 * 1024);
+    let artifact = db
+        .store
+        .put(b"original artifact", "application/json")
+        .await
+        .unwrap();
+    let snapshot = super::knowledge::KnowledgeSnapshot {
+        id: index.revision.clone(),
+        publication,
+        index: blob,
+        artifacts: std::collections::BTreeMap::from([("original.json".into(), artifact.clone())]),
+        candidate_modules: 10,
+        indexed_modules: 10,
+        omitted_modules: 0,
+        admitted_at: Utc::now(),
+        admission: serde_json::json!({"test_only":true}),
+    };
+    db.store.insert_knowledge_snapshot(&snapshot).await.unwrap();
+    let reopened = MongoStore::connect(
+        &std::env::var("WISHPOOL_TEST_MONGODB_URI").unwrap(),
+        &db.name,
+    )
+    .await
+    .unwrap();
+    let loaded = reopened
+        .load_knowledge_index(&index.revision)
+        .await
+        .unwrap();
+    assert_eq!(loaded.revision, index.revision);
+    assert_eq!(loaded.modules[9].source, source);
+    assert_eq!(
+        reopened.read_checked_blob(&artifact, 100).await.unwrap(),
+        b"original artifact"
+    );
+    assert!(reopened.read_checked_blob(&artifact, 1).await.is_err());
+    // Exact re-admission preserves the original immutable snapshot.
+    let replay = reopened.insert_knowledge_snapshot(&snapshot).await.unwrap();
+    assert_eq!(replay.index.id, snapshot.index.id);
+    let mut different = snapshot.clone();
+    different.index.sha256 = "0".repeat(64);
+    assert!(matches!(
+        reopened.insert_knowledge_snapshot(&different).await,
+        Err(CoreError::Conflict(_))
+    ));
+    // Existing offline GC sees index and original artifacts in the Mongo header.
+    reopened.raw("papers.files").update_many(mongodb::bson::doc! {}, mongodb::bson::doc! {"$set":{"uploadDate":mongodb::bson::DateTime::from_chrono(Utc::now()-chrono::Duration::days(10))}}).await.unwrap();
+    let audit = reopened.collect_orphan_files_offline().await.unwrap();
+    assert!(audit.orphan_files.is_empty());
+    assert!(audit.missing_files.is_empty());
+    // Header corruption must fail before any query can consume the index.
+    reopened
+        .raw(super::knowledge::KNOWLEDGE_SNAPSHOTS)
+        .update_one(
+            mongodb::bson::doc! {"id":&index.revision},
+            mongodb::bson::doc! {"$set":{"index.sha256":"0".repeat(64)}},
+        )
+        .await
+        .unwrap();
+    assert!(
+        reopened
+            .load_knowledge_index(&index.revision)
+            .await
+            .unwrap_err()
+            .to_string()
+            .contains("checksum mismatch")
+    );
+    reopened.shutdown().await;
+    db.drop().await;
+}
+
+#[tokio::test]
+async fn knowledge_archive_upload_rejects_changed_or_oversized_bytes() {
+    let Some(db) = TestDb::open().await else {
+        return;
+    };
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("public.zip");
+    std::fs::write(&path, b"bounded public archive").unwrap();
+    let hash = mathesis_review::knowledge::sha256(b"bounded public archive");
+    let blob = db
+        .store
+        .put_knowledge_file(&path, &hash, 100)
+        .await
+        .unwrap();
+    assert_eq!(
+        db.store.read_checked_blob(&blob, 100).await.unwrap(),
+        b"bounded public archive"
+    );
+    assert!(db.store.put_knowledge_file(&path, &hash, 1).await.is_err());
+    assert!(
+        db.store
+            .put_knowledge_file(
+                &path,
+                &mathesis_review::knowledge::sha256(b"different"),
+                100
+            )
+            .await
+            .is_err()
+    );
+    assert_eq!(
+        db.store
+            .raw("papers.files")
+            .count_documents(mongodb::bson::doc! {})
+            .await
+            .unwrap(),
+        1
+    );
+    db.drop().await;
+}
+
 fn submission(id: &str, submitter: &str, status: SubmissionStatus) -> Submission {
     Submission {
         purpose: Default::default(),

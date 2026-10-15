@@ -1,0 +1,52 @@
+# Mathesis capability delivery
+
+Scope: complete the Mathesis work in P0–P3 of
+[the capability plan](MATHESIS_CAPABILITY_PLAN_2026-10-16.md). Consume Trureturing's
+existing publications and interfaces; do not modify or publish upstream code,
+judge rules, workflows or artifacts. This checklist records completion evidence,
+not intentions. The objective remains active until every applicable item is
+implemented and verified.
+
+| Item | State | Evidence / remaining work |
+| --- | --- | --- |
+| P0-A admission and compatibility | Engineering merged; live audit pending | PR #3 merged as `69c1a5776f9adb27c0eab187aa4181cd802815cf`. Head `19b3ec7` passed all applicable checks in CI `38783335655`, including actual Linux Lean/image gates, and CodeQL. Local 291 API, 316 web, 3 SDK tests passed at the integrated head. Complete live contract-3 Oracle/CMA review still needs executable company-managed CMA resources. |
+| P0-B evaluation contract and baseline | In progress | 18 source-bound authored cases, 12 development / 6 held out by family; exact-byte freeze, label evidence and scorer implemented. 17 scorer/arithmetic tests pass. See `COVERAGE_EVALUATION.md`. Labels are not yet human-adjudicated. Measured statement-only Oracle baseline: 11/12 usable responses, covered recall 5/6, refutation recall 3/6, one false-open/content reading; raw evidence retained. Holdout unqueried. Scorer now has 18 tests. Full audit and human adjudication remain. |
+| P1-A existing artifact consumption | In progress | Downloaded Pages source publication `6c92665f572be41df6f8fad0d246f4e141e9cf036196608239792f787121ec26`; verified artifact bytes and source identities locally. Its Trureturing source is `e7dcc89974fd44cabd0f10781eccc135eddf8d1c`, confirmed ancestor of dev; source CI `38719956711` and report producer `38727419398` both succeeded at that SHA. Original report archive and all five sidecars downloaded and hash-verified; canonical materials use type identity with the upstream hash domain, not plain SHA-256 or declaration identity. Application importer and immutable Mongo/GridFS storage implemented and locally exercised on the full catalog: 158,749 declaration records, 8,673 indexed modules, six explicit oversized-source omissions; 1.256 GB retained including original artifacts and license. Engineering gates/PR remain. |
+| P1-B coverage contract and durable models | In progress | `COVERAGE_CONTRACT.md`, orthogonal models and append-only private query/assessment events implemented in revision-fenced referee history. Source-audited qualification cannot substitute an ordinary Lean certificate. Domain and service tests cover fabricated receipts, version/index fences, self-support, incomplete queries, immutable replay and visibility. Full API checkpoint: 309 passed, 2 real Lean tests explicitly ignored locally; strict Clippy passed. Success receipts also require the exact stored response payload and its checksum; self-review is rejected. Runtime review-query integration remains. |
+| P1-C actual queries and review integration | Pending | Persistent snapshot/query identities, structured retrieval, Oracle/CMA receipt references, recovery. |
+| P1-D policy and author reports | Pending | Novelty completeness gate, independent categories, author-safe JSON/Markdown/UI, review-only behavior. |
+| P1-E end-to-end quality | Pending | Real inputs, known/generalized/missing-assumption cases, interrupted recovery, baseline comparison. |
+| P2-A research obligations and solving | Pending | Authorized precise tasks, existing target/attempt/verifier path, result writeback and reuse. |
+| P2-B computational evidence replay | Pending | One useful bounded certificate family, independently reproducible receipts and meaningful negative cases. |
+| P2-C coverage certificate consumer | Pending | Consume recognized upstream certificates when available, strict target/snapshot/protocol checks; unavailable capability must remain explicit and cannot be simulated by ordinary Lean verification. |
+| P3-A binding contributions and challenges | Pending | Independent submissions, audit, appeal, credit/revocation, author consent, API/SDK/MCP/UI. |
+| P3-B authorized feedback and consumption | Pending | Proposal packages with provenance/license, existing upstream admission references, verified downstream readback; no automatic upstream write without the applicable explicit authorization. |
+
+Current worktrees:
+
+- P0 integration: `/Users/lexa/Desktop/lexa/omega/mathesis-p0-20261016`, branch
+  `codex/mathesis-p0-validation-20261016`; pushes update existing PR #3's branch.
+- Knowledge/evaluation: `/Users/lexa/Desktop/lexa/omega/mathesis-knowledge-20261016`,
+  branch `codex/mathesis-knowledge-consumption`, based on the P0 candidate.
+- Original analysis: `/Users/lexa/Desktop/lexa/omega/mathesis-capability-plan-20261016`.
+
+Operational observations: local tests use a task-owned MongoDB on port 27031 and
+an isolated Rust target directory `/private/tmp/mathesis-p0-target`. Do not stop
+the unrelated MongoDB on port 27029 or edit the main checkout's concurrent web
+changes. P0 red/green and verification logs use `/private/tmp/mathesis-p0-*`.
+Source acquisition evidence lives in `/private/tmp/mathesis-capability-evidence-20261016`.
+
+Current live resource observations: the historical Mathesis CMA workspace is
+ready, but its sandbox `sbx_0bd035c17ae9469f8e412cf52cb3f2b1` is `retiring`;
+the other visible sandbox is `retired`. Oracle has ready workers. No live CMA
+execution is claimed from workspace status alone, and no shared profile or
+upstream workspace has been changed. Completed statement-only Oracle acquisition uses
+`/private/tmp/mathesis-evaluation-oracle-baseline` and retains every streaming
+handle and original response. It does not count as a full source-audited review.
+
+The Pages bundle is explicitly `pages-report-projection.v1`, not an upstream
+truth-release. Its provenance binds the original raw-report sidecars and exact
+native exporters. The referenced report was published from an integration
+producer, but its exact source commit independently has successful dev CI and
+is reachable from dev; neither the transport tag nor its self-asserted trust
+fields alone establish this fact.

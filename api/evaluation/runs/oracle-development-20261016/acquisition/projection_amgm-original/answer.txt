@@ -1,0 +1,165 @@
+Referee assessmentC1 is well posed with minor notational clarification. I classify it as open within the inspected literature and search scope. It is an existing conjecture, not a new formulation. The exact antecedent is identified below; the classification is not an exhaustive certification of its present-day status. arXivNo PDF was available in the conversation files. This report therefore concerns the quoted C1 and confirmed metadata, not an unseen manuscript or proof.1. Definitions, quantifiers, and meaningThe intended statement should explicitly read:
+$$\begin{gathered}
+n,N\in\mathbb Z_{\ge 1},\qquad
+P_i\in\mathbb R^{N\times N},\qquad
+P_i^\top=P_i,\quad P_i^2=P_i\quad(1\le i\le n),\\
+M=\frac1n\sum_{i=1}^{n}P_i,\qquad
+S=\frac1{n!}\sum_{\sigma\in\mathfrak S_n}
+P_{\sigma(1)}P_{\sigma(2)}\cdots P_{\sigma(n)},\\
+M^n-S\succeq0.
+\end{gathered}$$
+Here  $\mathfrak S_n$  consists of permutations of the labels, so equal matrices still contribute with permutation multiplicity. Products and powers are ordinary matrix products. Positive semidefiniteness means
+$$x^\top(M^n-S)x\ge0
+\qquad\text{for every }x\in\mathbb R^N.$$
+The assumptions specify orthogonal projections. No commutativity, rank restriction, distinctness, or nonsingularity is stated or needed to define the question. In particular, zero and identity projections are allowed.There is no hidden symmetry defect: transposition reverses each product, and reversal permutes the summands defining  $S$ . Thus  $S$ , and consequently  $M^n-S$ , is symmetric. This is a well-posedness check, not an argument establishing the inequality.2. Exact antecedent and relevant known resultsExact prior conjecture. Sun, Luo, and Ye’s On the Efficiency of Random Permutation for ADMM and Coordinate Descent [opened: arXiv:1503.06387], version 3, §3.3, Conjecture 3.1, equation (37), states C1. Their reversed factor order gives the same permutation average. arXivA weaker proved bound. The same work’s Lemma 3, equation (52), establishes
+$$S\preceq M$$
+for projection matrices; its proof is in §7.3. This does not supply the requested upper bound  $M^n$ . arXivEstablished special cases. Toward a Noncommutative Arithmetic-geometric Mean Inequality: Conjectures, Case-studies, and Consequences [opened: https://proceedings.mlr.press/v23/recht12/recht12.pdf] gives the two-matrix positive-semidefinite-order inequality in §3.1. Its Appendix A records the simultaneous-diagonalization and scalar-inequality baseline for commuting positive semidefinite matrices. Consequently,  $n=2$  and the pairwise-commuting restriction are known special cases, not evidence that the unrestricted question is settled. The  $n=1$  case is immediate from the submitted definitions. Proceedings of Machine Learning Research+1Two nearby negative results require particular care:Recht–Ré Noncommutative Arithmetic-Geometric Mean Conjecture is False [opened: https://proceedings.mlr.press/v119/lai20a/lai20a.pdf] concerns a spectral-norm conjecture for general positive semidefinite matrices. Its normalized “Loewner form” uses scalar multiples of the identity, not the matrix-dependent upper bound  $M^n$ . The paper also discusses failure of a norm-free extension for general positive semidefinite matrices. None of those statements, as inspected, supplies a counterexample satisfying C1’s projection hypotheses and conclusion. Proceedings of Machine Learning Research+1Random Reshuffling is Not Always Better [opened: https://proceedings.neurips.cc/paper/2020/file/42299f06ee419aa5d9d07798b56779e2-Supplemental.pdf] does give a projection-based counterexample in §2.3. However, the refuted comparison averages the norms of individual products. C1 compares matrices after averaging their products, without a norm. That counterexample is therefore not a matching refutation of C1. NeurIPS ProceedingsThe distinction is substantive:
+$$\frac1{n!}\sum_\sigma\left\|P_{\sigma(1)}\cdots P_{\sigma(n)}\right\|,
+\qquad
+\left\|\frac1{n!}\sum_\sigma P_{\sigma(1)}\cdots P_{\sigma(n)}\right\|,
+\qquad
+S\preceq M^n$$
+are different assertions. Results about one cannot simply be relabeled as results about another.3. Correctness, proof escape, information gain, and utilityCorrectness: not_checked. No proof is submitted. The checks above establish that the question has a coherent meaning and identify its literature position; they do not establish its truth.Conditional proof escape: content, relative to the inspected proved baseline. Expanding  $M$  and  $S$ , reversing permutation indices, or substituting projection matrices into applicable known results are binding operations. They recover the prior formulation and known restricted cases.The precise remaining obligation is the uniform quadratic-form inequality for every noncommuting projection family, every dimension, and every number of factors. The proved upper bound  $S\preceq M$  stops short of that obligation. Although  $0\preceq M\preceq I$  gives  $M^n\preceq M$ , two matrices being bounded above by  $M$  does not compare them with each other. This explains the baseline’s logical boundary; it is not a proposed solution.Accordingly, the restatement itself adds no new formulation, but a proof of the unrestricted assertion would exceed the binding operations identified here. No actual proof escape witness exists in this submission, and none is invented.Information gain: null. There is no specified information model, readout, correspondence, or measurement to evaluate. Identification of a prior conjecture is bibliographic clarification, not a formal information-gain certificate.Utility: general_theorem, with achieved utility insufficient. The target is a uniform matrix inequality and needs no artificial application to constitute a legitimate mathematical problem. Nevertheless, this statement-only submission supplies no theorem, refutation, or mathematical advance beyond posing the question. Conditional value must not be reported as accomplished utility. This limitation is not, by itself, an objection to displaying an attributed conjecture.Settlement: null. No settlement is claimed in the confirmed metadata, and no proof or matching refutation is supplied.4. Suggested revision and limitsThe display should explicitly quantify  $n,N$ , define the permutation sum, and identify C1 as the previously posed projection-matrix conjecture. It should distinguish the known weaker bound and restricted cases from the full question, and should avoid presenting nearby norm counterexamples as a resolution.My feedback is revise for attribution and precision, not a finding that C1 is false and not a decision about publication. The search used general web discovery and opened primary material from arXiv, PMLR, and the NeurIPS proceedings. It was not an exhaustive search of mathematical databases, all languages, or unpublished work. I found no matching settlement in that scope. All references below are model-reported opened sources, not venue-verified references.JSON{
+  "recommendation": "revise",
+  "summary": "C1 is a coherent projection-matrix inequality and is classified as open within the inspected literature and search scope. It is an existing conjecture, not a new formulation. Revision should clarify notation and attribution. No proof, refutation, or settlement is submitted.",
+  "strengths": [
+    "The algebraic assumptions and intended positive-semidefinite comparison define a precise general mathematical question.",
+    "An exact primary-source antecedent was opened, permitting an evidence-based comparison rather than inference from the conjecture's name.",
+    "The unrestricted inequality has a definite conditional obligation beyond the inspected weaker theorem and known special cases."
+  ],
+  "concerns": [
+    "No PDF was available in the conversation files; the review covers only the quoted statement and confirmed metadata.",
+    "The display needs explicit attribution to the existing conjecture.",
+    "The dimension must be explicitly quantified as a positive integer, and the permutation average should be written out.",
+    "General positive-semidefinite counterexamples, norm-of-average inequalities, and average-of-norms inequalities must not be conflated with C1.",
+    "The open classification is provisional within a stated search scope, not an exhaustive current-status certification."
+  ],
+  "claims": [
+    {
+      "claim": "C1",
+      "correctness": "not_checked",
+      "shape": null,
+      "witnesses": [],
+      "note": "Well-posedness and source matching were checked, but no proof was supplied. The formulation reproduces a prior conjecture. Conditional proof escape is content relative to the inspected proved baseline, not a claim that an actual proof has been audited. Achieved theorem utility remains insufficient, information_gain is null, and no settlement is claimed.",
+      "conjecture": {
+        "well_posed": true,
+        "well_posed_reason": "Read n and N as arbitrary positive integers; each P_i is a real N-by-N matrix satisfying P_i^T=P_i and P_i^2=P_i. Define M=(1/n)sum_i P_i and S=(1/n!)sum_{sigma in Sym(n)}P_{sigma(1)}...P_{sigma(n)}, counting label permutations with multiplicity. Products are ordinary matrix products. Reversal of permutations shows that S is symmetric, so M^n-S being positive semidefinite is meaningful. No commutativity, rank, distinctness, or nonsingularity assumption is implicit.",
+        "status": "open",
+        "status_reason": "C1 matches Conjecture 3.1, equation (37), of the opened arXiv version 3 identified below. No matching proof or refutation was found in the scoped search. This is a provisional literature classification.",
+        "named_works": [
+          "On the Efficiency of Random Permutation for ADMM and Coordinate Descent [opened: arXiv:1503.06387]",
+          "Toward a Noncommutative Arithmetic-geometric Mean Inequality: Conjectures, Case-studies, and Consequences [opened: https://proceedings.mlr.press/v23/recht12/recht12.pdf]",
+          "Recht–Ré Noncommutative Arithmetic-Geometric Mean Conjecture is False [opened: https://proceedings.mlr.press/v119/lai20a/lai20a.pdf]",
+          "Random Reshuffling is Not Always Better [opened: https://proceedings.neurips.cc/paper/2020/file/42299f06ee419aa5d9d07798b56779e2-Supplemental.pdf]"
+        ],
+        "known": [
+          {
+            "source": "On the Efficiency of Random Permutation for ADMM and Coordinate Descent [opened: arXiv:1503.06387]",
+            "location": "Version 3, section 3.3, Conjecture 3.1, equation (37); section 4.3, Lemma 3, equation (52).",
+            "relationship": "Exact prior conjecture; proved weaker bound S <= M.",
+            "checkability": "opened"
+          },
+          {
+            "source": "Toward a Noncommutative Arithmetic-geometric Mean Inequality: Conjectures, Case-studies, and Consequences [opened: https://proceedings.mlr.press/v23/recht12/recht12.pdf]",
+            "location": "Section 3.1, printed page 11.6; Appendix A, printed page 11.15.",
+            "relationship": "Known two-matrix order inequality and commuting-matrix scalar baseline. These cover restrictions, not unrestricted C1.",
+            "checkability": "opened"
+          },
+          {
+            "source": "Recht–Ré Noncommutative Arithmetic-Geometric Mean Conjecture is False [opened: https://proceedings.mlr.press/v119/lai20a/lai20a.pdf]",
+            "location": "Introduction; section 2, Conjecture 1A; section 3.",
+            "relationship": "Negative results for a general positive-semidefinite spectral-norm conjecture do not supply a matching projection-order refutation.",
+            "checkability": "opened"
+          },
+          {
+            "source": "Random Reshuffling is Not Always Better [opened: https://proceedings.neurips.cc/paper/2020/file/42299f06ee419aa5d9d07798b56779e2-Supplemental.pdf]",
+            "location": "Section 2.3, printed page 5.",
+            "relationship": "The projection counterexample concerns averages of individual product norms, not C1.",
+            "checkability": "opened"
+          }
+        ],
+        "escape": "content",
+        "escape_reason": "Conditional on a proof of the full assertion, the required uniform order bound exceeds the instantiations and normalizations supported by the inspected proved baseline. Merely rewriting the existing conjecture adds no formulation content. No actual proof or live witness is available, and this classification makes no claim of worldwide proof novelty.",
+        "suggestions": [
+          "Quantify n,N as positive integers and give explicit formulas for M and S, including permutation multiplicity.",
+          "Attribute the statement to the exact prior conjecture and describe it as an existing question rather than a new formulation.",
+          "Separate the known weaker bound S <= M and known restricted cases from the unrestricted question.",
+          "Keep positive-semidefinite order, norm of an average, and average of norms distinct in all status claims."
+        ]
+      },
+      "methodology": {
+        "baseline": [
+          {
+            "statement": "For arbitrary positive integers n,N, the matrices P_1,...,P_n are real N-by-N matrices with P_i^T=P_i and P_i^2=P_i. M is their arithmetic mean; S averages the products over all n! label permutations. No proof dependencies are supplied.",
+            "location": "Quoted submission: CONFIRMED STATEMENTS, C1.statement and C1.depends_on; repeated in SOURCE CONTEXT. No PDF manuscript location is available.",
+            "source": null
+          },
+          {
+            "statement": "For every finite family of real orthogonal projection matrices of the same size, (1/n!)sum_{sigma in Sym(n)}P_{sigma(n)}...P_{sigma(1)} <= (1/n)sum_i P_i in positive-semidefinite order.",
+            "location": "Version 3, section 4.3, Lemma 3, equation (52); proof in section 7.3.",
+            "source": "On the Efficiency of Random Permutation for ADMM and Coordinate Descent [opened: arXiv:1503.06387]"
+          },
+          {
+            "statement": "For real symmetric positive semidefinite matrices A,B of the same size, (AB+BA)/2 <= ((A+B)/2)^2.",
+            "location": "Section 3.1, printed page 11.6.",
+            "source": "Toward a Noncommutative Arithmetic-geometric Mean Inequality: Conjectures, Case-studies, and Consequences [opened: https://proceedings.mlr.press/v23/recht12/recht12.pdf]"
+          },
+          {
+            "statement": "Pairwise commuting real symmetric positive semidefinite matrices admit simultaneous orthogonal diagonalization; the coordinatewise scalar arithmetic-geometric mean inequality gives the corresponding product-versus-mean-power order comparison.",
+            "location": "Appendix A, printed page 11.15, simultaneous-diagonalization and scalar-inequality baseline, specialized to the full product.",
+            "source": "Toward a Noncommutative Arithmetic-geometric Mean Inequality: Conjectures, Case-studies, and Consequences [opened: https://proceedings.mlr.press/v23/recht12/recht12.pdf]"
+          }
+        ],
+        "searched": [
+          "Conversation Files search for 'projection_amgm-original real symmetric idempotent matrices average ordered products conjecture'; the tool reported no files in the current conversation.",
+          "General web search: 'projection matrices symmetrized product arithmetic geometric mean Loewner inequality counterexample'.",
+          "General web search: 'orthogonal projections arithmetic geometric mean inequality average all permutations positive semidefinite'.",
+          "General web search: '\"matrix AM-GM inequality for projection matrices\"'.",
+          "General web search: '\"projection matrices\" \"Conjecture 3.1\"'.",
+          "General web search: '\"1503.06387\" \"counterexample\"'.",
+          "General web search: '\"projection matrices\" \"AM-GM\" \"false\"'.",
+          "General web search: '\"projection matrices\" \"AM-GM\" 2025 2026'.",
+          "General web search: '\"projection_amgm\"'.",
+          "Opened primary-source scope: arXiv, PMLR proceedings, and NeurIPS proceedings; inspected exact statements, assumptions, relevant sections, and PDF page images.",
+          "Search conducted on 2026-10-16. No exhaustive MathSciNet, zbMATH, subscription-database, multilingual, or unpublished-literature search was performed."
+        ],
+        "literature": "supported",
+        "binding_analysis": "The supported comparison is limited to the inspected baseline. Expanding the aliases gives M=(1/n)sum_i P_i and S=(1/n!)sum_{sigma in Sym(n)}P_{sigma(1)}...P_{sigma(n)}. Reversal of permutation indices matches the prior statement without changing its substance. Projection assumptions permit substitution into applicable positive-semidefinite results; the two-matrix theorem covers n=2, while the commuting baseline covers pairwise-commuting families. The definitions settle n=1. The universal weaker theorem supplies only S <= M. Since M is a positive contraction, M^n <= M, but these two upper bounds do not compare S with M^n. Neither a change in norm placement nor restriction of an unmatched general positive-semidefinite counterexample is a valid binding step. No manuscript helpers, tactic expansions, or proof dependency chain were supplied.",
+        "delta": "Conditionally, establish for every positive integer pair n,N, every family P_i in R^(N-by-N) satisfying P_i^T=P_i and P_i^2=P_i, and every x in R^N, the inequality x^T[((1/n)sum_i P_i)^n-(1/n!)sum_{sigma in Sym(n)}P_{sigma(1)}...P_{sigma(n)}]x >= 0, without adding commutativity or rank hypotheses. This is the exact unresolved obligation, not a proposed intermediate lemma.",
+        "escape": "content",
+        "witnesses": [],
+        "utility": {
+          "kind": "general_theorem",
+          "status": "insufficient",
+          "rationale": "The target is a general matrix inequality with intrinsic mathematical scope; no artificial downstream application is required. However, the submission contains no resolution or mathematical progress beyond the statement. Conditional theorem value is not established achieved utility, and the absence of a proof is not itself a reason against displaying an attributed conjecture.",
+          "problem": "Does the nth power of the arithmetic mean dominate the permutation-averaged full product for every finite family of real orthogonal projections?",
+          "progress": "The review identifies the prior question and distinguishes applicable weaker results from nonmatching norm counterexamples. No mathematical resolution is supplied.",
+          "prerequisites": "Arbitrary positive integers n,N; real symmetric idempotent matrices P_i of common size; the stated normalizations; a proof of the full universal quadratic-form inequality.",
+          "discharge": "Definitions, symmetry, and source matching were checked. The universal positivity obligation remains undischarged."
+        },
+        "settlement": null,
+        "information_gain": null,
+        "limits": [
+          "The external baseline entries are comparison results, not claimed live dependencies of an absent manuscript proof.",
+          "The literature comparison is supported within the inspected scope; the open-status classification is not exhaustive.",
+          "The exact primary conjecture was inspected in arXiv version 3 dated 2019-01-01; no matching later settlement was found.",
+          "Conditional escape is not an audited proof escape certificate. There are no live witnesses.",
+          "No proof search, new counterexample construction, numerical experiment, or formal verification was performed.",
+          "No explicit information model or measurement supports an information_gain object.",
+          "No settlement was claimed in confirmed metadata; the settlement field remains null.",
+          "not_checkable: inaccessible publication-mirror content and a browser-blocked OpenReview search lead were not used as mathematical evidence.",
+          "This methodology belongs to this single referee pass, not an independent subsequent source audit."
+        ]
+      }
+    }
+  ],
+  "limits": [
+    "The supplied PDF could not be inspected because no conversation file was available.",
+    "All opened-source references are model-reported, not venue-verified.",
+    "No conclusion is drawn from an inaccessible source, an unvisited citation, or an unmatched counterexample.",
+    "No compiled Trureturing registration, Lean verification, AURIC/FIB measurement, combined score, or escape percentage is claimed.",
+    "Correctness, conditional proof escape, information gain, achieved utility, and settlement are separate assessments.",
+    "The recommendation is editorial feedback about attribution and precision; it does not decide publication."
+  ],
+  "text": "Revise the display to identify C1 as an existing projection-matrix conjecture and make the quantifiers and permutation normalization explicit. The inspected literature supplies genuine context but no matching resolution. Do not label C1 known_false from neighboring norm counterexamples, and do not label it known_true from its weaker bound or restricted cases."
+}

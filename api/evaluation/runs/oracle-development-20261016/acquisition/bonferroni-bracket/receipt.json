@@ -1,0 +1,19 @@
+{
+  "case_id": "bonferroni-bracket",
+  "exit_code": 0,
+  "stream_done": true,
+  "errors": [],
+  "oracle": {
+    "task_id": "2270c93b-9fef-4fa1-9858-249ff9cfd12f",
+    "conversation_id": null,
+    "pool": "chrono-chatgpt-pro-pool",
+    "model_label": "chatgpt-6-pro",
+    "observed_model_switcher": "gpt_6",
+    "observed_model_effort": "pro",
+    "chatgpt_url": "https://chatgpt.com/c/6ad11e0c-84f0-83ec-bdda-ab8f433f1db5",
+    "usage_estimated": true
+  },
+  "elapsed_ms": 450899,
+  "response_sha256": "c66e3969791f4d40da7e26eed5fb970979f55fb7645ba73988104d13548ced77",
+  "request_sha256": "18c20ba6864da56afabd048c71da386f81d4b8624bb5bf1f75044525ec27bbb4"
+}

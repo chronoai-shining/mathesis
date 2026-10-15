@@ -1,0 +1,119 @@
+Referee assessmentC1 is a special_case_of_known, under the intended nonnegative-integer interpretation of  $k$ . The proposed bracket is the one-term upper bound and two-term lower bound from the generalized Bonferroni inequalities for the probability that at least  $k$  events occur. It should not be displayed as an open conjecture in that interpretation. National Tsing Hua University EE+1There is nevertheless a well-posedness issue in the supplied standalone text:  $k$  is not quantified, and the listing space, cell-weight indexing, and twisted-diagonal predicate are referenced rather than explicitly defined. No PDF was accessible: the conversation-file search reported that no files were present. This report therefore assesses the pasted C1, not an unseen manuscript.C1: mathematical meaning and definitionsThe relevant mathematical objects are a finite weighted space of listings, a nonnegative weight  $w(s)$ , and an integer-valued count  $C(s)$ . The quantity  $T_k$  measures the total weight of listings satisfying the threshold  $C(s)\ge k$ . The quantity  $B_k$  is an unnormalized binomial moment of that count; this terminology does not assert that  $C$  has a binomial distribution. The correspondence between event-intersection sums and binomial moments is explicitly stated in the opened literature. Institute of Statistical MathematicsBefore display, the statement should specify:Domains and quantifiers: the precise finite set over which  $s$  ranges; the formula assigning a factor  $q(a,y)$  to each cell; the definition of the  $f$ -twisted diagonal and of a matching row; and “for every integer  $k\ge0$ ,” or an explicitly restricted integer range.Conventions and boundary cases:  $\binom{c}{k}=0$  when  $k>c$ , together with the treatment of empty sets, empty products, and  $k=0$ .Weights versus probabilities: the  $q(a,y)$  are not assumed normalized. Any passage to probabilities must distinguish positive total weight from zero total weight. No division by a possibly zero total weight should be implicit.These omissions are not evidence that the intended inequality is false. In particular, the missing details of the row predicate do not create a new inequality problem: the known result applies to arbitrary event counts, without an independence assumption on the counted events. National Tsing Hua University EEOpened literature and the exact comparisonTwo sources supply the decisive comparison. These are model-reported opened sources, not venue-verified references.Bonferroni-type inequalities; Chebyshev-type inequalities for the distributions on [0, n] [opened: https://www.ism.ac.jp/editsec/aism/pdf/043_2_0261.pdf]In this paper by Masaaki Sibuya, Lemma 2.2, printed page 263, identifies the binomial moments of an occurrence count with the sums of intersection probabilities. Proposition 6.1, equation (6.2), printed pages 278–279, states the corresponding classical tail inequalities. I inspected page images for these formulas and their parameter restrictions. Institute of Statistical Mathematics+2A Unified Approach to Jordan’s Formula, Inclusion-exclusion Principle and Bonferroni Inequalities [opened: https://www.ee.nthu.edu.tw/jcheng/publications/a-unified-approach-article.pdf]Equation (6), page 2, explicitly gives the alternating partial-sum bounds for the probability of at least  $r$  occurrences. Its one-term and two-term truncations are the relevant upper and lower bounds. Theorem 3(ii), page 4, also contains them through its empty correction-set specialization. National Tsing Hua University EE+1For the baseline correspondence, write  $M=\sum_s w(s)$ . At positive total weight, the source probability quantities correspond to
+$$\mathbb P(C\ge k)=T_k/M,
+\qquad
+\mathbb E\binom{C}{j}=B_j/M.$$
+The opened moment identity supplies the connection to intersection-sum notation. Threshold substitution, selection of the two truncation orders, and removal of the common normalization account for the proposed bracket; no listing-specific independence or factorization theorem is needed. This is a baseline-matching observation, not a submitted proof certification. Institute of Statistical Mathematics+1Correctness, proof escape, information gain, and utilityCorrectness: not_checked in the requested statement-only sense. There is no submitted proof to referee. Literature containment supports the status of the intended statement, but does not verify an unavailable manuscript’s definitions or implementation.Proof escape: bind_only, conditionally for the clarified count inequality. This finding rests on an opened sufficient baseline, not on the absence of a proof. Relative to that baseline, C1 requires identification of the count, substitution of the stated nonnegative weights, selection and recombination of known bounds, and normalization. No additional mathematical proposition is asserted. A future proof could contain further results, but none can be attributed to this statement alone.Information gain: unassessed; the structured field is null. No explicit information-gain model and evidential correspondence were supplied.Utility: the corrected statement has ordinary utility as a general tail bound expressed through two binomial moments. That utility is inherited from the known theorem. C1 supplies no independently established computational improvement, checker, numerical reduction, or certified application. Lack of such an application is not, by itself, a defect in a general mathematical theorem.My feedback is to revise the display as a precisely defined corollary of known inequalities. A clean presentation could first state the finite-weight/count formulation, then identify the listing model as an instance. A genuinely different question would need to specify an additional result—such as a stronger bound for the realizable listing family or a proved evaluation-cost improvement—and compare that result with its own baseline. No such extension is being asserted open here.The literature search was targeted rather than exhaustive. Some older publisher and DOI routes did not yield readable content and were not used as theorem evidence. No named open-problem settlement is claimed. The recommendation below concerns revision of the statement and its status label; it does not decide publication.JSON{
+  "recommendation": "revise",
+  "summary": "C1, interpreted with a nonnegative integer threshold and the usual binomial conventions, is a special case of known generalized Bonferroni inequalities, not an open conjecture. Its standalone wording needs explicit quantifiers and listing definitions. No attached PDF was accessible, and no submitted proof was checked. Revision should present the assertion as a precisely stated known corollary; this feedback does not decide publication.",
+  "strengths": [
+    "The intended assertion concerns a meaningful finite nonnegative-weight tail bound.",
+    "Opened mathematical sources provide a sufficient baseline and a direct correspondence with the stated binomial moments.",
+    "The statement can have legitimate expository and organizational utility without being a new theorem."
+  ],
+  "concerns": [
+    "The domain of k is not stated, and the listing space, cell-weight indexing, and twisted-diagonal predicate are not explicitly defined.",
+    "No PDF was available, so manuscript-specific definitions and page locations are not_checkable.",
+    "The intended inequality is already covered by opened literature and should not be advertised as an open conjecture.",
+    "Zero total weight and endpoint conventions must be addressed without implicitly dividing by zero.",
+    "No additional mathematical or computational contribution beyond the known bracket is specified."
+  ],
+  "claims": [
+    {
+      "claim": "C1",
+      "correctness": "not_checked",
+      "shape": null,
+      "witnesses": [],
+      "note": "The literature-status judgment concerns the conventional finite nonnegative-weight, integer-count formulation. The literal standalone wording is incomplete, but that incompleteness does not establish falsity or openness. Conditional proof escape is bind_only because a sufficient opened baseline already covers the asserted inequality. General-theorem utility is supported only in this inherited sense; new computational utility is not established. Information gain is unassessed, and no open-problem settlement is claimed.",
+      "conjecture": {
+        "well_posed": false,
+        "well_posed_reason": "As supplied standalone, C1 does not quantify k or give its domain, does not explicitly define the finite listing space, does not specify how q(a,y) is assigned to a cell with two A-indices, and does not write the twisted-diagonal row predicate. A precise formulation should require an integer k >= 0 or specify a narrower integer range, use binom(c,k)=0 for k>c, and state empty-set and empty-product conventions. These are correctable specification omissions. The conventional reading as a bounded integer count with nonnegative finite weights is sufficiently clear for the conditional literature comparison.",
+        "status": "special_case_of_known",
+        "status_reason": "For the conventional integer-count interpretation, the proposed bracket is the one-term upper and two-term lower generalized Bonferroni tail bound. The opened moment identity identifies B_j, after normalization, with the binomial moments used in that literature. This classification does not endorse unspecified noninteger interpretations or certify unseen source definitions.",
+        "named_works": [
+          "Bonferroni-type inequalities; Chebyshev-type inequalities for the distributions on [0, n] [opened: https://www.ism.ac.jp/editsec/aism/pdf/043_2_0261.pdf]",
+          "A Unified Approach to Jordan’s Formula, Inclusion-exclusion Principle and Bonferroni Inequalities [opened: https://www.ee.nthu.edu.tw/jcheng/publications/a-unified-approach-article.pdf]"
+        ],
+        "known": [
+          "Bonferroni-type inequalities; Chebyshev-type inequalities for the distributions on [0, n] [opened: https://www.ism.ac.jp/editsec/aism/pdf/043_2_0261.pdf]",
+          "A Unified Approach to Jordan’s Formula, Inclusion-exclusion Principle and Bonferroni Inequalities [opened: https://www.ee.nthu.edu.tw/jcheng/publications/a-unified-approach-article.pdf]"
+        ],
+        "escape": "bind_only",
+        "escape_reason": "Conditional on making the stated count model precise, the inequality is obtained by applying an opened existing tail inequality to the row-match events and translating finite weights into probability notation. No new construction, estimate, constraint, or source-specific moment evaluation is asserted. This is positive baseline containment, not a default judgment from missing proof evidence. It makes no claim about the contents of an unavailable proof.",
+        "suggestions": [
+          "Specify the listing domain, the exact cell-weight product, the twisted-diagonal predicate, and all quantifiers, especially the integer domain of k.",
+          "State the conventional binomial and empty-product rules and address zero total weight separately from positive-mass normalization.",
+          "Display C1 as a known Bonferroni corollary. A source-independent version may use an arbitrary finite set of outcomes, nonnegative weights, and a count taking values in {0,...,n}, with the listing model identified afterward.",
+          "Distinguish the present bracket from any proposed stronger realizability-dependent bound, moment-evaluation formula, or computational improvement. Such additions require separate statements and literature comparisons; none is certified open by this review."
+        ]
+      },
+      "methodology": {
+        "baseline": [
+          {
+            "statement": "A and Y are finite; q:A×Y→R satisfies q(a,y)>=0 for every a,y; f:Y→Y; w(s) is described as the product of all |A|^2 cell weights; C(s) is described as the number of rows equal to the f-twisted diagonal. The explicit listing domain, cell indexing, and row predicate are not supplied.",
+            "location": "Pasted CONFIRMED STATEMENTS[0].statement, id C1, opening model description; duplicated in SOURCE CONTEXT. No PDF location is available.",
+            "source": null
+          },
+          {
+            "statement": "T_k is defined as the sum of w(s) over listings satisfying C(s)>=k, and B_k as the sum of binom(C(s),k)w(s) over all listings. The desired assertion is B_k-k B_(k+1)<=T_k<=B_k. No domain or quantifier for k is explicitly stated.",
+            "location": "Pasted CONFIRMED STATEMENTS[0].statement, id C1, definitions of T_k and B_k and final inequality; duplicated in SOURCE CONTEXT.",
+            "source": null
+          },
+          {
+            "statement": "For arbitrary events E_1,...,E_n on a probability space, let K count their occurrences and let S_j be the sum of probabilities of all j-fold intersections. Then S_j=E[binom(K,j)]. No independence assumption on the events is required.",
+            "location": "Section 2, Lemma 2.2, printed page 263, PDF page 3. Proposition 6.1, equation (6.2), printed pages 278-279, additionally corroborates the classical tail-bound baseline.",
+            "source": "Bonferroni-type inequalities; Chebyshev-type inequalities for the distributions on [0, n] [opened: https://www.ism.ac.jp/editsec/aism/pdf/043_2_0261.pdf]"
+          },
+          {
+            "statement": "For n arbitrary events, their occurrence count K, intersection sums S_j, and integers 1<=r<=m<=n, P(K>=r) is at most sum_{j=r}^m (-1)^(j-r) binom(j-1,r-1)S_j when m-r is even, and at least that sum when m-r is odd.",
+            "location": "Section 1, equation (6), PDF page 2. Also contained in Section 2, Theorem 3(ii), equation (13), PDF page 4, with the correction index set empty.",
+            "source": "A Unified Approach to Jordan’s Formula, Inclusion-exclusion Principle and Bonferroni Inequalities [opened: https://www.ee.nthu.edu.tw/jcheng/publications/a-unified-approach-article.pdf]"
+          }
+        ],
+        "searched": [
+          "Conversation-file semantic search: 'bonferroni-bracket finite independent listing model rows f-twisted diagonal T_k B_k Question'. The tool reported that no files were present in the current conversation.",
+          "General web-search queries included 'generalized Bonferroni inequalities probability at least r events binomial moments', 'Bonferroni inequalities S r minus r S r+1 at least r', and 'Jordan inequalities binomial moments tail probability Bonferroni'.",
+          "Follow-up searches included the exact phrases 'A Unified Approach to Jordan', 'Bonferroni inequalities' with 'Galambos' and '1977', and 'Bonferroni-type inequalities' with 'Recsei'.",
+          "Decisive inspection: the institutional full-text PDFs listed in baseline, with page-image checks of the relevant moment identity, tail inequalities, and parameter restrictions. Publisher and author publication pages were also screened.",
+          "Scope: a targeted containment search for the exact coefficient k and the at-least-k tail, distinguishing it from exactly-k formulas. No systematic MathSciNet or zbMATH database review, exhaustive bibliography search, repository audit, or independent source-auditor run was performed."
+        ],
+        "literature": "supported",
+        "binding_analysis": "Treat each row-match predicate as an event and its occurrence count as C. Write M=sum_s w(s). For M>0, the finite probability masses are w(s)/M; the opened moment identity identifies S_j with B_j/M, while the tail probability is T_k/M by definition. In the stated tail baseline, select r=k and m=k for the upper bound, and r=k and m=k+1 for the lower bound when 1<=k<|A|. Recombine and remove the common normalization. The endpoint and zero-mass cases require explicit elementary conventions, not a new listing estimate. No product formula for B_j or independence of row matches is assumed. The assessment stops at the opened moment identity and tail inequality.",
+        "delta": "No additional mathematical bound is specified beyond the opened baseline for the intended integer-count formulation. The conditional obligations are to define the source model explicitly, quantify k, state endpoint conventions, and document the finite-weight correspondence including M=0. A stronger bound or a source-specific computational result would be a different proposition and is not supplied by C1.",
+        "escape": "bind_only",
+        "witnesses": [],
+        "utility": {
+          "kind": "general_theorem",
+          "status": "supported",
+          "rationale": "The corrected count formulation provides an ordinary two-binomial-moment tail enclosure. This is supported inherited mathematical utility, not evidence of a new theorem, a valuable open conjecture, or an algorithmic advantage. No artificial downstream consumer is required for that limited assessment.",
+          "problem": "Bound the total nonnegative weight of listings having at least k matching rows in terms of B_k and B_(k+1).",
+          "progress": "Opened existing inequalities cover the proposed bracket at the mathematical statement level. C1 identifies no further progress beyond their specialization.",
+          "prerequisites": "A finite listing space; nonnegative finite weights; C taking integer values between 0 and |A|; an explicitly quantified nonnegative integer k; conventional binomial values; and separate treatment of zero total weight when using probability normalization.",
+          "discharge": "Nonnegative cell weights and a finite product support weight nonnegativity under the stated model description, and a count of rows supplies the intended integer range. The opened literature supplies the count-moment and tail-bound baseline. The integer quantifier, precise source definitions, and conventions remain author clarification obligations. Thus support concerns the clarified general formulation, not a verified PDF-specific implementation or submitted proof."
+        },
+        "settlement": null,
+        "information_gain": null,
+        "limits": [
+          "The purported attached PDF was unavailable; its definitions, theorem numbering, proofs, and page-level content are not_checkable.",
+          "The well-posedness objection concerns the literal standalone wording. The special_case_of_known and bind_only judgments concern its explicitly identified conventional integer-count interpretation.",
+          "Some older publisher and DOI retrieval routes failed or returned no readable mathematical content. Their theorem contents remain not_checkable and were not used as premises.",
+          "Literature support is limited to sufficient containment in inspected sources, not exhaustive priority attribution or a survey of every possible stronger listing-specific statement.",
+          "No proof was submitted or certified, and no live witness is claimed.",
+          "Utility support is inherited general-theorem utility only; no computational speedup, checker soundness result, numerical premise discharge, or certified application was established.",
+          "No information-gain measurement, named open-problem settlement, compiled registration, Lean verification, or AURIC/FIB measurement was performed.",
+          "The sources are model-reported, and this initial report is not an independently completed subsequent source audit."
+        ]
+      }
+    }
+  ],
+  "limits": [
+    "Only the pasted confirmed assertion was available as manuscript content; no attached PDF was found.",
+    "Correctness is not_checked because this is a statement-only review, notwithstanding the positive literature-containment finding.",
+    "The statement needs explicit quantifiers and definitions before its literal source formulation can be fully audited.",
+    "The conditional bind_only finding rests on an opened sufficient baseline and does not assert that every possible future proof would lack other mathematical content.",
+    "The search was targeted and nonexhaustive; inaccessible material supplied no mathematical premises.",
+    "Basic utility, novelty, correctness, and information gain were assessed separately. No combined score or escape percentage was assigned.",
+    "No settlement was claimed, and no independent source-auditor result or formal verification is represented.",
+    "The recommendation is advisory feedback on wording and status, not a publication decision."
+  ],
+  "text": "Revise C1 into a precisely defined corollary of the known generalized Bonferroni tail inequalities. Do not display its conventional integer-count form as open. Preserve the distinction between missing manuscript evidence, established literature containment, inherited mathematical utility, and any genuinely additional result that might later be proposed."
+}

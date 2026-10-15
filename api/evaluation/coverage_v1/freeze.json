@@ -1,0 +1,24 @@
+{
+  "schema": "mathesis.evaluation-freeze.v1",
+  "files": {
+    "corpus.json": "ddc21b98042e76e6165773ba6d343e89f7411864dd03e2ee37b3ac677e96c7a3",
+    "sources.json": "cbfea5e9a9956258c4e2b496991f5c69e490701b6a04122dcd9077a4a42926d9",
+    "sources/UPSTREAM_LICENSE": "45404ee75576b053a86e89e545fd6987a607107cf4d846fa78dcb6a233d53447",
+    "sources/bonferroni.lean": "6fa9b4a5f3a39137b4950a930020470f92a46759cddff3d6cd417fd43807bfd0",
+    "sources/cassini.lean": "cb60539f80c35f5000805dd7c12e4dc394ae391940d5818fd5763fd0595618e0",
+    "sources/pigeonhole.lean": "e39ed439518df37d03a49789c644662cc10efd1277fcdcd1c569a56e53d51443",
+    "sources/projection_amgm.lean": "ec5625a575cd67b31e65da276b25c675be0117196725df83fba2a8cc5122c17f",
+    "sources/pure_state.lean": "9f29b33fe39e49184f63437bfcd205666d36ba87ee98b2892b46edd448b55b5b",
+    "sources/turan.lean": "76ab312076aa5371d1f9b8e386f2a233816f51518c281761974b68e8f28d2a91"
+  },
+  "family_splits": {
+    "pigeonhole": "development",
+    "cassini": "development",
+    "projection_amgm": "development",
+    "bonferroni": "development",
+    "pure_state": "holdout",
+    "turan": "holdout"
+  },
+  "tuning_status": "not started; holdout predictions not acquired",
+  "scope": "18 authored cases from 6 exact published families, not a representative math benchmark"
+}

@@ -458,6 +458,10 @@ pub struct NewFindingResponse {
 /// Every round and letter of one paper.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RefereeFile {
+    /// Append-only query admissions, actual receipts and source-audited readings.
+    /// Historical files have no fabricated knowledge observations.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub knowledge_events: Vec<super::KnowledgeEvent>,
     #[serde(default)]
     pub finding_responses: Vec<FindingResponse>,
     #[serde(default)]
@@ -479,6 +483,7 @@ impl RefereeFile {
     pub fn new(id: SubmissionId) -> Self {
         Self {
             id,
+            knowledge_events: vec![],
             finding_responses: vec![],
             agent_steps: Default::default(),
             recheck_requests: vec![],
@@ -507,6 +512,8 @@ pub struct RefereeView {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct RefereeRoundView {
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub knowledge_events: Vec<super::KnowledgeEvent>,
     pub review_contract: u32,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub review_method: Option<String>,
@@ -666,6 +673,17 @@ impl RefereeFile {
                 .rounds
                 .into_iter()
                 .map(|r| RefereeRoundView {
+                    knowledge_events: self
+                        .knowledge_events
+                        .iter()
+                        .filter(|event| {
+                            let subject = event.subject();
+                            subject.round == r.number
+                                && subject.version == r.version
+                                && subject.claims_revision == r.claims_revision
+                        })
+                        .cloned()
+                        .collect(),
                     review_contract: r.review_contract,
                     review_method: (r.review_contract >= super::REVIEW_CONTRACT)
                         .then(|| super::REVIEW_METHOD.into()),

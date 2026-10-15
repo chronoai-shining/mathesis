@@ -1,0 +1,116 @@
+Referee findingC1 is known_false, not an open two-factor question. The opened literature records the opposite two-factor inequality on a class containing the stated matrices. The missing three-factor citation is a separate evidentiary limitation; it does not make the two-factor mathematical status unclear. Proceedings of Machine Learning Research+1No PDF was available in the conversation-file search. This report therefore evaluates the supplied confirmed statement and source-context paragraph, not an unseen manuscript.Well-posedness and the exact assertionFor  $n=2$ , the supplied definitions mean
+$$M=\frac{P_1+P_2}{2},
+\qquad
+S=\frac{P_1P_2+P_2P_1}{2},$$
+using ordinary matrix multiplication. Both  $S$  and  $M^2-S$  are symmetric, so positive semidefiniteness is a well-defined condition.The mathematical core is the assertion that there exist a positive integer  $N$  and matrices  $P_1,P_2\in\mathbb R^{N\times N}$ , satisfying
+$$P_i^\mathsf T=P_i,\qquad P_i^2=P_i,$$
+for which  $M^2-S$  is not positive semidefinite. Neither commutativity, distinctness, nor a rank restriction is stated. The dimension quantifier should be made explicit, but interpreting  $N$  as a prescribed positive integer instead would not change the negative finding.The phrase “the cited  $n=3$  counterexample” is not bibliographically well specified: no author, title, locator, or example is supplied. Its attribution and exact hypotheses remain not_checkable.Opened baseline and parameter mismatchThe decisive reference is Toward a Noncommutative Arithmetic-geometric Mean Inequality: Conjectures, Case-studies, and Consequences [opened: https://proceedings.mlr.press/v23/recht12/recht12.pdf]. Section 3.1, printed page 11.6, explicitly records the two-matrix positive-semidefinite-order inequality, including its square-gap identity. This is the precise order comparison relevant here—not merely a norm bound. Proceedings of Machine Learning ResearchA second opened source, Recht–Ré Noncommutative Arithmetic-Geometric Mean Conjecture is False [opened: https://proceedings.mlr.press/v119/lai20a/lai20a.pdf], §2, PDF page 3, records
+$$AB+BA\preceq A^2+B^2$$
+for Hermitian matrices in the proof of Proposition 1. Thus the relevant baseline is not dependent on idempotence. Proceedings of Machine Learning ResearchThat second source also reports three-matrix failures of a direct Loewner-order version, immediately before Conjecture 1A. This does not identify the submission’s unspecified example or establish that its matrices are idempotent. Proceedings of Machine Learning ResearchMore fundamentally, an existential statement about a triple does not become an existential statement about a pair by restricting the displayed parameter. Such a transfer requires a valid reduction preserving the hypotheses, averaging operation, and target inequality. None is supplied.Correctness, escape, information gain, and utilityCorrectness: Under the requested statement-only convention, proof correctness is not_checked; there is no submitted proof to audit. Separately, the assertion’s known-status classification is known_false.Proof escape: For C1 itself, the appropriate label is undetermined, with no live witnesses. A false statement should not receive a new-content designation merely because a hypothetical counterexample would be consequential. Nor should absence of a proof automatically yield bind_only. The corrected universal statement,  $M^2-S\succeq0$ , would be a special_case_of_known, obtainable by instantiation and normalization of the opened baseline, hence bind_only relative to that baseline. Proceedings of Machine Learning Research+1Information gain: No explicit model, readout, task correspondence, or evidence is supplied; the structured field is therefore null.Utility: The asserted utility is that of a counterexample. It is unsupported: no matching two-factor example is supplied, and the decisive baseline excludes the proposed failure. This is a mathematical negative finding, distinct from the insufficient evidence concerning the unidentified three-factor citation. General pure mathematics needs no artificial downstream application, but this particular assertion supplies no established result.The display should state the dimension quantifier and formulas explicitly, separate the bibliographic claim from the mathematical question, and replace the claimed two-factor failure with its known status. Any intended three-factor assertion should be submitted separately with its exact source and hypotheses; it should not silently replace C1. The recommendation below is feedback on this text, not a publication decision.JSON{
+  "recommendation": "revise",
+  "summary": "C1 is known_false under its stated two-factor interpretation. An opened published baseline gives the opposite inequality. No PDF was available, and the unidentified three-factor citation remains not_checkable. These limitations do not undermine the two-factor status finding.",
+  "strengths": [
+    "The two-factor matrix expression has an unambiguous standard interpretation.",
+    "The stated symmetry and idempotence hypotheses permit an exact comparison with an opened baseline."
+  ],
+  "concerns": [
+    "The claimed two-factor failure contradicts the established baseline.",
+    "A three-factor counterexample cannot be transferred to two factors by parameter restriction alone.",
+    "The dimension quantifier is implicit, and the alleged cited counterexample has no bibliographic locator.",
+    "No PDF, proof, or matching counterexample was available for inspection."
+  ],
+  "claims": [
+    {
+      "claim": "C1",
+      "correctness": "not_checked",
+      "proof_shape": null,
+      "witnesses": [],
+      "note": "This is a statement-only assessment, not a submitted-proof verification. Known status is known_false. Escape for the submitted assertion is undetermined, with no live witnesses; the corrected opposite assertion would be bind_only relative to the inspected baseline. Counterexample utility is unsupported, while the unidentified citation is separately not_checkable. No information-gain measurement or named open-problem settlement is established.",
+      "conjecture": {
+        "well_posed": true,
+        "well_posed_reason": "The mathematical core is well posed under the standard interpretation: N is a positive integer, n=2, P_i are real N-by-N matrices satisfying P_i^T=P_i and P_i^2=P_i, M=(P_1+P_2)/2, and S=(P_1P_2+P_2P_1)/2. Interpret 'for some' as existential quantification over N and the pair; fixing any positive N instead does not change the status. Positive semidefiniteness applies to the symmetric gap. The unidentified citation is an attribution defect, not an ambiguity in the matrix expression.",
+        "status": "known_false",
+        "status_reason": "The opposite universal two-factor assertion is covered by the opened baseline. The reported three-factor failure does not imply the existence asserted in C1.",
+        "named_works": [
+          "Toward a Noncommutative Arithmetic-geometric Mean Inequality: Conjectures, Case-studies, and Consequences [opened: https://proceedings.mlr.press/v23/recht12/recht12.pdf]",
+          "Recht–Ré Noncommutative Arithmetic-Geometric Mean Conjecture is False [opened: https://proceedings.mlr.press/v119/lai20a/lai20a.pdf]"
+        ],
+        "known": [
+          "Toward a Noncommutative Arithmetic-geometric Mean Inequality: Conjectures, Case-studies, and Consequences [opened: https://proceedings.mlr.press/v23/recht12/recht12.pdf]",
+          "Recht–Ré Noncommutative Arithmetic-Geometric Mean Conjecture is False [opened: https://proceedings.mlr.press/v119/lai20a/lai20a.pdf]"
+        ],
+        "not_checkable": [
+          "The identity, exact statement, hypotheses, and matrix entries of the submission's alleged cited n=3 counterexample.",
+          "Whether an unavailable PDF contains qualifications or a different intended assertion."
+        ],
+        "escape": "undetermined",
+        "escape_reason": "No proof or construction is submitted, and C1 conflicts with the inspected baseline. Neither content nor bind_only is assigned to an imaginary successful proof. A revised universal nonnegativity assertion would be a different claim and would be bind_only relative to the opened prerequisites.",
+        "suggestions": [
+          "Explicitly state N>=1, the dimension quantifier, and the formulas for M and S at n=2.",
+          "Remove the assertion that a three-factor counterexample proves a two-factor failure.",
+          "Present universal two-factor nonnegativity as a known result rather than an open conjecture.",
+          "For a separate three-factor statement, provide the exact source, location, hypotheses, exponent, averaging convention, and order relation."
+        ]
+      },
+      "methodology": {
+        "baseline": [
+          {
+            "statement": "The supplied hypotheses are P_i^T=P_i and P_i^2=P_i over real N-by-N matrices, with n=2. Inlining the stated means gives M=(P_1+P_2)/2 and S=(P_1P_2+P_2P_1)/2.",
+            "location": "CONFIRMED STATEMENTS, item C1, statement sentences 1-2; repeated in SOURCE CONTEXT.",
+            "source": null
+          },
+          {
+            "statement": "For same-size positive semidefinite matrices A and B, ((A+B)/2)^2-(AB+BA)/2=((A-B)/2)^2 is positive semidefinite.",
+            "location": "Section 3.1, printed page 11.6, unnumbered display preceding equation (10); PDF page 6, visually inspected.",
+            "source": "Toward a Noncommutative Arithmetic-geometric Mean Inequality: Conjectures, Case-studies, and Consequences [opened: https://proceedings.mlr.press/v23/recht12/recht12.pdf]"
+          },
+          {
+            "statement": "For same-size Hermitian matrices A and B, -A^2-B^2 <= AB+BA <= A^2+B^2 in Loewner order. The upper inequality applies directly to real symmetric matrices without idempotence.",
+            "location": "Section 2, proof of Proposition 1; PDF page 3, visually inspected.",
+            "source": "Recht–Ré Noncommutative Arithmetic-Geometric Mean Conjecture is False [opened: https://proceedings.mlr.press/v119/lai20a/lai20a.pdf]"
+          }
+        ],
+        "searched": [
+          "Conversation-file semantic search for projection_amgm-two_factors and the supplied matrix assertion returned no files; no attachment was read.",
+          "General web search on 2026-10-16: 'matrix arithmetic geometric mean projections symmetrized product three counterexample two matrices Loewner' and 'Recht Re arithmetic geometric mean inequality (A-B)^2 two matrices symmetrized'.",
+          "Reference-tracing queries: '\"projections\" \"counterexample\" \"arithmetic-geometric\" \"three\"'; '\"Duchi\" \"Commentary\" \"arithmetic\" \"geometric\"'; and 'site:proceedings.mlr.press \"Duchi\" \"Commentary\" \"Recht\"'.",
+          "Elementary-hypothesis lookup queries: '\"symmetric idempotent\" \"positive semidefinite\" lecture'; 'site:ocw.mit.edu \"symmetric idempotent\" \"positive semidefinite\"'; and 'MIT14_381F13_lnearalgbra.pdf'. Search snippets were not promoted to opened theorem baselines.",
+          "Primary inspection covered the PMLR two-matrix discussion in section 3.1 and the later paper's section 2, including page images. An arXiv bibliographic record was also opened. No MathSciNet or zbMATH search was performed."
+        ],
+        "literature": "supported",
+        "binding_analysis": "Inline M and S and substitute A=P_1, B=P_2 in the opened Hermitian-matrix prerequisite. Rational rescaling and matrix-polynomial normalization already yield the opposite of C1. The real-symmetry hypothesis matches the prerequisite; no commutativity or idempotence-dependent estimate is needed. A known existential triple cannot be projected to an existential pair without an additional valid reduction. The supplied text provides no such reduction, helper construction, or tactic expansion. The analysis stops at the opened prerequisites.",
+        "delta": "The conditional obligation in C1 is to establish the existence of N>=1, two real symmetric idempotents P_1 and P_2, and a nonzero real vector v with v^T[((P_1+P_2)/2)^2-(P_1P_2+P_2P_1)/2]v<0. Its explanatory clause additionally requires a valid deduction from the unidentified three-factor example. The first obligation is excluded by the baseline on the declared domain; this is not an unresolved open delta. Changing the number of factors or the hypotheses would create a different claim.",
+        "escape": "undetermined",
+        "witnesses": [],
+        "utility": {
+          "kind": "counterexample",
+          "status": "unsupported",
+          "rationale": "A valid counterexample would have mathematical utility without an artificial consumer, but C1 supplies none and its proposed failure is excluded by the opened baseline. The missing citation is an additional evidence limitation, not the reason for the negative mathematical finding.",
+          "problem": "Does there exist a pair of real symmetric idempotent matrices for which M^2-S is not positive semidefinite, with M and S defined exactly as in C1 at n=2?",
+          "progress": "No matching counterexample is submitted. The status review identifies an existing universal result covering the opposite assertion.",
+          "prerequisites": "A positive integer dimension; two same-size real matrices; exact symmetry and idempotence; the two-factor mean and permutation average; and failure of positive semidefiniteness for that exact gap. The claimed citation-based route also requires an identified source and a valid transfer of its hypotheses and conclusion.",
+          "discharge": "The formulas and hypotheses are supplied, but no matrices or negative quadratic-form certificate are given. The universal baseline rules out the required failure. The source-identification and transfer obligations are also not discharged."
+        },
+        "settlement": null,
+        "information_gain": null,
+        "limits": [
+          "Literature supported refers only to the two-factor status comparison against inspected sources, not to an exhaustive novelty survey.",
+          "No PDF was accessible; local locations refer only to the supplied inline statement.",
+          "The unidentified n=3 example remains not_checkable, including its projection hypotheses.",
+          "No proof is submitted, so correctness remains not_checked, proof_shape is null, and there are no live witnesses.",
+          "No proof construction, numerical experiment, compiled registration, Lean verification, or AURIC/FIB measurement is claimed.",
+          "All opened-source references are model-reported, not venue-verified."
+        ]
+      }
+    }
+  ],
+  "limits": [
+    "The report covers the supplied C1 text, not an unavailable attachment.",
+    "The negative mathematical finding and the missing-source limitation are distinct.",
+    "Proof escape is undetermined for C1; bind_only describes only the explicitly distinguished corrected opposite assertion.",
+    "Counterexample utility is unsupported; no speculative application is treated as established value.",
+    "Information gain and settlement are null, and no combined score or escape percentage is assigned.",
+    "The targeted search was not exhaustive. Recommendations are feedback and do not decide publication."
+  ],
+  "text": "Revise the displayed assertion rather than presenting C1 as an open conjecture. Its two-factor mathematical content is known_false. Supply the missing PDF and exact three-factor reference for any separate review of that example, without treating it as evidence for C1."
+}

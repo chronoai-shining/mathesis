@@ -1,0 +1,469 @@
+{
+  "schema": "mathesis.capability-plan-evidence.v1",
+  "compiled_at_utc": "2026-10-15T17:27:50.574442+00:00",
+  "observation_window": "2026-10-16 01:10–01:30 Asia/Singapore; read-only GitHub observations, not atomic across repositories",
+  "mathesis": {
+    "repository": "the-omega-institute/mathesis",
+    "base_commit": "1e9b7f7fb3b981d3ca5079a0600bbe925eaa3455",
+    "branch": "codex/mathesis-capability-plan-20261016",
+    "worktree": "/Users/lexa/Desktop/lexa/omega/mathesis-capability-plan-20261016",
+    "pr3": {
+      "url": "https://github.com/the-omega-institute/mathesis/pull/3",
+      "head": "e3c4d0adedd3c641b2809694156b1baa35c43c7b",
+      "files": 93,
+      "additions": 4658,
+      "deletions": 348,
+      "checks": [
+        {
+          "name": "Repository structure and layer rule",
+          "conclusion": "SUCCESS",
+          "url": "https://github.com/the-omega-institute/mathesis/actions/runs/38744507574/job/116454495832",
+          "completed_at": "2026-10-15T13:39:12Z"
+        },
+        {
+          "name": "Analyze (actions)",
+          "conclusion": "SUCCESS",
+          "url": "https://github.com/the-omega-institute/mathesis/actions/runs/38744514066/job/116454524141",
+          "completed_at": "2026-10-15T13:39:45Z"
+        },
+        {
+          "name": "build",
+          "conclusion": "SUCCESS",
+          "url": "https://github.com/the-omega-institute/mathesis/actions/runs/38744507664/job/116454496716",
+          "completed_at": "2026-10-15T13:39:20Z"
+        },
+        {
+          "name": "Analyze (javascript-typescript)",
+          "conclusion": "SUCCESS",
+          "url": "https://github.com/the-omega-institute/mathesis/actions/runs/38744514066/job/116454524273",
+          "completed_at": "2026-10-15T13:40:16Z"
+        },
+        {
+          "name": "Analyze (rust)",
+          "conclusion": "SUCCESS",
+          "url": "https://github.com/the-omega-institute/mathesis/actions/runs/38744514066/job/116454523660",
+          "completed_at": "2026-10-15T13:45:46Z"
+        },
+        {
+          "name": "deploy",
+          "conclusion": "SKIPPED",
+          "url": "https://github.com/the-omega-institute/mathesis/actions/runs/38744507664/job/116454622252",
+          "completed_at": "2026-10-15T13:39:20Z"
+        },
+        {
+          "name": "API (fmt, clippy, tests, deny)",
+          "conclusion": "SUCCESS",
+          "url": "https://github.com/the-omega-institute/mathesis/actions/runs/38744507574/job/116454496117",
+          "completed_at": "2026-10-15T13:41:57Z"
+        },
+        {
+          "name": "Contributor SDK (fmt, clippy, tests)",
+          "conclusion": "SUCCESS",
+          "url": "https://github.com/the-omega-institute/mathesis/actions/runs/38744507574/job/116454495823",
+          "completed_at": "2026-10-15T13:39:32Z"
+        },
+        {
+          "name": "Web (format, lint, types, tests, build, audit)",
+          "conclusion": "SUCCESS",
+          "url": "https://github.com/the-omega-institute/mathesis/actions/runs/38744507574/job/116454495885",
+          "completed_at": "2026-10-15T13:40:06Z"
+        },
+        {
+          "name": "Secret scanning",
+          "conclusion": "SUCCESS",
+          "url": "https://github.com/the-omega-institute/mathesis/actions/runs/38744507574/job/116454495894",
+          "completed_at": "2026-10-15T13:39:13Z"
+        },
+        {
+          "name": "Images and manifests",
+          "conclusion": "SUCCESS",
+          "url": "https://github.com/the-omega-institute/mathesis/actions/runs/38744507574/job/116454495943",
+          "completed_at": "2026-10-15T13:46:32Z"
+        },
+        {
+          "name": "Verifier image and real Lean proofs",
+          "conclusion": "SUCCESS",
+          "url": "https://github.com/the-omega-institute/mathesis/actions/runs/38744507574/job/116454495543",
+          "completed_at": "2026-10-15T13:52:49Z"
+        },
+        {
+          "name": "CodeQL",
+          "conclusion": "SUCCESS",
+          "url": "https://github.com/the-omega-institute/mathesis/runs/116454740397",
+          "completed_at": "2026-10-15T13:39:39Z"
+        }
+      ],
+      "mergeability_note": "Initial GitHub view MERGEABLE/CLEAN; final read UNKNOWN after base advanced. No merge attempted; successful checks identify their existing run, not a new integration run."
+    },
+    "issues_and_prs": [
+      {
+        "number": 4,
+        "title": "将 Trureturing 接入审稿必查知识源，建设知识图谱与服务接口",
+        "state": "open",
+        "updated_at": "2026-10-15T15:13:36Z",
+        "url": "https://github.com/the-omega-institute/mathesis/issues/4",
+        "kind": "issue"
+      },
+      {
+        "number": 3,
+        "title": "Upgrade Trureturing review methodology and harden Mathesis operations",
+        "state": "open",
+        "updated_at": "2026-10-15T13:39:00Z",
+        "url": "https://github.com/the-omega-institute/mathesis/pull/3",
+        "kind": "pr"
+      },
+      {
+        "number": 2,
+        "title": "feat: let authors run CMA review steps on their own account",
+        "state": "closed",
+        "updated_at": "2026-10-11T14:40:01Z",
+        "url": "https://github.com/the-omega-institute/mathesis/pull/2",
+        "kind": "pr"
+      },
+      {
+        "number": 1,
+        "title": "docs: propose Wish-first execution design",
+        "state": "closed",
+        "updated_at": "2026-10-11T11:21:48Z",
+        "url": "https://github.com/the-omega-institute/mathesis/pull/1",
+        "kind": "pr"
+      }
+    ]
+  },
+  "trureturing": {
+    "repository": "the-omega-institute/trureturing",
+    "source_commit": "b669ef36ee32627638ed55edc90152bf606a9df0",
+    "lean_toolchain": "leanprover/lean4:v4.33.0",
+    "mathlib_revision": "db584cd6d46c92f209a44c0f1c829460d327499d",
+    "frozen_module_state_files": 8649,
+    "enumeration_complete": true,
+    "count_meaning": "Module state files, not theorem count, validated registration count or mathematical coverage rate.",
+    "s3_directory_counts": {
+      "Combinatorics": 1066,
+      "ConceptDynamics": 1004,
+      "Arith": 868,
+      "Quantum": 863,
+      "Observer": 541,
+      "Weil": 402,
+      "Analytic": 368,
+      "ObserverMemory": 281,
+      "FiniteGroups": 279,
+      "Factorization": 170,
+      "Zeros": 132,
+      "Estimation": 108,
+      "HomologicalAlgebra": 88,
+      "Fourier": 76,
+      "Geometry": 67,
+      "Entropy": 65,
+      "PrimeForms": 61,
+      "StatisticalMechanics": 58,
+      "VertexAlgebra": 58,
+      "QuantumBounds": 55,
+      "Constants": 53,
+      "TotalVariation": 48,
+      "PrimeGaps": 42,
+      "AnalyticClosure": 29,
+      "Midline": 29,
+      "Resource": 29,
+      "QuantumChannels": 28,
+      "ArithSums": 27,
+      "ArithUnits": 21,
+      "Divergence": 19,
+      "Axis": 18,
+      "FluidDynamics": 18,
+      "CompletionDynamics": 16,
+      "QuantumContext": 16,
+      "DivergenceSupport": 15,
+      "Topology": 15,
+      "QuantumStates": 14,
+      "ResourceOrder": 14,
+      "ContinuousObservables": 13,
+      "RenyiDivergence": 12,
+      "QuadraticForms": 11,
+      "SpectralTopology": 8,
+      "PrimeObserver": 2
+    },
+    "open_recent_observations": 100,
+    "recent_merged_observations": [
+      {
+        "mergeCommit": {
+          "oid": "b669ef36ee32627638ed55edc90152bf606a9df0"
+        },
+        "mergedAt": "2026-10-15T17:16:15Z",
+        "number": 17468,
+        "title": "Quantify programming of the original quantum channels from finite source copies",
+        "url": "https://github.com/the-omega-institute/trureturing/pull/17468"
+      },
+      {
+        "mergeCommit": {
+          "oid": "29f45c0bee5e8d45e4993ef7824b43d2c52235eb"
+        },
+        "mergedAt": "2026-10-15T17:06:49Z",
+        "number": 17464,
+        "title": "theory: derive native long-time phase diffusion on the winding cover",
+        "url": "https://github.com/the-omega-institute/trureturing/pull/17464"
+      },
+      {
+        "mergeCommit": {
+          "oid": "0e8d7f73696d82dfa5ac38e95b1c6fff6d6cc3fd"
+        },
+        "mergedAt": "2026-10-15T17:02:35Z",
+        "number": 17461,
+        "title": "theory: optimize finite conditional-owner weights with exact supports",
+        "url": "https://github.com/the-omega-institute/trureturing/pull/17461"
+      },
+      {
+        "mergeCommit": {
+          "oid": "47c4305fab60b680051e04a6e100396ca8e9a2cf"
+        },
+        "mergedAt": "2026-10-15T16:54:52Z",
+        "number": 17459,
+        "title": "theory: certify native finite-table behavior with short actual origins",
+        "url": "https://github.com/the-omega-institute/trureturing/pull/17459"
+      },
+      {
+        "mergeCommit": {
+          "oid": "773d4d43b91abd515be1059283d79dd6572fc174"
+        },
+        "mergedAt": "2026-10-15T16:45:29Z",
+        "number": 17458,
+        "title": "theory: characterize coupled acquisition heads at the five-scale cap",
+        "url": "https://github.com/the-omega-institute/trureturing/pull/17458"
+      },
+      {
+        "mergeCommit": {
+          "oid": "2c22f027c10d658fbf32942a70f717537c61b2d0"
+        },
+        "mergedAt": "2026-10-15T16:23:20Z",
+        "number": 17452,
+        "title": "Add four-corner coherence geometry and single-copy certification theory",
+        "url": "https://github.com/the-omega-institute/trureturing/pull/17452"
+      },
+      {
+        "mergeCommit": {
+          "oid": "3104e24fa4c6e184c0b37b36d378a5401333df26"
+        },
+        "mergedAt": "2026-10-15T16:20:37Z",
+        "number": 17451,
+        "title": "theory: decide bounded native preparation with linear literal normalization",
+        "url": "https://github.com/the-omega-institute/trureturing/pull/17451"
+      },
+      {
+        "mergeCommit": {
+          "oid": "3346bf06d980da44036611432a1e9c77ff899da4"
+        },
+        "mergedAt": "2026-10-15T16:08:07Z",
+        "number": 17447,
+        "title": "docs(theory): add AURIC Ω continuations III and IV",
+        "url": "https://github.com/the-omega-institute/trureturing/pull/17447"
+      },
+      {
+        "mergeCommit": {
+          "oid": "d66db28eb4ad03d03e6838ba05279d58d1dd82e0"
+        },
+        "mergedAt": "2026-10-15T16:37:52Z",
+        "number": 17446,
+        "title": "theory: sharpen joint quantum event bounds and characterize zero faces",
+        "url": "https://github.com/the-omega-institute/trureturing/pull/17446"
+      },
+      {
+        "mergeCommit": {
+          "oid": "478b8fc5e3e90a6cdcb8a08d2b30dc40906958c8"
+        },
+        "mergedAt": "2026-10-15T16:15:25Z",
+        "number": 17445,
+        "title": "library(hotfix): complete five Library note frontmatters and fold one dossier section into Triage",
+        "url": "https://github.com/the-omega-institute/trureturing/pull/17445"
+      },
+      {
+        "mergeCommit": {
+          "oid": "ecc7b069ea2a88e899184fc1c4df64193a6d4313"
+        },
+        "mergedAt": "2026-10-15T16:48:57Z",
+        "number": 17444,
+        "title": "ci: seed long producers from explicit local cache releases",
+        "url": "https://github.com/the-omega-institute/trureturing/pull/17444"
+      },
+      {
+        "mergeCommit": {
+          "oid": "f1e6c19cf6d061b81ae3572e0bdb8835c3f08773"
+        },
+        "mergedAt": "2026-10-15T16:09:28Z",
+        "number": 17443,
+        "title": "theory: trade paid rereads for native threshold preparation states",
+        "url": "https://github.com/the-omega-institute/trureturing/pull/17443"
+      },
+      {
+        "mergeCommit": {
+          "oid": "f93917cba2098f53883bbb9361f265d11f30c71b"
+        },
+        "mergedAt": "2026-10-15T15:50:31Z",
+        "number": 17437,
+        "title": "theory: resolve native heat traces across phase-collapse scales",
+        "url": "https://github.com/the-omega-institute/trureturing/pull/17437"
+      },
+      {
+        "mergeCommit": {
+          "oid": "91170b89dfe9dd7eadc64d14d86d2157ed14abdf"
+        },
+        "mergedAt": "2026-10-15T15:34:21Z",
+        "number": 17435,
+        "title": "theory: extend joint calibration certificates and attained laws",
+        "url": "https://github.com/the-omega-institute/trureturing/pull/17435"
+      },
+      {
+        "mergeCommit": {
+          "oid": "84350c7ae60b66f60cf1007d10803402fb0cb90e"
+        },
+        "mergedAt": "2026-10-15T15:26:54Z",
+        "number": 17432,
+        "title": "theory: synthesize compatible codes for finite native readers",
+        "url": "https://github.com/the-omega-institute/trureturing/pull/17432"
+      }
+    ],
+    "contract_facts": {
+      "publication": "truth-release-publication.v1",
+      "truth_export_dialect": "stratalint.truth-export.v2",
+      "truth_export_transport_filename": "truth-export.v1.json",
+      "raw_report": "stratalint-raw-lean-report-v3",
+      "closed_is_distinct_from_frozen": true,
+      "raw_report_sidecars": [
+        ".sha256",
+        ".input.attestation",
+        ".provenance.json",
+        ".materials.zip"
+      ]
+    },
+    "sample_production_cache": {
+      "release_id": 413798352,
+      "manifest_asset_id": 643836112,
+      "archive_bytes": 7571656969,
+      "schema": "lean-release-seed-v4",
+      "producer_commit_sha": "2bd3b6e289796296816dd2908ba46186e2b478d4",
+      "report_format": "stratalint-raw-lean-report-v3"
+    },
+    "availability_limit": "Existing publication/export code contracts verified by reading. A directly usable compatible truth publication locator and online search endpoint were not verified. No claim that all deployments lack them."
+  },
+  "input_design": {
+    "path": "/Users/lexa/Downloads/Mathesis × Trureturing 集成设计：以 Trureturing 为判官与知识服务.md",
+    "sha256": "8dabdf6a6a9e3f7e1f1e6d1d860da066d0fc9177a44a5f2f2a53ed4cf43c8f0f",
+    "bytes": 33358
+  },
+  "raw_evidence_directory": "/private/tmp/mathesis-capability-evidence-20261016",
+  "raw_evidence_files": [
+    {
+      "file": "mathesis-pr3.json",
+      "sha256": "09beb19d1ee72935aa898d57bf327441dec31d40a55a155c758105953c6217ab",
+      "bytes": 17343
+    },
+    {
+      "file": "mathesis-issues-prs.json",
+      "sha256": "89275fe02fbbc7baf7e8cfc7e2d28c4ac0ba9b380bd71667f47246ad87fb2a9b",
+      "bytes": 32260
+    },
+    {
+      "file": "trureturing-head.json",
+      "sha256": "52700192f5e55d577c53edd63e1d92db1a7af059311fbdcc6c0492f8ba2fc88b",
+      "bytes": 338
+    },
+    {
+      "file": "trureturing-open-recent.json",
+      "sha256": "44ab5911f040900b769cdefa5318751a4678cc0a7dc413e2d93d56739b22ae38",
+      "bytes": 999988
+    },
+    {
+      "file": "trureturing-recent-merged.json",
+      "sha256": "a9410697f66be9bf27c5e6d10fac51414a6710d9225d76fb1d03e257921a17d6",
+      "bytes": 3986
+    },
+    {
+      "file": "trureturing-root-tree.json",
+      "sha256": "51485d7e3a73c8da238715ca5efbf364f6c40c0bb60c013245b075008468b1b7",
+      "bytes": 6995
+    },
+    {
+      "file": "trureturing-golden-tree.json",
+      "sha256": "0f08f10462ddada51d10fcacb127855d5f414c49e2f37b16e3f3181f9e52390a",
+      "bytes": 2812076
+    },
+    {
+      "file": "trureturing-tools-tree.json",
+      "sha256": "82bfd1e2a768016d21cfcd60bc9ca540f6d787856bb6e6bf8ba965669f7bfb9c",
+      "bytes": 504368
+    },
+    {
+      "file": "trureturing-CLAUDE.md",
+      "sha256": "3a8c1c53a9f8cd44e167f01e125af543a38697d67ba0bed9fc85abfe2b4398a2",
+      "bytes": 249363
+    },
+    {
+      "file": "trureturing-inspector-README.md",
+      "sha256": "9f6f45499d2e8f997f24ea3215d7b35b8be1d710e20c7870c9ffd26ef9601b95",
+      "bytes": 39615
+    },
+    {
+      "file": "trureturing-lake-manifest.json",
+      "sha256": "363c3dce9e10e9b33ca5e83c1047b74157d2dcb1ca9ea7d73a988d5c214283ec",
+      "bytes": 3215
+    },
+    {
+      "file": "trureturing-domains.yaml",
+      "sha256": "dc01d48186d2afb42e9caadb05bb5af2d421538f995f9caf616d5e00eb54f5f1",
+      "bytes": 12431
+    },
+    {
+      "file": "trureturing-frozen-sample.json",
+      "sha256": "40b46e1e8261b262fd6a7b68c8e84b91bc291f3e06680e1296ba7e3cd66e2910",
+      "bytes": 748
+    },
+    {
+      "file": "trureturing-releases-100.json",
+      "sha256": "2bc03be7c5ee368f98b445ace509b61eb39c788ec8f07c3cad34861e7063235c",
+      "bytes": 1183634
+    },
+    {
+      "file": "lean-cache-manifest.json",
+      "sha256": "f8a586bbcc778ca2720dc1acb9e90a32174ac6d61e0872a7693500b275aea091",
+      "bytes": 1226
+    },
+    {
+      "file": "truth-publication.cs",
+      "sha256": "b48a4e4794edb46f4e31ca904020fb4c0548a85c684b7c31c67131346c5a2a35",
+      "bytes": 6093
+    },
+    {
+      "file": "truth-publication-verification.cs",
+      "sha256": "e61b7f65b145d168e753ef77a02b9cbd1f2a42d274c429b907eaff46b44333ce",
+      "bytes": 2161
+    },
+    {
+      "file": "truth-manifest.cs",
+      "sha256": "bf98ec7775606c6c91fa643739af888a29d5d76a86efc4d2e9615a34950303f7",
+      "bytes": 13640
+    },
+    {
+      "file": "truth-export-schema.cs",
+      "sha256": "b51b13a5727072e1c3e4f32e8fea280d7ba03488166e22bb571ae3451c066d25",
+      "bytes": 3758
+    },
+    {
+      "file": "truth-export-command.cs",
+      "sha256": "4994251de0f15ed541f8022c88ef1d0e5bdcf6757df3f708b4a752e0b5990265",
+      "bytes": 8109
+    },
+    {
+      "file": "truth-release-command.cs",
+      "sha256": "bfe6fa56fd8a2bd2b57725090fa0a0919e58e462bf2e4db4dc9cea74b134934d",
+      "bytes": 11332
+    }
+  ],
+  "validation_scope": {
+    "code_review": "static source and contract inspection",
+    "github_checks": "read existing PR checks; no new test run",
+    "lean_executed": false,
+    "live_model_calls": false,
+    "upstream_modified": false,
+    "external_posts_created": false,
+    "benchmark_results_generated": false
+  }
+}

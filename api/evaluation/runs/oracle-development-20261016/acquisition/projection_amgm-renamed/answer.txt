@@ -1,0 +1,141 @@
+Referee assessmentC1 is well posed. Its precise present-day known/open status is unclear on the inspected evidence. I found an exact parent conjecture and relevant proved inequalities, but no inspected theorem or published counterexample settling this particular three-projection, three-dimensional statement. It should therefore not be displayed as a verified open problem, a new conjecture, or a known theorem without further documentation.No PDF was available through the conversation-file search. This assessment concerns the confirmed inline statement only; it does not certify the contents of an attachment.Mathematical meaning and hypothesesHere “orthogonal projections” has its standard individual meaning:
+$$E,F,G\in M_3(\mathbb R),\qquad
+P^{\mathsf T}=P,\quad P^2=P
+\quad(P=E,F,G).$$
+It does not assert that their ranges are pairwise orthogonal or that the three matrices commute. The statement permits all ranks, including zero and three, and permits repeated projections.For explanatory notation, put
+$$M=\frac{E+F+G}{3},\qquad
+T=\frac{EFG+EGF+FEG+FGE+GEF+GFE}{6}.$$
+C1 asks whether  $M^3-T\succeq0$ , with ordinary matrix multiplication. Both matrices are symmetric: transposition reverses each product in  $T$ , and all reversed products are present. Thus positive semidefiniteness is unambiguous. The fully quantified assertion is
+$$\forall E,F,G\text{ as above},\quad
+\forall x\in\mathbb R^3,\qquad
+x^{\mathsf T}(M^3-T)x\ge0.$$
+These are notation and well-posedness checks, not a proof of the inequality.What the opened literature establishesAn exact parent conjecture exists.On the Efficiency of Random Permutation for ADMM and Coordinate Descent [opened: arXiv:1503.06387], §3.3, Conjecture 3.1, equation (37), states the corresponding projection inequality for arbitrary numbers and sizes of matrices. Substituting  $n=N=3$  gives C1. The inspected version leaves that general conjecture unproved. arXiv+1The same work proves the weaker comparison
+$$T\preceq M$$
+as the three-factor instance of Lemma 3, equation (52). This does not give C1: since  $M$  is a positive contraction,  $M^3\preceq M$ , so the requested upper bound is the smaller matrix. Sharing the upper bound  $M$  does not establish the required comparison between  $T$  and  $M^3$ . arXivThe proved cubic norm result is different.Recht–Ré Noncommutative Arithmetic-Geometric Mean Conjecture is False [opened: arXiv:2006.01510], Theorem 2, equation (4), proves bounds between  $-I$  and  $I$  for the distinct-index cubic average of symmetric positive semidefinite matrices whose sum is at most  $nI$ . Scalar normalization gives the corresponding operator-norm bound. An upper bound by  $\|M\|_{\mathrm{op}}^3I$ , however, is not an upper bound by the actual matrix  $M^3$ . Neither this theorem nor the paper’s title supplies a refutation of C1. arXivAnother three-factor theorem places the norm inside the sum.An arithmetic-geometric mean inequality for products of three matrices [opened: arXiv:1411.0333], Theorem 1.4, compares averages of individual product norms, for any unitarily invariant norm. It does not assert positivity of the matrix difference in C1. The location of the norm is mathematically substantive. arXivThe commuting subcase has a classical baseline.Toward a Noncommutative Arithmetic-geometric Mean Inequality: Conjectures, Case-studies, and Consequences [opened: https://proceedings.mlr.press/v23/recht12/recht12.pdf], Appendix A, supplies simultaneous diagonalization and the scalar arithmetic–geometric-mean comparison for commuting positive semidefinite matrices. These cover the commuting restriction of C1, not its unrestricted projection domain. Proceedings of Machine Learning Research+1Consequently, special_case_of_known would be misleading if it meant “special case of an established theorem.” C1 is an exact specialization of a published conjecture; that is a provenance finding, not a truth certificate. Conversely, the historical unresolved status of a general conjecture does not establish that every particular dimensional restriction remains open.Correctness, conditional proof escape, information gain, and utilityCorrectness is not_checked. No proof was submitted, and no proof or attack on C1 is supplied here.Conditional proof escape is undetermined. Renaming the projections and expanding the six permutations are binding operations. They identify the statement but do not prove it. The inspected established baselines stop at a weaker projection-order bound, norm comparisons, or an additional commutativity hypothesis. The remaining conditional obligation is precisely the uniform noncommuting inequality  $T\preceq M^3$ . This explains where those baselines stop; it does not establish that no other known theorem could discharge the obligation. There are no live proof witnesses.Utility is general_theorem with status insufficient. A universal inequality over this continuous family is a legitimate pure-mathematical target and needs no artificial downstream application. Nevertheless, neither a theorem nor a matching refutation has been delivered, and the exact case’s unresolved status has not been established. Potential value must not be reported as achieved progress.Information gain and settlement are both null. No model/readout/task evidence supports a separate information-gain analysis, and the confirmed metadata claims no named settlement.The useful revision is to make the noncommuting, unrestricted-rank interpretation explicit, attribute the parent conjecture, and distinguish documented historical status from independently checked current status. The recommendation below concerns presentation and evidentiary sufficiency; it is not a publication decision.JSON{
+  "recommendation": "revise",
+  "summary": "C1 is a well-posed matrix-order assertion. Its precise current known/open status is unclear on the inspected evidence. An exact specialization of a published projection conjecture was identified, but the established baselines inspected do not settle the unrestricted three-projection case on R³. No proof, refutation, or verified novelty claim is supplied.",
+  "strengths": [
+    "The assertion has precise finite-dimensional quantifiers and a symmetric matrix difference.",
+    "The distinction between individual orthogonal projections and mutually commuting projections can be stated explicitly without changing the intended problem.",
+    "A concrete literature baseline makes it possible to distinguish the requested matrix-order inequality from nearby proved norm inequalities."
+  ],
+  "concerns": [
+    "No PDF was available in the current conversation; only the confirmed inline statement was reviewed.",
+    "A published parent conjecture was identified, so renaming the statement does not establish new provenance.",
+    "The inspected literature does not establish the present status of this exact dimensional restriction.",
+    "Norm bounds, averages of norms, and the weaker projection-order bound must not be represented as proving C1."
+  ],
+  "claims": [
+    {
+      "claim": "C1",
+      "correctness": "not_checked",
+      "shape": null,
+      "witnesses": [],
+      "known": [
+        "On the Efficiency of Random Permutation for ADMM and Coordinate Descent [opened: arXiv:1503.06387]",
+        "Recht–Ré Noncommutative Arithmetic-Geometric Mean Conjecture is False [opened: arXiv:2006.01510]",
+        "An arithmetic-geometric mean inequality for products of three matrices [opened: arXiv:1411.0333]",
+        "Toward a Noncommutative Arithmetic-geometric Mean Inequality: Conjectures, Case-studies, and Consequences [opened: https://proceedings.mlr.press/v23/recht12/recht12.pdf]"
+      ],
+      "note": "Correctness is not_checked because this is a statement-only submission. The historical parent-conjecture match is supported, but the exact case's current status and conditional proof escape remain undetermined. The inspected proved comparisons do not yield the requested matrix order by the binding operations described below. General-theorem utility is a coherent prospective category, not established progress. No information-gain measurement, live proof witness, or named settlement is claimed.",
+      "conjecture": {
+        "well_posed": true,
+        "well_posed_reason": "Interpret E,F,G as arbitrary real 3-by-3 symmetric idempotents: P^T=P and P²=P for each P. No pairwise orthogonality, commutativity, distinctness, or rank restriction is imposed. Products and the cube are ordinary matrix products. Transposition pairs all six cubic words, so the difference is symmetric. Positive semidefiniteness means that its quadratic form is nonnegative for every x in R³.",
+        "status": "unclear",
+        "status_reason": "C1 matches the n=N=3 specialization of the inspected published projection conjecture. No matching proof or refutation of this exact case was located. Historical nonresolution of the parent does not establish current nonresolution of its restriction. The available proved norm and weaker order statements do not justify known_true or special_case_of_known, and no matching published witness justifies known_false.",
+        "named_works": [
+          "On the Efficiency of Random Permutation for ADMM and Coordinate Descent [opened: arXiv:1503.06387]",
+          "Recht–Ré Noncommutative Arithmetic-Geometric Mean Conjecture is False [opened: arXiv:2006.01510]",
+          "An arithmetic-geometric mean inequality for products of three matrices [opened: arXiv:1411.0333]",
+          "Toward a Noncommutative Arithmetic-geometric Mean Inequality: Conjectures, Case-studies, and Consequences [opened: https://proceedings.mlr.press/v23/recht12/recht12.pdf]"
+        ],
+        "escape": "undetermined",
+        "escape_reason": "The supplied title and variable renaming do not determine proof escape. Specializing an unproved conjecture is statement matching, not a deduction from an established theorem. Relative to the inspected proved baselines, the missing obligation is a uniform matrix-order strengthening on noncommuting projections. No submitted proof or sufficiently complete literature comparison establishes whether a future proof would exceed all relevant binding operations.",
+        "suggestions": [
+          "State explicitly that the projections need not commute or have pairwise orthogonal ranges, and that all ranks and repeated projections are allowed.",
+          "Attribute the precise parent conjecture and describe C1 as its three-matrix, three-dimensional restriction.",
+          "Document the exact restriction's current status before labeling it open; otherwise retain an explicit status-unverified qualification.",
+          "Keep matrix-order positivity separate from operator-norm inequalities and averages of individual product norms.",
+          "If a commuting or rank-restricted variant is intended, state the changed hypotheses explicitly rather than silently substituting that easier domain."
+        ]
+      },
+      "methodology": {
+        "baseline": [
+          {
+            "statement": "The input quantifies over E,F,G in M3(R) satisfying P^T=P and P²=P for each P. It supplies the proposed positive-semidefiniteness assertion but no proof and no auxiliary prerequisite lemmas.",
+            "location": "Inline CONFIRMED STATEMENTS, C1.statement, C1.proved=false, and C1.depends_on=[]; inline SOURCE CONTEXT, sole sentence.",
+            "source": null
+          },
+          {
+            "statement": "Published conjecture, not an established premise: for n orthogonal projections P_i in M_N(R), (1/n!) sum over permutations σ of P_{σ(n)}...P_{σ(1)} is at most ((sum_i P_i)/n)^n in matrix order.",
+            "location": "Section 3.3, Conjecture 3.1, equation (37), printed page 20 of the inspected arXiv version.",
+            "source": "On the Efficiency of Random Permutation for ADMM and Coordinate Descent [opened: arXiv:1503.06387]"
+          },
+          {
+            "statement": "For n orthogonal projections P_i in M_N(R), their permutation-averaged product is at most (sum_i P_i)/n in matrix order.",
+            "location": "Section 4.3, Lemma 3, equation (52); proof in Section 7.3.",
+            "source": "On the Efficiency of Random Permutation for ADMM and Coordinate Descent [opened: arXiv:1503.06387]"
+          },
+          {
+            "statement": "For n≥3 real symmetric positive semidefinite matrices A_i of common size with sum_i A_i≤nI, the average of A_i A_j A_k over ordered distinct indices lies between -I and I.",
+            "location": "Theorem 2, equation (4), PDF page 4.",
+            "source": "Recht–Ré Noncommutative Arithmetic-Geometric Mean Conjecture is False [opened: arXiv:2006.01510]"
+          },
+          {
+            "statement": "For n≥3 positive semidefinite matrices A_i in M_d(C) and any unitarily invariant norm N, n^(-3) sum over all i,j,k of N(A_i A_j A_k) is at least [n(n-1)(n-2)]^(-1) times the sum over ordered distinct indices.",
+            "location": "Theorem 1.4, equation (2), inspected version v4.",
+            "source": "An arithmetic-geometric mean inequality for products of three matrices [opened: arXiv:1411.0333]"
+          },
+          {
+            "statement": "Mutually commuting real symmetric positive semidefinite matrices are simultaneously orthogonally diagonalizable. Scalar Maclaurin inequalities include the three-variable arithmetic-geometric-mean comparison; zero scalar entries are included by the elementary continuous extension.",
+            "location": "Appendix A, Commutative matrices, Theorem 5 and the subsequent diagonalization discussion, printed page 11.15.",
+            "source": "Toward a Noncommutative Arithmetic-geometric Mean Inequality: Conjectures, Case-studies, and Consequences [opened: https://proceedings.mlr.press/v23/recht12/recht12.pdf]"
+          }
+        ],
+        "searched": [
+          "Conversation-file semantic search: projection_amgm-renamed three orthogonal projections E F G R3 positive semidefinite arithmetic geometric mean. The tool reported that no files were present.",
+          "Public web queries included: \"orthogonal projections\" \"AM-GM\"; \"projections\" \"EFG\" \"EGF\" inequality; \"three projections\" \"inequality\" \"mean\"; \"arithmetic-geometric\" \"projection matrices\".",
+          "Targeted provenance and status queries included: \"projection matrices\" \"Conjecture 3.1\"; \"1503.06387\" \"counterexample\"; \"projection matrices\" \"matrix AM-GM\" \"counterexample\"; \"three orthogonal projections\" \"arithmetic\".",
+          "Norm-versus-order queries included: \"noncommutative\" \"arithmetic-geometric\" \"Loewner\" counterexample projections; \"projections\" \"Loewner\" \"three\"; \"An arithmetic-geometric mean inequality for products of three matrices\" projections.",
+          "Primary-source inspection used arXiv full texts and PMLR proceedings. The decisive locations were arXiv:1503.06387 Conjecture 3.1 and Lemma 3, arXiv:2006.01510 Theorem 2, arXiv:1411.0333 Theorem 1.4, and the PMLR 2012 paper's Appendix A.",
+          "Broader searches screened related noncommutative norm, palindromic-product, and stochastic-optimization literature, including later search hits. No exact-case settlement was identified in the inspected material. This is not an exhaustive bibliographic search."
+        ],
+        "literature": "insufficient",
+        "binding_analysis": "The explanatory aliases are M=(E+F+G)/3 and T=(EFG+EGF+FEG+FGE+GEF+GFE)/6; they add no content. Setting n=N=3 and expanding the permutation index set matches the published conjecture syntactically, but that conjecture cannot be consumed as a proved premise. Instantiating the proved projection lemma gives T≤M. Individual projection hypotheses give 0≤M≤I, hence M³≤M, which does not permit recombination into T≤M³. Instantiating the normalized cubic theorem gives identity bounds; positive scalar rescaling gives bounds by ||M||op³ I, not by M³. An average-of-norms theorem cannot be converted to matrix order by removing the norms. Simultaneous diagonalization and scalar comparison cover an added commuting hypothesis, which C1 does not provide. No manuscript-local helper, construction, or tactic expansion is available to audit.",
+        "delta": "The conditional obligation is: for every E,F,G in M3(R) satisfying E^T=E=E², F^T=F=F², and G^T=G=G², and every x in R³, x^T[((E+F+G)/3)^3-(EFG+EGF+FEG+FGE+GEF+GFE)/6]x≥0, with no commutativity or rank assumptions. This is the remaining target relative to the inspected established baselines, not a proved new lemma or an assertion of exhaustive novelty.",
+        "escape": "undetermined",
+        "witnesses": [],
+        "utility": {
+          "kind": "general_theorem",
+          "status": "insufficient",
+          "rationale": "A uniform inequality over all real three-dimensional projection triples would be a genuine general mathematical statement, not a finite enumeration or isolated certified instance. Pure mathematics requires no artificial downstream consumer. Here, however, no proof or matching refutation is supplied, and the exact case's current unresolved status is not established.",
+          "problem": "Does the cubic arithmetic mean dominate the fully permutation-symmetrized product in matrix order for every triple of orthogonal projections on R³?",
+          "progress": "The report establishes a precise interpretation, identifies prior statement provenance, and separates the target from inspected weaker results. It provides no mathematical resolution.",
+          "prerequisites": "Arbitrary real 3-by-3 symmetric idempotents, the six ordered cubic products with coefficient 1/6, the cube of the mean with coefficient 1/27, and positivity for every real test vector. Established positive-result utility would require a proof covering this entire domain.",
+          "discharge": "The definitions and quantifiers are explicit, and the comparison sources were opened. The universal positivity obligation is not discharged. No certified instance, exhaustive computation, checker application, or matching counterexample was submitted or produced."
+        },
+        "settlement": null,
+        "information_gain": null,
+        "limits": [
+          "No attached PDF was available; manuscript pagination, omitted qualifications, and any unseen material are not_checkable.",
+          "The literature field is insufficient for an exact current-status or novelty conclusion, although the identified provenance and stated baseline comparisons are supported by opened sources.",
+          "No proof or attack on C1 was attempted; correctness remains not_checked and there are no live witnesses.",
+          "A historically unproved general conjecture does not certify that this exact special case is currently open.",
+          "An unrelated dimensional, rank, product-count, or norm counterexample would not refute C1 without an exact hypothesis and conclusion match.",
+          "Ancillary failed PDF endpoints supplied no evidence; unread content was not promoted to an external fact.",
+          "No systematic MathSciNet or zbMATH search, exhaustive citation-graph review, or author confirmation was performed.",
+          "No formal model/readout/task evidence was supplied for information gain, and no compiled registration, Lean verification, or AURIC/FIB measurement is claimed.",
+          "All reported bibliographic identifications are model-reported opened sources, not venue-verified references."
+        ]
+      }
+    }
+  ],
+  "limits": [
+    "This is an initial statement-only referee assessment of one confirmed claim, not an independent subsequent source-auditor certification.",
+    "The exact-case status remains unclear; failure to locate a settlement is not evidence of novelty or a certified open problem.",
+    "Insufficient proof, literature, and utility evidence are distinguished from a negative mathematical finding: this report does not establish that C1 is false.",
+    "Correctness, conditional proof escape, information gain, and utility are separate judgments; no combined score or escape percentage is assigned.",
+    "The recommendation is presentation and evidence feedback only and does not decide publication."
+  ],
+  "text": "Revise the display to make the unrestricted noncommuting interpretation explicit, attribute the existing parent conjecture, and qualify the exact case's current status as unverified until a matching source is supplied. Neither a binding-only proof nor new proof content has been demonstrated."
+}

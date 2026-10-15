@@ -1,0 +1,19 @@
+{
+  "case_id": "cassini-roots_dropped",
+  "exit_code": 0,
+  "stream_done": true,
+  "errors": [],
+  "oracle": {
+    "task_id": "13fd85fa-6af5-4c03-a5b3-2422805a6b34",
+    "conversation_id": null,
+    "pool": "chrono-chatgpt-pro-pool",
+    "model_label": "chatgpt-6-pro",
+    "observed_model_switcher": "gpt_6",
+    "observed_model_effort": "pro",
+    "chatgpt_url": "https://chatgpt.com/c/6ad11938-1bd0-83ec-85a8-06f551255659",
+    "usage_estimated": true
+  },
+  "elapsed_ms": 466672,
+  "response_sha256": "ef98c40c5b153d558956f1b62ea5ef2c4857afbffbb2cd24dbe341ab68bfb0df",
+  "request_sha256": "e76a8032c3e9602f2d5b6cb9b344f9937df836e6a1c8d0b02506ebe5e05963d5"
+}

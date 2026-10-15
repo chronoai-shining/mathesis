@@ -1,0 +1,123 @@
+{
+  "schema": "mathesis.coverage-evaluation-score.v1",
+  "freeze_sha256": "4cbc93154e116f57923b3cf475904638640856a92e929573670b6a60c8bf884b",
+  "split": "development",
+  "cases": 12,
+  "observations": 11,
+  "label_status": "provisional_agent_transcriptions_with_replayable_checks; not human adjudication",
+  "query_states": {
+    "not_configured": 11,
+    "missing_observation": 1
+  },
+  "coverage_recall": {
+    "numerator": 5,
+    "denominator": 6,
+    "value": 0.8333333333333334
+  },
+  "refutation_recall": {
+    "numerator": 3,
+    "denominator": 6,
+    "value": 0.5
+  },
+  "refuted_reported_uncovered": {
+    "numerator": 1,
+    "denominator": 6,
+    "value": 0.16666666666666666
+  },
+  "relation_agreement_all_cases": {
+    "numerator": 8,
+    "denominator": 12,
+    "value": 0.6666666666666666
+  },
+  "complete_premise_retrieval": {
+    "numerator": 0,
+    "denominator": 6,
+    "value": 0.0
+  },
+  "known_reported_uncovered": {
+    "numerator": 0,
+    "denominator": 6,
+    "value": 0.0
+  },
+  "unsupported_relation": {
+    "numerator": 0,
+    "denominator": 8,
+    "value": 0.0
+  },
+  "abstention": {
+    "numerator": 2,
+    "denominator": 11,
+    "value": 0.18181818181818182
+  },
+  "unsupported_novelty_assertions": 1,
+  "incomplete_novelty_assertions": 1,
+  "per_domain": {
+    "combinatorics": {
+      "cases": 3,
+      "coverage_recall": {
+        "numerator": 2,
+        "denominator": 2,
+        "value": 1.0
+      },
+      "refutation_recall": {
+        "numerator": 1,
+        "denominator": 1,
+        "value": 1.0
+      }
+    },
+    "recurrences": {
+      "cases": 3,
+      "coverage_recall": {
+        "numerator": 1,
+        "denominator": 2,
+        "value": 0.5
+      },
+      "refutation_recall": {
+        "numerator": 1,
+        "denominator": 1,
+        "value": 1.0
+      }
+    },
+    "matrices": {
+      "cases": 3,
+      "coverage_recall": {
+        "numerator": 0,
+        "denominator": 0,
+        "value": null
+      },
+      "refutation_recall": {
+        "numerator": 1,
+        "denominator": 3,
+        "value": 0.3333333333333333
+      }
+    },
+    "probability": {
+      "cases": 3,
+      "coverage_recall": {
+        "numerator": 2,
+        "denominator": 2,
+        "value": 1.0
+      },
+      "refutation_recall": {
+        "numerator": 0,
+        "denominator": 1,
+        "value": 0.0
+      }
+    }
+  },
+  "latency_ms": {
+    "observed": 11,
+    "mean": 439742.36363636365
+  },
+  "cost_usd": {
+    "observed": 0,
+    "partial_total": null
+  },
+  "limits": [
+    "Authored evaluation cases; source-based labels are not human adjudication.",
+    "A returned identifier measures retrieval, not entailment or certification.",
+    "No observed output is treated as a system query receipt or Lean certificate.",
+    "No global novelty estimate; results apply only to this finite corpus."
+  ],
+  "run_sha256": "64173b1c2e25b2cd3412842b9bff0d5a3276793ddb508db6114ef9ce520c850d"
+}

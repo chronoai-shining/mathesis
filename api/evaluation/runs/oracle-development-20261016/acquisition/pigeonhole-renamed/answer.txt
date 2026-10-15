@@ -1,0 +1,115 @@
+Referee assessmentC1 is known_true, not an open conjecture. Its conditional proof-escape classification is bind_only. The assertion is a cardinality formulation of the pigeonhole principle: the finite version is stated explicitly in the inspected textbook, and the unrestricted set version is covered by standard cardinal comparison and the existing Cantor–Bernstein theorem. The absence of a finiteness hypothesis does not create a new open problem. Hammack Home+2Source limitation: the conversation-file search reported that no files are attached. This report therefore evaluates the supplied C1 statement and source-context paragraph, not an unseen PDF. PDF-specific definitions, additional claims, and manuscript page references remain not_checkable.Well-posednessUnder the ordinary classical interpretation, C1 has the following quantifiers:
+$$\forall X,Y,\quad
+|Y|<|X|
+\ \Longrightarrow\
+\forall h:X\to Y,\ 
+\exists x_0,x_1\in X,\quad
+x_0\ne x_1\ \land\ h(x_0)=h(x_1).$$
+Here  $X,Y$  are sets, cardinal comparison has its standard meaning, and  $h$  is a total, single-valued function. The word “observation” supplies no additional mathematical condition in the submitted text. The conclusion is precisely the classical formulation of failure of injectivity. Hammack HomeThe statement is therefore well-posed under these conventions. “Same universe” can be clarified or omitted in ordinary set-theoretic exposition; it does not introduce an observation model. The universal quantifier over functions does not assert that such a function exists: when the codomain is empty and the domain is nonempty, that quantifier is vacuous. No extra nonemptiness assumption is needed for the stated universal assertion.Opened references and comparisonBook of Proof [opened: https://richardhammack.github.io/BookOfProof/Main.pdf]The inspected locations are §12.2, Definition 12.4, printed p. 228, with the discussion of noninjectivity on p. 230; §12.3, the function version of the pigeonhole principle, p. 233; and §14.3, Definition 14.4, p. 281. The last location treats arbitrary sets, not merely finite ones. Hammack Home+3Logic and Proof [opened: https://avigad.github.io/logic_and_proof/the_infinite.html]Chapter 22, §22.5 supplies the injection-based comparison of cardinalities and states the Cantor–Bernstein theorem for arbitrary sets. This is the relevant existing prerequisite when using the textbook’s strict-cardinality convention. AvigadThese are model-reported opened sources, not venue-verified references or claims of original historical attribution.Conditional proof escape and separate dimensionsThe binding comparison is specific: replace “observation map” with “function,” instantiate the existing cardinal-comparison prerequisites with the submitted sets, substitute the stated cardinal inequality, and normalize noninjectivity into the displayed collision statement. Under the inspected definition of strict inequality, the existing Cantor–Bernstein theorem supplies the needed comparison; its proof is not a new obligation of C1. No additional construction, estimate, structural constraint, or computational guarantee remains in the submitted conclusion. This supports bind_only through an inspected baseline, rather than through missing evidence. Hammack Home+2Correctness of a submitted proof is not_checked: no proof was submitted. This is compatible with identifying the statement as known true. Proof shape is null, and there are no live manuscript witnesses.General-theorem utility is supported, but inherited: C1 expresses a precise obstruction to an injective map. The submission adds no established mathematical progress beyond that existing principle. This is not a claim that pure mathematics needs an immediate application.Information gain is unassessed: no model, task, faithful correspondence, or measurement evidence is supplied, so the corresponding field is null. Settlement is also null: no named open-problem settlement is claimed.FeedbackThe appropriate revision is to display C1 as a known fact, not an open conjecture, and to define “observation map” as an arbitrary total function or simply use “function.” Preserve the arbitrary-set scope rather than silently restricting it to finite sets.A genuinely different research assertion would need an explicitly stated additional conclusion not already supplied by cardinal comparison. No such strengthening, or its novelty, is established here. The recommendation below is classification and presentation feedback, not a publication decision.JSON{
+  "recommendation": "revise",
+  "summary": "C1 is well-posed under ordinary classical set-theoretic conventions and is known_true. It restates an established cardinal non-injectivity principle using the term observation map. Its conditional proof escape is bind_only. No manuscript proof was submitted, and no PDF attachment was accessible.",
+  "strengths": [
+    "The strict cardinality hypothesis and universal quantification over maps are explicit.",
+    "The intended assertion has a precise standard mathematical interpretation."
+  ],
+  "concerns": [
+    "Displaying C1 as an open conjecture would misstate its known status.",
+    "The term observation map introduces no additional structure or mathematical conclusion in the supplied text.",
+    "The alleged PDF and any definitions or claims beyond the supplied text remain not_checkable."
+  ],
+  "claims": [
+    {
+      "claim": "C1",
+      "conjecture": {
+        "well_posed": true,
+        "well_posed_reason": "Interpret X and Y as sets in a common ambient setting, cardinal comparison in its standard classical sense, and h:X→Y as an arbitrary total single-valued function. The conclusion quantifies existentially over distinct x0,x1 in X with equal h-values. Neither finiteness nor a separate nonemptiness assumption is needed. Universal quantification over h does not assert that a map exists. Observation map is presently only a descriptive alias.",
+        "status": "known_true",
+        "status_reason": "The finite formulation is explicitly recorded in the opened textbook. The unrestricted formulation is covered by the inspected arbitrary-set cardinality definitions and existing Cantor–Bernstein prerequisite, followed by classical normalization of noninjectivity. It is not an open problem.",
+        "named_works": [
+          "Book of Proof [opened: https://richardhammack.github.io/BookOfProof/Main.pdf]",
+          "Logic and Proof [opened: https://avigad.github.io/logic_and_proof/the_infinite.html]"
+        ],
+        "escape": "bind_only",
+        "escape_reason": "Relative to the inspected prerequisites, the assertion requires terminology expansion, instantiation, hypothesis substitution, an existing theorem application, and logical normalization. The supplied cardinal gap is an assumption, not a new estimate. This is a conditional assessment of the statement, not an assessment of an unseen proof.",
+        "suggestions": [
+          "Relabel C1 as a known fact or standard cardinality principle, with attribution.",
+          "Replace observation map with function, or explicitly define it to mean an arbitrary total function.",
+          "Clarify the classical ambient setting and retain the arbitrary-set quantifiers; any proposed strengthening needs a separately specified conclusion and literature assessment."
+        ]
+      },
+      "known": [
+        "Book of Proof [opened: https://richardhammack.github.io/BookOfProof/Main.pdf]",
+        "Logic and Proof [opened: https://avigad.github.io/logic_and_proof/the_infinite.html]"
+      ],
+      "correctness": "not_checked",
+      "shape": null,
+      "witnesses": [],
+      "note": "Known status and manuscript-proof correctness are separate: C1 is known true, but no submitted proof was checked. Conditional escape is bind_only because the opened baseline covers the entire stated conclusion. General-theorem utility is supported as an inherited mathematical principle, not new progress attributable to this submission. Information gain is unassessed and null. No named open-problem settlement is claimed. Missing PDF evidence limits manuscript inspection but does not make the explicitly supplied assertion open or false.",
+      "methodology": {
+        "baseline": [
+          {
+            "statement": "X and Y are sets in the same universe, |Y|<|X|, and h:X→Y is an arbitrary total function.",
+            "location": "Supplied CONFIRMED STATEMENTS[0].statement, first sentence and map declaration in the second sentence; repeated in SOURCE CONTEXT, sole paragraph. These are input hypotheses, not the conclusion. No PDF location is available.",
+            "source": null
+          },
+          {
+            "statement": "For sets A,B, |A|<|B| means that an injection A→B exists and a bijection A→B does not exist.",
+            "location": "Section 14.3, Definition 14.4(2), printed p. 281, PDF page 293.",
+            "source": "Book of Proof [opened: https://richardhammack.github.io/BookOfProof/Main.pdf]"
+          },
+          {
+            "statement": "For arbitrary sets A,B, the existence of injections A→B and B→A implies the existence of a bijection A→B.",
+            "location": "Chapter 22, Section 22.5, unnumbered Cantor–Bernstein theorem following the definition of cardinal comparison.",
+            "source": "Logic and Proof [opened: https://avigad.github.io/logic_and_proof/the_infinite.html]"
+          },
+          {
+            "statement": "Injectivity of f:A→B says that distinct domain elements have distinct images. Its classical negation is the existence of distinct domain elements with equal images.",
+            "location": "Section 12.2, Definition 12.4(1), printed p. 228, and discussion of noninjectivity on printed p. 230; PDF pages 240 and 242.",
+            "source": "Book of Proof [opened: https://richardhammack.github.io/BookOfProof/Main.pdf]"
+          }
+        ],
+        "searched": [
+          "Conversation-file semantic search: Statement-only evaluation pigeonhole-renamed Let X and Y be sets with |Y| < |X| observation map takes same value on two distinct inputs. The tool reported that no files are present in the current conversation.",
+          "General web-search query: site.edu cardinality strictly smaller no injective function pigeonhole principle infinite sets.",
+          "General web-search query: site.math.vcu.edu Hammack Book of Proof cardinality sets.",
+          "Opened Book of Proof [opened: https://richardhammack.github.io/BookOfProof/Main.pdf]. Inspected the relevant passages in Sections 12.2, 12.3 and 14.3, including page images for printed pages 228, 233, 280 and 281; also located the discussion of logical negation in Section 2.10.",
+          "Opened Logic and Proof [opened: https://avigad.github.io/logic_and_proof/the_infinite.html]. Inspected Section 22.5 for the arbitrary-set comparison prerequisite.",
+          "Scope was a targeted textbook-level baseline comparison using general web search and author-hosted sources. No exhaustive bibliographic, historical-priority, MathSciNet, zbMATH or arXiv search was performed."
+        ],
+        "literature": "supported",
+        "binding_analysis": "Inline observation map as ordinary total function; no further observation structure is supplied. Expand the strict-cardinality convention and project its existing conditions. Instantiate the existing comparison theorem at the same two sets, substitute the cardinal-gap assumption, and use ordinary propositional recombination and classical quantifier normalization. These binding operations cover the entire collision conclusion. The comparison stops at the stated existing prerequisites rather than reproving them. No new cardinality estimate, helper construction, or constraint is needed. No manuscript wrappers, tactics, or helper proofs were supplied for inspection.",
+        "delta": "The conditional obligation is exactly: for every supplied total h:X→Y under |Y|<|X|, establish the existence of x0,x1 in X with x0≠x1 and h(x0)=h(x1). There is no additional mathematical proposition beyond the inspected baseline after binding and normalization. No collision-finding algorithm, probability bound, quantitative improvement, or structured-observation assertion is included.",
+        "escape": "bind_only",
+        "witnesses": [],
+        "utility": {
+          "kind": "general_theorem",
+          "status": "supported",
+          "rationale": "The assertion has the general mathematical utility of identifying an obstruction to injectivity. That utility is already present in the baseline; the supplied wording establishes no additional theorem or computational utility. Pure-mathematical utility does not require an artificial downstream application.",
+          "problem": "Does a strict cardinal gap |Y|<|X| force every total map h:X→Y to identify two distinct inputs?",
+          "progress": "The answer is already affirmative in the inspected baseline. The submission supplies a terminological restatement, not further mathematical progress.",
+          "prerequisites": "Classical logic; sets X,Y in the stated ambient setting; |Y|<|X|; a total function h:X→Y; the inspected strict-cardinality convention, arbitrary-set comparison theorem, and definition of injectivity.",
+          "discharge": "The cardinal gap and totality are explicit hypotheses of a universal statement, not numerical premises awaiting an instance computation. The external baseline statements were inspected and their scope matches. No submitted proof, concrete application, or computational instance was certified."
+        },
+        "settlement": null,
+        "information_gain": null,
+        "limits": [
+          "The escape assessment is conditional and statement-level. No proof was submitted, so correctness is not_checked, proof shape is null, and no live witnesses are reported.",
+          "The alleged PDF is not_checkable because no conversation attachment was available. Local locations refer only to the supplied statement fields.",
+          "Literature support concerns the inspected baseline comparison, not exhaustive search or historical priority.",
+          "The assessment uses ordinary classical conventions; unspecified constructive or alternative observation semantics were not evaluated.",
+          "Supported utility refers to the existing general principle, not an independently established contribution of this submission.",
+          "No information-gain measurement, compiled Trureturing registration, Lean verification, or AURIC/FIB measurement is claimed."
+        ]
+      }
+    }
+  ],
+  "limits": [
+    "Only the supplied C1 statement was assessable; unseen PDF content and additional claims remain not_checkable.",
+    "The opened sources are model-reported and have not been venue-verified.",
+    "Known truth, submitted-proof correctness, conditional escape, utility, and information gain were assessed separately; no combined score or escape percentage was assigned.",
+    "The targeted literature comparison is sufficient to identify the supplied assertion as known, but is not an exhaustive literature or provenance audit.",
+    "No proof or counterexample construction was attempted, no named open-problem settlement was claimed, and no formal or computational verification was performed.",
+    "The recommendation is feedback on labeling and presentation, not a publication decision."
+  ],
+  "text": "Revise the display classification: C1 belongs among attributed known facts, not open conjectures. The negative finding is the absence of an additional mathematical obligation in the supplied assertion; it is not a finding that the assertion is false. The missing PDF is a separate evidentiary limitation."
+}
