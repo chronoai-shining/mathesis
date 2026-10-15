@@ -1280,6 +1280,7 @@ mod audit_tests {
     fn audit_drops_invented_sources_ids_and_witnesses_and_marks_offline_limits() {
         let claims = super::referee_tests::claims();
         let input = AdvisorInput {
+            computations: None,
             knowledge: None,
             review_method: None,
             confirmed_claims: None,
@@ -1473,6 +1474,7 @@ mod conjecture_tests {
     fn conjecture_audit_requires_opened_source_identity_and_matching_evidence() {
         let claims = super::referee_tests::claims();
         let input = AdvisorInput {
+            computations: None,
             knowledge: None,
             review_method: None,
             confirmed_claims: None,

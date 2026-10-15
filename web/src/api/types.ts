@@ -140,6 +140,8 @@ export type Step<T> = {
   state: StepState<T>;
 };
 export type RefereeRound = {
+  computation_contract?: number;
+  computation_receipts?: ComputationReceipt[];
   knowledge_contract?: number;
   knowledge_events?: KnowledgeEvent[];
   review_contract?: number;
@@ -975,6 +977,7 @@ export interface LeanPreflight {
   requires_adapter: boolean;
 }
 export interface EvidenceAttachment {
+  replay_protocol?: string;
   path: string;
   kind: 'certificate' | 'computation' | 'source' | 'data' | 'supplement';
   description: string;
@@ -1047,3 +1050,18 @@ export type KnowledgeEvent =
   | { event: 'query_admitted'; intent: KnowledgeQueryIntent }
   | { event: 'query_completed'; receipt: KnowledgeQueryReceipt }
   | { event: 'coverage_assessed'; assessment: ClaimCoverage; at: string };
+
+export interface ComputationReceipt {
+  protocol: string;
+  round: number;
+  version: number;
+  claims_revision: number;
+  source_sha256: string;
+  attachment: EvidenceAttachment;
+  state: 'counterexample' | 'not_counterexample' | 'invalid_input' | 'arithmetic_limit';
+  dimension: number | null;
+  numerator: string | null;
+  denominator: string | null;
+  explanation: string;
+  checked_at: string;
+}

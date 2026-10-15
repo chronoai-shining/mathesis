@@ -17,7 +17,7 @@ implemented and verified.
 | P1-D policy and author reports | In progress | PR #6 implements the application-derived gate: it derives admission from actual current receipts and the audit. Missing required evidence leaves publication pending while private advice/letters continue; correctness errors remain prior blockers and named settlement stays separate. Private JSON/Markdown/UI show query limits, bindings and unresolved obligations; a checksummed source-response download has matching SDK/CLI/MCP access. Contract 2 author-view refinements and their verification are in progress. |
 | P1-E end-to-end quality | Pending | Real inputs, known/generalized/missing-assumption cases, interrupted recovery, baseline comparison. |
 | P2-A research obligations and solving | Pending | Authorized precise tasks, existing target/attempt/verifier path, result writeback and reuse. |
-| P2-B computational evidence replay | Pending | One useful bounded certificate family, independently reproducible receipts and meaningful negative cases. |
+| P2-B computational evidence replay | Engineering validated; PR pending | Exact rational three-projection AM–GM replay reproduces −8/243. 61 independent Python contraction checks agree with Rust. Source/version-bound receipts precede Oracle and feed audit/advice/letter plus private author exports. 343 API and 322 Web tests passed; CI/merge pending. See `COMPUTATION_REPLAY_VALIDATION_2026-10-16.md`. |
 | P2-C coverage certificate consumer | Pending | Consume recognized upstream certificates when available, strict target/snapshot/protocol checks; unavailable capability must remain explicit and cannot be simulated by ordinary Lean verification. |
 | P3-A binding contributions and challenges | Pending | Independent submissions, audit, appeal, credit/revocation, author consent, API/SDK/MCP/UI. |
 | P3-B authorized feedback and consumption | Pending | Proposal packages with provenance/license, existing upstream admission references, verified downstream readback; no automatic upstream write without the applicable explicit authorization. |
@@ -32,6 +32,8 @@ Current worktrees:
   branch `codex/mathesis-knowledge-review`.
 - Semantic queries: `/Users/lexa/Desktop/lexa/omega/mathesis-semantic-queries-20261016`,
   branch `codex/mathesis-semantic-queries`.
+- Finite computation: `/Users/lexa/Desktop/lexa/omega/mathesis-computation-evidence-20261016`,
+  branch `codex/mathesis-computation-evidence`.
 - Original analysis: `/Users/lexa/Desktop/lexa/omega/mathesis-capability-plan-20261016`.
 
 Operational observations: local tests use a task-owned MongoDB on port 27031 and
