@@ -25,9 +25,43 @@
 }
 .archive-intro .intro-actions {
   margin-top: var(--space-5);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
 }
 .archive-intro .button {
   gap: var(--space-5);
+}
+.submission-paths {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-3);
+  margin-top: var(--space-6);
+  max-width: 58rem;
+}
+.submission-path {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  color: var(--ink);
+  text-decoration: none;
+  background: color-mix(in srgb, var(--surface) 72%, var(--accent-soft));
+}
+.submission-path:hover {
+  border-color: var(--accent);
+  box-shadow: var(--shadow);
+}
+.submission-path strong {
+  color: var(--accent);
+  font-size: 0.95rem;
+}
+.submission-path span {
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.55;
 }
 .archive-layout {
   display: grid;
@@ -162,6 +196,9 @@
   }
   .archive-intro .lede {
     font-size: 1rem;
+  }
+  .submission-paths {
+    grid-template-columns: 1fr;
   }
   .archive-layout {
     grid-template-columns: minmax(0, 1fr);

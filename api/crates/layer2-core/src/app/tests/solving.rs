@@ -1078,6 +1078,8 @@ async fn leaderboard_ranks_others_before_total_including_coauthors_and_agent_own
                 person: Some(coauthor.person.clone()),
                 orcid: None,
                 affiliation: None,
+                google_scholar: None,
+                website: None,
             });
             w.app.save(&mut paper).await.unwrap();
         }

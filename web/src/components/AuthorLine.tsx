@@ -1,5 +1,5 @@
 import type { Author } from '../api/types';
-import { orcidHref } from '../lib/links';
+import { orcidHref, safeHttpUrl } from '../lib/links';
 import { ExternalLink } from './ui';
 
 export function AuthorLine({ authors }: { authors: readonly Author[] }) {
@@ -7,6 +7,8 @@ export function AuthorLine({ authors }: { authors: readonly Author[] }) {
     <ul className="author-line">
       {authors.map((a, i) => {
         const orcid = a.orcid ? orcidHref(a.orcid) : null;
+        const scholar = a.google_scholar ? safeHttpUrl(a.google_scholar) : null;
+        const website = a.website ? safeHttpUrl(a.website) : null;
         return (
           <li key={`${a.name}-${i}`}>
             <span className="author-name">{a.name}</span>
@@ -21,6 +23,18 @@ export function AuthorLine({ authors }: { authors: readonly Author[] }) {
               </>
             ) : null}
             {a.affiliation ? <span className="affiliation">{a.affiliation}</span> : null}
+            {scholar ? (
+              <>
+                {' · '}
+                <ExternalLink href={scholar}>Google Scholar</ExternalLink>
+              </>
+            ) : null}
+            {website ? (
+              <>
+                {' · '}
+                <ExternalLink href={website}>website</ExternalLink>
+              </>
+            ) : null}
           </li>
         );
       })}

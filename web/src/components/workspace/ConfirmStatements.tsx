@@ -110,9 +110,9 @@ export function ConfirmStatements({
   return (
     <form className="confirm-form" onSubmit={submit} aria-label="Confirm statements">
       <p>
-        The server read {extracted.length} statement{extracted.length === 1 ? '' : 's'} from the
-        source. For each, check the kind, mark whether it is a main result of the paper or
-        supporting, and select the statements its proof uses. Exclude anything that was misparsed.{' '}
+        We found {extracted.length} statement{extracted.length === 1 ? '' : 's'} in your source.
+        Keep the defaults when they are right: check each label, role and dependency, and exclude
+        anything that was read incorrectly. You do not need to rewrite the mathematics.{' '}
         {submission.kind === 'conjecture'
           ? 'Mark at least one conjecture or question as main.'
           : 'Mark at least one proved statement as a main result.'}
@@ -181,8 +181,8 @@ export function ConfirmStatements({
           </label>
         </div>
         <p className="hint">
-          Check each statement after reviewing its kind, role and dependencies. Edits stay in this
-          page while you navigate. Changing a statement clears its check.
+          This is a one-time check before review. Edits stay in this page while you navigate;
+          changing a statement clears its check.
         </p>
       </div>
       <div className="table-wrap">
@@ -264,7 +264,7 @@ export function ConfirmStatements({
           className="button"
           disabled={busy || (rows.length > 10 && reviewed.size !== rows.length)}
         >
-          {busy ? 'Confirming…' : 'Confirm statements and start review'}
+          {busy ? 'Starting review…' : 'Check statements and start Orchestra review'}
         </button>
       </div>
       <InlineError error={error} />
@@ -312,7 +312,7 @@ function ConfirmRowView({
         <SettlesEditor row={row} onPatch={onPatch} />
         <label className="checkbox statement-checked">
           <input type="checkbox" checked={checked} onChange={(e) => onCheck(e.target.checked)} />
-          <span>Checked {row.id}</span>
+          <span>I checked this statement</span>
         </label>
       </td>
       <td className="confirm-kind" data-label="Kind">

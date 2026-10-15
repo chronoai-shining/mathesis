@@ -16,9 +16,9 @@ export function EvidencePicker({
     <fieldset className="evidence-picker">
       <legend>Computational evidence & supplements</legend>
       <p className="hint">
-        Attach certificates, computation logs, data or source files. They are saved with this
-        manuscript version and included in the review inventory. A supplied certificate is not yet
-        independently verified.
+        Attach certificates, computation logs, data, a PDF reading copy or source files. They are
+        saved with this manuscript version and included in the review inventory. A supplied
+        certificate is not yet independently verified.
       </p>
       <label>
         Attach evidence files

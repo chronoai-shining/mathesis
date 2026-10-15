@@ -1056,6 +1056,8 @@ async fn archive_text_search_and_formalization_receipts_survive_reconnect() {
         person: None,
         orcid: None,
         affiliation: None,
+        google_scholar: None,
+        website: None,
     }];
     let record = Record {
         id: "WP-2026-0001".into(),

@@ -240,9 +240,20 @@ describe('solving pages', () => {
       'href',
       '/papers',
     );
+    expect(
+      within(intro).getByRole('link', { name: 'Submit a paper or conjecture' }),
+    ).toHaveAttribute('href', '/submit');
     expect(within(intro).getByRole('link', { name: 'Contribute a formalization' })).toHaveAttribute(
       'href',
       '/formalizations',
+    );
+    expect(within(intro).getByRole('link', { name: /Paper or short note/ })).toHaveAttribute(
+      'href',
+      '/submit',
+    );
+    expect(within(intro).getByRole('link', { name: /^ConjectureType/ })).toHaveAttribute(
+      'href',
+      '/submit',
     );
     const research = screen.getByRole('heading', { name: 'Latest research' });
     const conjectures = screen.getByRole('heading', { name: 'Open conjectures' });

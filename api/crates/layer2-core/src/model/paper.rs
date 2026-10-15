@@ -24,6 +24,10 @@ pub struct Author {
     pub orcid: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub affiliation: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub google_scholar: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub website: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -383,6 +387,33 @@ impl NewPaper {
         )?;
         for author in &self.authors {
             require_text("author name", &author.name, 200)?;
+            if let Some(value) = &author.affiliation
+                && value.chars().count() > 300
+            {
+                return Err(CoreError::invalid(
+                    "author affiliation exceeds 300 characters",
+                ));
+            }
+            if let Some(value) = author.orcid.as_deref()
+                && (value.chars().count() > 2_000 || !valid_orcid(value) || value.trim().is_empty())
+            {
+                return Err(CoreError::invalid("author ORCID is not valid"));
+            }
+            for (field, value) in [
+                (
+                    "author Google Scholar URL",
+                    author.google_scholar.as_deref(),
+                ),
+                ("author website", author.website.as_deref()),
+            ] {
+                if let Some(value) = value
+                    && (!crate::model::common::is_web_url(value) || value.chars().count() > 2_000)
+                {
+                    return Err(CoreError::invalid(format!(
+                        "{field} is not a valid web URL"
+                    )));
+                }
+            }
         }
         if self.authors.len() > 50 {
             return Err(CoreError::invalid("at most 50 authors"));
@@ -404,6 +435,25 @@ impl NewPaper {
             .map(normalise_doi)
             .filter(|doi| !doi.is_empty());
     }
+}
+
+fn valid_orcid(value: &str) -> bool {
+    let id = value
+        .trim()
+        .strip_prefix("https://orcid.org/")
+        .or_else(|| value.trim().strip_prefix("http://orcid.org/"))
+        .unwrap_or(value.trim());
+    let parts: Vec<&str> = id.split('-').collect();
+    parts.len() == 4
+        && parts[..3]
+            .iter()
+            .all(|part| part.len() == 4 && part.chars().all(|c| c.is_ascii_digit()))
+        && parts[3].len() == 4
+        && parts[3][..3].chars().all(|c| c.is_ascii_digit())
+        && parts[3]
+            .chars()
+            .last()
+            .is_some_and(|c| c.is_ascii_digit() || c == 'X')
 }
 
 /// The author's confirmation of one extracted statement.

@@ -4,13 +4,66 @@ import { useState, type FormEvent } from 'react';
 import { LeanDepositForm } from '../components/LeanDeposit';
 import { useApi } from '../api/context';
 import { PROCESSING_CONSENT_VERSION, PROCESSING_CONSENT_TEXT } from '../api/types';
-import type { AiUseLevel, SubmissionKind } from '../api/types';
+import type { AiUseLevel, Author, SubmissionKind } from '../api/types';
 import { useSession } from '../auth/session';
 import { Field, InlineError, Loading, SignInPrompt } from '../components/ui';
-import { AI_USES, AI_USE_DESCRIPTIONS, AI_USE_LABELS, formatBytes } from '../lib/labels';
-import { SOURCE_ACCEPT, buildNewPaper, sourceFileProblem } from '../lib/upload';
+import {
+  AI_DISCLOSURE_STATEMENTS,
+  AI_USES,
+  AI_USE_DESCRIPTIONS,
+  AI_USE_LABELS,
+  formatBytes,
+} from '../lib/labels';
+import { SOURCE_ACCEPT, buildNewPaper, pdfCopyProblem, sourceFileProblem } from '../lib/upload';
+import { orcidHref, safeHttpUrl } from '../lib/links';
 import { LatexText } from '../components/Markdown';
 import { Link, useRouter } from '../routing/router';
+
+type AuthorDraft = {
+  name: string;
+  affiliation: string;
+  orcid: string;
+  googleScholar: string;
+  website: string;
+};
+
+function emptyAuthor(): AuthorDraft {
+  return { name: '', affiliation: '', orcid: '', googleScholar: '', website: '' };
+}
+
+function authorHasContent(author: AuthorDraft): boolean {
+  return Object.values(author).some((value) => value.trim() !== '');
+}
+
+function suppliedAuthors(
+  drafts: AuthorDraft[],
+): { ok: true; value: Author[] } | { ok: false; error: string } {
+  const value: Author[] = [];
+  for (const [index, draft] of drafts.entries()) {
+    const number = index + 1;
+    const name = draft.name.trim();
+    if (!name) return { ok: false, error: `Give a name for author ${number}.` };
+    if (draft.orcid.trim() && !orcidHref(draft.orcid.trim())) {
+      return { ok: false, error: `The ORCID for author ${number} is not valid.` };
+    }
+    for (const [label, raw] of [
+      ['Google Scholar URL', draft.googleScholar],
+      ['personal website', draft.website],
+    ] as const) {
+      if (raw.trim() && !safeHttpUrl(raw.trim())) {
+        return { ok: false, error: `${label} for author ${number} must be an http(s) URL.` };
+      }
+    }
+    value.push({
+      name,
+      ...(draft.affiliation.trim() ? { affiliation: draft.affiliation.trim() } : {}),
+      ...(draft.orcid.trim() ? { orcid: draft.orcid.trim() } : {}),
+      ...(draft.googleScholar.trim() ? { google_scholar: draft.googleScholar.trim() } : {}),
+      ...(draft.website.trim() ? { website: draft.website.trim() } : {}),
+    });
+  }
+  return { ok: true, value };
+}
 
 export function SubmitPage({
   initialIntake,
@@ -78,6 +131,79 @@ export function SubmitPage({
   );
 }
 
+function AuthorFields({
+  index,
+  author,
+  canRemove,
+  onChange,
+  onRemove,
+}: {
+  index: number;
+  author: AuthorDraft;
+  canRemove: boolean;
+  onChange: (author: AuthorDraft) => void;
+  onRemove: () => void;
+}) {
+  const patch = (key: keyof AuthorDraft, value: string) => onChange({ ...author, [key]: value });
+  return (
+    <div className="author-card">
+      <div className="form-row">
+        <Field label="Name" htmlFor={`author-${index}-name`}>
+          <input
+            id={`author-${index}-name`}
+            value={author.name}
+            onChange={(e) => patch('name', e.target.value)}
+            autoComplete="name"
+          />
+        </Field>
+        <Field label="Affiliation" htmlFor={`author-${index}-affiliation`}>
+          <input
+            id={`author-${index}-affiliation`}
+            value={author.affiliation}
+            onChange={(e) => patch('affiliation', e.target.value)}
+            placeholder="University or institute"
+            autoComplete="organization"
+          />
+        </Field>
+      </div>
+      <div className="form-row">
+        <Field label="ORCID" htmlFor={`author-${index}-orcid`} hint="e.g. 0000-0002-1825-0097">
+          <input
+            id={`author-${index}-orcid`}
+            value={author.orcid}
+            onChange={(e) => patch('orcid', e.target.value)}
+            placeholder="0000-0002-1825-0097"
+            inputMode="text"
+          />
+        </Field>
+        <Field label="Google Scholar" htmlFor={`author-${index}-scholar`}>
+          <input
+            id={`author-${index}-scholar`}
+            type="url"
+            value={author.googleScholar}
+            onChange={(e) => patch('googleScholar', e.target.value)}
+            placeholder="https://scholar.google.com/citations?..."
+          />
+        </Field>
+      </div>
+      <Field label="Personal website" htmlFor={`author-${index}-website`}>
+        <input
+          id={`author-${index}-website`}
+          type="url"
+          value={author.website}
+          onChange={(e) => patch('website', e.target.value)}
+          placeholder="https://example.edu/~name"
+        />
+      </Field>
+      {canRemove ? (
+        <button type="button" className="button button-quiet button-small" onClick={onRemove}>
+          Remove author
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
 export function SubmitForm({ reviewOnly = false }: { reviewOnly?: boolean } = {}) {
   const api = useApi();
   const { person } = useSession();
@@ -91,13 +217,13 @@ export function SubmitForm({ reviewOnly = false }: { reviewOnly?: boolean } = {}
   const [background, setBackground] = useState('');
   const [origin, setOrigin] = useState('');
   const [authorName, setAuthorName] = useState(person?.display_name ?? '');
-  const [sourceAuthors, setSourceAuthors] = useState('');
+  const [authors, setAuthors] = useState<AuthorDraft[]>([emptyAuthor()]);
   const typed = kind === 'conjecture' && mode === 'type';
   const { navigate } = useRouter();
   const [file, setFile] = useState<File | null>(null);
+  const [pdfCopy, setPdfCopy] = useState<File | null>(null);
   const [evidence, setEvidence] = useState<EvidenceInput[]>([]);
   const [aiLevel, setAiLevel] = useState<AiUseLevel>('none');
-  const [aiStatement, setAiStatement] = useState('');
   const [msc, setMsc] = useState('');
   const [doi, setDoi] = useState('');
   const [openToContributors, setOpen] = useState(false);
@@ -105,6 +231,7 @@ export function SubmitForm({ reviewOnly = false }: { reviewOnly?: boolean } = {}
   const [error, setError] = useState<unknown>(null);
 
   const fileProblem = file ? sourceFileProblem(file) : null;
+  const pdfProblem = pdfCopy ? pdfCopyProblem(pdfCopy) : null;
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
@@ -117,7 +244,17 @@ export function SubmitForm({ reviewOnly = false }: { reviewOnly?: boolean } = {}
       setError(fileProblem);
       return;
     }
-    const metadata = buildNewPaper({ aiLevel, aiStatement, msc, doi, openToContributors });
+    if (!typed && pdfProblem) {
+      setError(pdfProblem);
+      return;
+    }
+    const metadata = buildNewPaper({
+      aiLevel,
+      aiStatement: AI_DISCLOSURE_STATEMENTS[aiLevel],
+      msc,
+      doi,
+      openToContributors,
+    });
     if (!metadata.ok) {
       setError(metadata.error);
       return;
@@ -142,15 +279,30 @@ export function SubmitForm({ reviewOnly = false }: { reviewOnly?: boolean } = {}
       }
       metadata.value.typed_conjecture = { title, statement, background, origin };
       metadata.value.authors = [{ name: authorName, person: person?.id }];
-    } else if (sourceAuthors.trim()) {
-      metadata.value.authors = sourceAuthors
-        .split('\n')
-        .map((name) => name.trim())
-        .filter(Boolean)
-        .map((name) => ({ name }));
+    } else {
+      const supplied = authors.filter((author) => authorHasContent(author));
+      if (supplied.length > 0) {
+        const parsed = suppliedAuthors(supplied);
+        if (!parsed.ok) {
+          setError(parsed.error);
+          return;
+        }
+        metadata.value.authors = parsed.value;
+      }
     }
     setBusy(true);
-    (typed ? Promise.resolve(undefined) : withEvidence(file as File, evidence))
+    const attachments = pdfCopy
+      ? [
+          ...evidence,
+          {
+            file: pdfCopy,
+            kind: 'supplement' as const,
+            description: 'Author-provided PDF reading copy.',
+            claims: [],
+          },
+        ]
+      : evidence;
+    (typed ? Promise.resolve(undefined) : withEvidence(file as File, attachments))
       .then((source) => api.createSubmission(metadata.value, source))
       .then(
         (s) => {
@@ -299,6 +451,24 @@ export function SubmitForm({ reviewOnly = false }: { reviewOnly?: boolean } = {}
               onChange={(e) => setFile(e.target.files?.[0] ?? null)}
             />
           </Field>
+          <Field
+            label="PDF manuscript or reading copy (optional)"
+            htmlFor="pdf-copy"
+            hint="Useful when your manuscript comes from Word or PDF. LaTeX is still required for automatic statement extraction, compilation and review. At most 30 MB."
+          >
+            <input
+              id="pdf-copy"
+              type="file"
+              accept="application/pdf,.pdf"
+              onChange={(e) => setPdfCopy(e.target.files?.[0] ?? null)}
+            />
+          </Field>
+          {pdfCopy ? (
+            <p className="small" aria-live="polite">
+              {pdfCopy.name} · {formatBytes(pdfCopy.size)}
+              {pdfProblem ? <span className="form-error"> — {pdfProblem}</span> : null}
+            </p>
+          ) : null}
           <EvidencePicker value={evidence} onChange={setEvidence} />
           {file ? (
             <p className="small" aria-live="polite">
@@ -306,18 +476,32 @@ export function SubmitForm({ reviewOnly = false }: { reviewOnly?: boolean } = {}
               {fileProblem ? <span className="form-error"> — {fileProblem}</span> : null}
             </p>
           ) : null}
-          <Field
-            label="Authors (optional)"
-            htmlFor="source-authors"
-            hint="Leave blank to read authors from the source. If the manuscript omits them, enter the author names here, one per line. This replaces the source author list."
-          >
-            <textarea
-              id="source-authors"
-              rows={2}
-              value={sourceAuthors}
-              onChange={(e) => setSourceAuthors(e.target.value)}
-            />
-          </Field>
+          <fieldset className="author-fields">
+            <legend>Authors (optional)</legend>
+            <p className="hint">
+              Leave this blank to read the author list from the manuscript. Add details here when
+              the PDF or source does not contain them; these entries replace the source author list.
+            </p>
+            {authors.map((author, index) => (
+              <AuthorFields
+                key={index}
+                index={index}
+                author={author}
+                canRemove={authors.length > 1}
+                onChange={(next) =>
+                  setAuthors((current) => current.map((item, i) => (i === index ? next : item)))
+                }
+                onRemove={() => setAuthors((current) => current.filter((_, i) => i !== index))}
+              />
+            ))}
+            <button
+              type="button"
+              className="button button-quiet button-small"
+              onClick={() => setAuthors((current) => [...current, emptyAuthor()])}
+            >
+              Add another author
+            </button>
+          </fieldset>
         </>
       )}
       {!reviewOnly ? (
@@ -333,7 +517,11 @@ export function SubmitForm({ reviewOnly = false }: { reviewOnly?: boolean } = {}
       <p className="hint">Reviews and letters are only shown to you.</p>
 
       <fieldset className="radio-list">
-        <legend>Use of AI</legend>
+        <legend>AI use in this work</legend>
+        <p className="hint">
+          Choose the closest description. Add fuller disclosure directly in the manuscript if
+          needed.
+        </p>
         {AI_USES.map((level) => (
           <label key={level} className="radio">
             <input
@@ -349,19 +537,6 @@ export function SubmitForm({ reviewOnly = false }: { reviewOnly?: boolean } = {}
           </label>
         ))}
       </fieldset>
-      <Field
-        label="AI disclosure statement"
-        htmlFor="ai-statement"
-        hint="Which systems were used and for what, or that none were. Only shown to you and staff."
-      >
-        <textarea
-          id="ai-statement"
-          rows={3}
-          required
-          value={aiStatement}
-          onChange={(e) => setAiStatement(e.target.value)}
-        />
-      </Field>
 
       <div className="form-row">
         <Field label="MSC 2020 codes (optional)" htmlFor="msc" hint="e.g. 11B83, 05D10">

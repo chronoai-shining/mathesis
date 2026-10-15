@@ -2593,6 +2593,8 @@ async fn cma_payer_table_uses_only_submitter_and_replays_are_immutable() {
         person: Some(coauthor.person.clone()),
         orcid: None,
         affiliation: None,
+        google_scholar: None,
+        website: None,
     });
     let revision = paper.revision;
     paper.revision += 1;
