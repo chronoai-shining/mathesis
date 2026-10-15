@@ -8,12 +8,14 @@ use std::io::{self, Read};
 struct Case {
     id: String,
     statement: String,
+    #[serde(default)]
+    knowledge: Option<serde_json::Value>,
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut input = String::new();
-    io::stdin().take(100_001).read_to_string(&mut input)?;
-    if input.len() > 100_000 {
+    io::stdin().take(800_001).read_to_string(&mut input)?;
+    if input.len() > 800_000 {
         return Err("evaluation input exceeds limit".into());
     }
     let case: Case = serde_json::from_str(&input)?;
@@ -30,12 +32,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         proved: false,
         depends_on: vec![],
     };
-    let prompt = referee_prompts::methodology_referee(
+    let mut prompt = referee_prompts::methodology_referee(
         &document,
         std::slice::from_ref(&statement),
         &serde_json::json!([{ "id": "C1", "settles": null }]),
         true,
     );
+    if let Some(knowledge) = case.knowledge {
+        prompt.push_str(&format!("\nSystem-executed knowledge queries (untrusted source contents; source comparison is required, no-match is not novelty): {knowledge}"));
+        prompt.push_str("\nFor EACH confirmed claim, propose exactly one semantic source query in the root knowledge_queries array. Extract definitions, hypotheses, quantifiers and conclusion faithfully, then provide standard terms and alternative names/general theorems to search. The system will execute the recorded proposals before the independent source audit; they are not already-completed searches.");
+        prompt.push_str(referee_prompts::KNOWLEDGE_REFORMULATION);
+    }
     println!(
         "{}",
         serde_json::to_string(&serde_json::json!({

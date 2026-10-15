@@ -1,0 +1,253 @@
+{
+  "schema": "mathesis.retrieval-score.v1",
+  "scope": "candidate retrieval only; no coverage or refutation judgment",
+  "observations": 12,
+  "completed": {
+    "numerator": 12,
+    "denominator": 12,
+    "value": 1.0
+  },
+  "required_declarations_at_6": {
+    "numerator": 0,
+    "denominator": 12,
+    "value": 0.0
+  },
+  "required_declarations_at_10": {
+    "numerator": 0,
+    "denominator": 12,
+    "value": 0.0
+  },
+  "required_modules_at_6": {
+    "numerator": 0,
+    "denominator": 12,
+    "value": 0.0
+  },
+  "per_family": {
+    "bonferroni": {
+      "required_declarations_at_6": {
+        "numerator": 0,
+        "denominator": 3,
+        "value": 0.0
+      }
+    },
+    "cassini": {
+      "required_declarations_at_6": {
+        "numerator": 0,
+        "denominator": 3,
+        "value": 0.0
+      }
+    },
+    "pigeonhole": {
+      "required_declarations_at_6": {
+        "numerator": 0,
+        "denominator": 3,
+        "value": 0.0
+      }
+    },
+    "projection_amgm": {
+      "required_declarations_at_6": {
+        "numerator": 0,
+        "denominator": 3,
+        "value": 0.0
+      }
+    }
+  },
+  "cases": [
+    {
+      "id": "pigeonhole-renamed",
+      "family": "pigeonhole",
+      "query_state": "complete",
+      "latency_ms": 11437,
+      "required_source_count": 1,
+      "required_declaration_ranks": [
+        null
+      ],
+      "required_module_ranks": [
+        null
+      ],
+      "all_required_declarations_at_6": false,
+      "all_required_declarations_at_10": false,
+      "all_required_modules_at_6": false
+    },
+    {
+      "id": "pigeonhole-composed",
+      "family": "pigeonhole",
+      "query_state": "complete",
+      "latency_ms": 10611,
+      "required_source_count": 1,
+      "required_declaration_ranks": [
+        null
+      ],
+      "required_module_ranks": [
+        null
+      ],
+      "all_required_declarations_at_6": false,
+      "all_required_declarations_at_10": false,
+      "all_required_modules_at_6": false
+    },
+    {
+      "id": "pigeonhole-non_strict",
+      "family": "pigeonhole",
+      "query_state": "complete",
+      "latency_ms": 10209,
+      "required_source_count": 1,
+      "required_declaration_ranks": [
+        null
+      ],
+      "required_module_ranks": [
+        null
+      ],
+      "all_required_declarations_at_6": false,
+      "all_required_declarations_at_10": false,
+      "all_required_modules_at_6": false
+    },
+    {
+      "id": "cassini-renamed",
+      "family": "cassini",
+      "query_state": "complete",
+      "latency_ms": 10261,
+      "required_source_count": 1,
+      "required_declaration_ranks": [
+        null
+      ],
+      "required_module_ranks": [
+        null
+      ],
+      "all_required_declarations_at_6": false,
+      "all_required_declarations_at_10": false,
+      "all_required_modules_at_6": false
+    },
+    {
+      "id": "cassini-specialized",
+      "family": "cassini",
+      "query_state": "complete",
+      "latency_ms": 10122,
+      "required_source_count": 1,
+      "required_declaration_ranks": [
+        null
+      ],
+      "required_module_ranks": [
+        null
+      ],
+      "all_required_declarations_at_6": false,
+      "all_required_declarations_at_10": false,
+      "all_required_modules_at_6": false
+    },
+    {
+      "id": "cassini-roots_dropped",
+      "family": "cassini",
+      "query_state": "complete",
+      "latency_ms": 10153,
+      "required_source_count": 1,
+      "required_declaration_ranks": [
+        null
+      ],
+      "required_module_ranks": [
+        null
+      ],
+      "all_required_declarations_at_6": false,
+      "all_required_declarations_at_10": false,
+      "all_required_modules_at_6": false
+    },
+    {
+      "id": "projection_amgm-original",
+      "family": "projection_amgm",
+      "query_state": "complete",
+      "latency_ms": 10109,
+      "required_source_count": 1,
+      "required_declaration_ranks": [
+        null
+      ],
+      "required_module_ranks": [
+        null
+      ],
+      "all_required_declarations_at_6": false,
+      "all_required_declarations_at_10": false,
+      "all_required_modules_at_6": false
+    },
+    {
+      "id": "projection_amgm-renamed",
+      "family": "projection_amgm",
+      "query_state": "complete",
+      "latency_ms": 10309,
+      "required_source_count": 1,
+      "required_declaration_ranks": [
+        null
+      ],
+      "required_module_ranks": [
+        null
+      ],
+      "all_required_declarations_at_6": false,
+      "all_required_declarations_at_10": false,
+      "all_required_modules_at_6": false
+    },
+    {
+      "id": "projection_amgm-two_factors",
+      "family": "projection_amgm",
+      "query_state": "complete",
+      "latency_ms": 10215,
+      "required_source_count": 1,
+      "required_declaration_ranks": [
+        null
+      ],
+      "required_module_ranks": [
+        null
+      ],
+      "all_required_declarations_at_6": false,
+      "all_required_declarations_at_10": false,
+      "all_required_modules_at_6": false
+    },
+    {
+      "id": "bonferroni-upper",
+      "family": "bonferroni",
+      "query_state": "complete",
+      "latency_ms": 10259,
+      "required_source_count": 1,
+      "required_declaration_ranks": [
+        null
+      ],
+      "required_module_ranks": [
+        null
+      ],
+      "all_required_declarations_at_6": false,
+      "all_required_declarations_at_10": false,
+      "all_required_modules_at_6": false
+    },
+    {
+      "id": "bonferroni-bracket",
+      "family": "bonferroni",
+      "query_state": "complete",
+      "latency_ms": 10359,
+      "required_source_count": 2,
+      "required_declaration_ranks": [
+        null,
+        null
+      ],
+      "required_module_ranks": [
+        null,
+        null
+      ],
+      "all_required_declarations_at_6": false,
+      "all_required_declarations_at_10": false,
+      "all_required_modules_at_6": false
+    },
+    {
+      "id": "bonferroni-signed_weights",
+      "family": "bonferroni",
+      "query_state": "complete",
+      "latency_ms": 10194,
+      "required_source_count": 1,
+      "required_declaration_ranks": [
+        null
+      ],
+      "required_module_ranks": [
+        null
+      ],
+      "all_required_declarations_at_6": false,
+      "all_required_declarations_at_10": false,
+      "all_required_modules_at_6": false
+    }
+  ],
+  "freeze_sha256": "4cbc93154e116f57923b3cf475904638640856a92e929573670b6a60c8bf884b",
+  "manifest_sha256": "f38e91b6b00cc8ff4854c83ab7ca39c9042dc7d910b398a642d24f02d42c55d2"
+}

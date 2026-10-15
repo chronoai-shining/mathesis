@@ -1,0 +1,8 @@
+{
+  "id": "projection_amgm-two_factors",
+  "state": "complete",
+  "latency_ms": 10215,
+  "request_sha256": "a1c952140636c7d07714f5d179be82c504de393c13c55e1f0c83ea3e5c54f472",
+  "exit_code": 0,
+  "response_sha256": "32fb8c2434659d7bdabcd70359f1a7de48d8a8bf8928f540437008002b11f2c3"
+}

@@ -1,0 +1,5 @@
+{
+  "index_revision": "sha256:2838a557bfddda5a1f9410e0dcf596a67112c0ec0f163c4cf1a787abcce15d2b",
+  "query": "Question\nIn a commutative ring R let p²=p+1, q²=q+1, p+q=1 and pq=−1; let m be a nonnegative integer. For u_j=a p^j+b q^j, u_(m+1)²−u_(m+1)u_m−u_m²=−5ab(−1)^m.",
+  "diagnostic_only": true
+}

@@ -1,0 +1,8 @@
+{
+  "id": "cassini-renamed",
+  "state": "complete",
+  "latency_ms": 10261,
+  "request_sha256": "aea4a86204433797cfb33cf124192185f4e10a1838ecc39a86bb520a62212650",
+  "exit_code": 0,
+  "response_sha256": "d8732ceaed44a20bd2314d5d740a4ff5fafd64bc16309e572cb04533f3ccb4ef"
+}
