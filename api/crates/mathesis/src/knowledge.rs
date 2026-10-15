@@ -261,7 +261,7 @@ impl Knowledge {
         self.ranked_index(revision, SourceRanking::Legacy).await
     }
 
-    async fn ranked_index(
+    pub(crate) async fn ranked_index(
         &self,
         revision: &str,
         ranking: SourceRanking,

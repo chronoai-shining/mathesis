@@ -44,6 +44,11 @@ def acquire(args):
         'binary_sha256': digest(args.binary), 'initial_retrieval_manifest_sha256': digest(args.retrieval / 'manifest.json'),
         'acquisition_metadata_sha256': digest(args.acquisition / 'metadata.json'),
         'scope': 'Actual lexical queries from untrusted Oracle mathematical reformulations; no CMA source audit or review receipt'}
+    if args.ranking_protocol:
+        manifest['ranking_protocol'] = args.ranking_protocol
+        manifest['scope'] = 'Actual standard-term queries with pinned identifier/path ranking; complete original proposal retained; no CMA audit or review receipt'
+    if args.revision:
+        manifest['implementation_revision'] = args.revision
     if (args.output / 'manifest.json').exists():
         require(read(args.output / 'manifest.json') == manifest, 'semantic acquisition inputs changed')
     else:
@@ -64,6 +69,8 @@ def acquire(args):
         try:
             require(isinstance(proposals, list) and len(proposals) == 1, 'exactly one proposal per confirmed claim required')
             query = query_text(proposals[0])
+            if args.ranking_protocol:
+                query = '; '.join(proposals[0]['search_terms'])
         except (ValueError, AttributeError) as error:
             reason = str(error)
         request = {'proposal': proposals, 'query': query, 'index_revision': manifest['index_revision'],
@@ -76,7 +83,10 @@ def acquire(args):
         observation = {'id': case_id, 'state': 'unavailable', 'request_sha256': digest(folder / 'request.json')}
         with (folder / 'response.json').open('xb') as out, (folder / 'stderr.txt').open('xb') as err:
             try:
-                completed = subprocess.run([str(args.binary.resolve()), '--knowledge-query', manifest['index_revision'], query],
+                command = [str(args.binary.resolve()), '--knowledge-query', manifest['index_revision'], query]
+                if args.ranking_protocol:
+                    command.append(args.ranking_protocol)
+                completed = subprocess.run(command,
                     env=environment, stdout=out, stderr=err, timeout=180, check=False)
                 observation['exit_code'] = completed.returncode
             except subprocess.TimeoutExpired:
@@ -86,6 +96,7 @@ def acquire(args):
         if observation.get('exit_code') == 0:
             response = read(folder / 'response.json')
             validate_response(response, manifest['snapshot'], manifest['index_revision'])
+            require(response['result'].get('ranking_protocol') == args.ranking_protocol, 'query used another ranker')
             observation['state'] = 'complete'
         write_new(folder / 'observation.json', observation)
         print(case_id, observation['state'], observation['latency_ms'], flush=True)
@@ -98,4 +109,6 @@ if __name__ == '__main__':
         parser.add_argument('--' + arg, type=Path, required=True)
     parser.add_argument('--mongo-uri', required=True)
     parser.add_argument('--database', required=True)
+    parser.add_argument('--ranking-protocol', choices=['mathesis.source-ranker.identifier-paths.v1'])
+    parser.add_argument('--revision')
     acquire(parser.parse_args())
