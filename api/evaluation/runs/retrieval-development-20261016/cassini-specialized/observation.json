@@ -1,0 +1,8 @@
+{
+  "id": "cassini-specialized",
+  "state": "complete",
+  "latency_ms": 10122,
+  "request_sha256": "0ca93f387b3c2efb1477bf57b6f50fcade5aa66fcd614fe5d14328fcaa903431",
+  "exit_code": 0,
+  "response_sha256": "d8732ceaed44a20bd2314d5d740a4ff5fafd64bc16309e572cb04533f3ccb4ef"
+}

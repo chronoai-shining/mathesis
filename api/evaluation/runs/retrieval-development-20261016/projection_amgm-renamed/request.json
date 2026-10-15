@@ -1,0 +1,5 @@
+{
+  "index_revision": "sha256:2838a557bfddda5a1f9410e0dcf596a67112c0ec0f163c4cf1a787abcce15d2b",
+  "query": "Question\nFor any three orthogonal projections E,F,G on R³, ((E+F+G)/3)^3−(EFG+EGF+FEG+FGE+GEF+GFE)/6 is positive semidefinite.",
+  "diagnostic_only": true
+}

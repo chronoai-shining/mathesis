@@ -169,3 +169,41 @@ python3 api/evaluation/normalize_oracle.py \
 The output path must be new; historical runs are never overwritten. This
 baseline establishes a measured starting point. It does not satisfy the full
 live Oracle/CMA acceptance test or issue #4's human-reviewed evaluation gate.
+
+## Actual raw source retrieval, 16 October 2026
+
+The [retained diagnostic run](../api/evaluation/runs/retrieval-development-20261016/README.md)
+queries all 12 development inputs against the immutable full source index in
+Mongo/GridFS. Requests use only the confirmed statement and the `Question`
+label. All queries completed. Complete predeclared source-set recall was 0/12
+at both 6 and 10 candidates. This finite exact-source metric does not determine
+whether a different returned theorem could support a valid comparison.
+
+Release cold-load latency averaged 10,353 ms, including index reconstruction
+for each process. Warm worker latency is unmeasured. Debug cold queries reached
+the separate diagnostic 180-second bound; these do not establish production
+latency or justify changing shared infrastructure or the worker's limits.
+
+`retrieval_eval.py` retains each request before execution, exact response hashes,
+source/index identities, limits and per-case timings. Its scorer distinguishes
+module discovery from matching every required declaration and keeps failed
+queries in the denominator. Rerunning its `score` command performs no queries.
+
+`source_referee_eval.py` prepares all prompts from these actual results and
+acquires one streaming Oracle call per development case, with two calls active.
+It includes at most the first six source candidates under the worker's prefix
+bound, requests the contract-2 reformulation schema, and retains every request,
+stream and observed provider receipt. Original no-source exports were checked
+against all 12 saved baseline requests and remained identical. No held-out case
+is admitted by these tools. An uncertain streaming call is never resubmitted.
+
+`semantic_retrieval_eval.py` executes usable saved Oracle proposals on the same
+index and retains intent before each query. The mathematical fields and UTF-8
+limits match the worker's proposal contract; reason stays outside the ranking
+query. Existing intents are never overwritten. `normalize_source_oracle.py`
+uses actual retrieval records, not a model's assertion that it searched, to
+report query status. These diagnostic artifacts cannot enter production as
+review receipts or upgrade Oracle output to independently audited coverage.
+
+The source-informed Oracle acquisition is still running as this increment is
+prepared. It is not a completed source-audit or quality improvement claim.

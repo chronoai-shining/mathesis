@@ -1,0 +1,5 @@
+{
+  "index_revision": "sha256:2838a557bfddda5a1f9410e0dcf596a67112c0ec0f163c4cf1a787abcce15d2b",
+  "query": "Question\nLet X and Y be sets of the same universe with |Y| < |X|. Any observation map h:X→Y takes the same value on two distinct inputs.",
+  "diagnostic_only": true
+}
