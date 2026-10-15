@@ -1028,6 +1028,7 @@ fn audit_for(
             .claims
             .iter()
             .map(|c| AuditedClaim {
+                coverage: None,
                 methodology: Some(method_for(shape, c.kind.is_open())),
                 conjecture: None,
                 claim: c.id.clone(),
@@ -1053,6 +1054,7 @@ async fn audited(
     paper: &Submission,
     audit: RefereeAudit,
 ) -> Submission {
+    let audit = knowledge::with_comparisons(w, reviewer, paper, audit).await;
     w.app
         .update_referee_round(reviewer, &paper.id, 1, RoundUpdate::Audit(done_step(audit)))
         .await
@@ -1151,13 +1153,21 @@ async fn audit_orders_and_fences_decision_advice_letter_then_formal() {
         .begin_referee_round(&auditor, &paper.id)
         .await
         .unwrap();
-    let audit = done_step(audit_for(
-        &paper,
-        Recommendation::MajorRevision,
-        Correctness::Correct,
-        ProofShape::Content,
-        None,
-    ));
+    let audit = done_step(
+        knowledge::with_comparisons(
+            &w,
+            &auditor,
+            &paper,
+            audit_for(
+                &paper,
+                Recommendation::MajorRevision,
+                Correctness::Correct,
+                ProofShape::Content,
+                None,
+            ),
+        )
+        .await,
+    );
     assert!(
         w.app
             .update_referee_round(&auditor, &paper.id, 1, RoundUpdate::Audit(audit.clone()))
@@ -2142,6 +2152,7 @@ async fn displayed_conjecture(w: &World, author: &Caller, reviewer: &Caller) -> 
         agrees_with_referee: true,
         summary: "PRIVATE_AUDIT_SUMMARY".into(),
         claims: vec![AuditedClaim {
+            coverage: None,
             methodology: Some(method_for(ProofShape::Content, true)),
             claim: "C1".into(),
             correctness: Correctness::NotChecked,

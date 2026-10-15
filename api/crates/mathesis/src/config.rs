@@ -128,6 +128,7 @@ impl std::fmt::Debug for CmaByokConfig {
 
 #[derive(Debug, Clone)]
 pub struct Config {
+    pub knowledge_index: Option<String>,
     pub review_concurrency: usize,
     pub cma_byok: Option<CmaByokConfig>,
     pub verifier_program: String,
@@ -242,6 +243,17 @@ impl Config {
             "memory" => Storage::Memory,
             other => bail!("WISHPOOL_STORAGE must be mongo or memory, not {other}"),
         };
+        let knowledge_index = get("WISHPOOL_KNOWLEDGE_INDEX");
+        if let Some(revision) = &knowledge_index
+            && (!matches!(storage, Storage::Mongo { .. })
+                || !revision.strip_prefix("sha256:").is_some_and(|s| {
+                    s.len() == 64
+                        && s.bytes()
+                            .all(|c| c.is_ascii_digit() || (b'a'..=b'f').contains(&c))
+                }))
+        {
+            bail!("WISHPOOL_KNOWLEDGE_INDEX requires MongoDB and an exact sha256 index revision");
+        }
 
         let auth = match get("WISHPOOL_AUTH_MODE").as_deref().unwrap_or("nyxid") {
             "nyxid" => AuthMode::NyxId {
@@ -564,6 +576,7 @@ impl Config {
             Some(_) => bail!("WISHPOOL_CMA_BYOK_ENABLED must be true or false"),
         };
         Ok(Self {
+            knowledge_index,
             cma_byok,
             verifier_program: get("WISHPOOL_VERIFIER_PROGRAM")
                 .unwrap_or_else(|| "mathesis-verifier".into()),

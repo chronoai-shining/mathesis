@@ -731,3 +731,101 @@ fn conjecture_policy_truth_table_and_human_gates() {
         Decision::NotAccepted { .. }
     ));
 }
+
+#[test]
+fn required_knowledge_is_pending_until_query_and_audit_are_both_complete() {
+    for (complete, relation) in [
+        (false, None),
+        (false, Some(CoverageRelation::Unknown)),
+        (true, None),
+    ] {
+        let mut method = content_method();
+        method.knowledge = Some(KnowledgeAdmission {
+            receipt_ids: vec!["stored-query".into()],
+            complete,
+            audited_relation: relation,
+        });
+        assert!(matches!(
+            Policy::default().decide(&current_method_paper(method, None), &[]),
+            Decision::Pending {
+                awaiting: Stage::Literature,
+                ..
+            }
+        ));
+    }
+    let mut method = content_method();
+    method.knowledge = Some(KnowledgeAdmission {
+        receipt_ids: vec!["stored-query".into()],
+        complete: true,
+        audited_relation: Some(CoverageRelation::Unknown),
+    });
+    assert!(matches!(
+        Policy::default().decide(&current_method_paper(method.clone(), None), &[]),
+        Decision::Accept {
+            basis: AdmissionBasis::EscapeWitness
+        }
+    ));
+    method.knowledge.as_mut().unwrap().audited_relation = Some(CoverageRelation::Covered);
+    let Decision::NotAccepted { reasons } =
+        Policy::default().decide(&current_method_paper(method, None), &[])
+    else {
+        panic!("covered result is not new content");
+    };
+    assert!(
+        reasons
+            .iter()
+            .any(|r| matches!(r, RejectReason::InsufficientEvidence { .. }))
+    );
+    assert!(!reasons.contains(&RejectReason::BindOnly));
+}
+
+#[test]
+fn covered_conclusion_retains_the_independent_named_settlement_route() {
+    let problem = OpenProblemRef {
+        name: "Named problem".into(),
+        source: arxiv("2401.01234"),
+    };
+    let mut method = content_method();
+    method.escape = ProofShape::BindOnly;
+    method.witnesses.clear();
+    method.knowledge = Some(KnowledgeAdmission {
+        receipt_ids: vec!["stored-query".into()],
+        complete: true,
+        audited_relation: Some(CoverageRelation::Covered),
+    });
+    method.settlement = Some(SettlementReading {
+        status: EvidenceStatus::Supported,
+        problem: problem.clone(),
+        statement: "Original quantified problem".into(),
+        assumptions: "Exact hypotheses".into(),
+        prior_status: "Open at the stated date in the opened source".into(),
+        resolution: "Proof".into(),
+        matching_argument: "The bound resolves that exact problem".into(),
+        opened_source: "Problem [opened: arXiv:2401.01234]".into(),
+    });
+    assert_eq!(
+        Policy::default().decide(&current_method_paper(method, Some(problem)), &[]),
+        Decision::Accept {
+            basis: AdmissionBasis::OpenProblemSettlement
+        }
+    );
+}
+
+#[test]
+fn correctness_blocks_publication_even_when_required_knowledge_is_unavailable() {
+    let mut method = content_method();
+    method.knowledge = Some(KnowledgeAdmission {
+        receipt_ids: vec![],
+        complete: false,
+        audited_relation: None,
+    });
+    let mut submission = current_method_paper(method, None);
+    if let StagePayload::Escape { assessments } =
+        &mut submission.reports.last_mut().unwrap().payload
+    {
+        assessments[0].correctness = Some(Correctness::Error);
+    }
+    assert!(
+        matches!(Policy::default().decide(&submission, &[]), Decision::NotAccepted { reasons } if matches!(reasons.as_slice(), [RejectReason::IncorrectResult { .. }]))
+    );
+}

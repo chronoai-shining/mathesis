@@ -23,6 +23,10 @@ use crate::auth::AuthenticatedCaller;
 pub(super) fn routes() -> Router<Arc<App>> {
     Router::new()
         .route("/submissions/{id}/referee", axum::routing::get(referee))
+        .route(
+            "/submissions/{id}/referee/knowledge/{receipt}",
+            axum::routing::get(knowledge_response),
+        )
         .route("/submissions/{id}/referee/restart", post(restart_referee))
         .route(
             "/submissions/{id}/review/responses",
@@ -241,6 +245,24 @@ async fn restart_referee(
     Path(id): Path<String>,
 ) -> ApiResult<impl IntoResponse> {
     Ok(Json(app.restart_referee(&caller, &SubmissionId(id)).await?))
+}
+
+async fn knowledge_response(
+    State(app): AppState,
+    AuthenticatedCaller(caller): AuthenticatedCaller,
+    Path((id, receipt)): Path<(String, String)>,
+) -> ApiResult<impl IntoResponse> {
+    let bytes = app
+        .knowledge_response(&caller, &SubmissionId(id), &receipt)
+        .await?
+        .ok_or_else(|| mathesis_core::CoreError::not_found("knowledge response", receipt))?;
+    Ok((
+        [
+            ("content-type", "application/json"),
+            ("cache-control", "private, no-store"),
+        ],
+        bytes,
+    ))
 }
 
 async fn send_feedback(

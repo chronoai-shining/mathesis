@@ -426,6 +426,8 @@ fn methodology_reading(
             "No usable structured comparison of prerequisites, new content and utility was returned.",
         );
     };
+    // The publication gate is derived from actual stored queries by Layer 2.
+    reading.knowledge = None;
     if let Err(error) = reading.validate(claim.kind.is_open()) {
         return MethodologyReading::insufficient(&format!(
             "Incomplete methodology evidence: {error}"
@@ -521,6 +523,7 @@ pub(crate) fn audit(
                 continue;
             };
             readings.push(AuditedClaim {
+                coverage: None,
                 methodology,
                 claim: claim.id.clone(),
                 correctness: Correctness::NotChecked,
@@ -590,6 +593,7 @@ pub(crate) fn audit(
             continue;
         }
         readings.push(AuditedClaim {
+            coverage: None,
             methodology,
             conjecture: None,
             claim: claim.id.clone(),
@@ -606,6 +610,7 @@ pub(crate) fn audit(
         if !readings.iter().any(|r| r.claim == claim.id) {
             missing += 1;
             readings.push(AuditedClaim {
+                coverage: None,
                 methodology: input.review_method.as_ref().map(|_| {
                     mathesis_core::model::MethodologyReading::insufficient(
                         "No usable source-based methodology assessment was returned.",
@@ -1275,6 +1280,7 @@ mod audit_tests {
     fn audit_drops_invented_sources_ids_and_witnesses_and_marks_offline_limits() {
         let claims = super::referee_tests::claims();
         let input = AdvisorInput {
+            knowledge: None,
             review_method: None,
             confirmed_claims: None,
             followup: None,
@@ -1467,6 +1473,7 @@ mod conjecture_tests {
     fn conjecture_audit_requires_opened_source_identity_and_matching_evidence() {
         let claims = super::referee_tests::claims();
         let input = AdvisorInput {
+            knowledge: None,
             review_method: None,
             confirmed_claims: None,
             followup: None,

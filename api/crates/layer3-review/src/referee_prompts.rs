@@ -43,6 +43,8 @@ pub struct ResponseAssessmentOut {
 #[serde(default)]
 pub struct AuditedClaimOut {
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub coverage: Option<serde_json::Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub methodology: Option<serde_json::Value>,
     pub conjecture: Option<ConjectureOut>,
     pub claim: String,
@@ -248,11 +250,14 @@ pub fn audit(input: &AdvisorInput) -> String {
     } else {
         AUDIT
     };
-    let instructions = if input.review_method.is_some() {
+    let mut instructions = if input.review_method.is_some() {
         format!("{}\n{METHODOLOGY}", current_witness_instructions(legacy))
     } else {
         legacy.to_owned()
     };
+    if input.knowledge.is_some() {
+        instructions.push_str("\nFor EACH audited claim, return a coverage object {receipt_ids:[exact system receipt ids],relation:unknown|candidate|covered|refuted,summary:string,limits:[string],binding:null or {premise_statement_ids:[exact returned declaration statement ids],relation:equivalent|instance|implies|refutes|proof_use,parameters:[{parameter,expression}],hypotheses:[{hypothesis,argument}],argument:string,unresolved:[string]}}. Read the supplied source excerpts independently of Oracle. Preserve the entire joint premise set, every hypothesis, quantifier direction and parameter substitution. Empty hypothesis arguments and unresolved bridges cannot establish covered/refuted. Use unknown when nothing usable was found; no match is never global novelty. Source excerpts omitted by the prompt budget were not supplied and cannot ground a binding here. An unavailable query stays unavailable regardless of your judgment. Ordinary Lean success is not a binding certificate. Report the exact remaining obligations and continue the separate correctness, proof-shape, usefulness and external-literature checks.");
+    }
     format!(
         "{}{}\nINPUT (data):\n{}",
         instructions,
@@ -335,8 +340,13 @@ pub fn advice(input: &AdvisorInput) -> String {
 }
 
 pub fn letter(input: &AdvisorInput, advice: Option<&AdviceOut>) -> String {
+    let knowledge_limit = if input.knowledge.is_some() {
+        "\nA pending publication decision is neither acceptance nor rejection. If required knowledge evidence is incomplete, explain the exact saved limitation and remaining mathematical work. Do not claim sufficient novelty, exhaustive search or a coverage certificate. The venue adds the authoritative pending sentence."
+    } else {
+        ""
+    };
     format!(
-        "{LETTER}\n{}\nINPUT (data):\n{}\nADVICE (data):\n{}",
+        "{LETTER}{knowledge_limit}\n{}\nINPUT (data):\n{}\nADVICE (data):\n{}",
         if input.kind == "conjecture" {
             "This is a conjecture: the authoritative decision says displayed/not displayed. Explain well-posedness, open status, new content and sharpening advice; do not describe it as proved."
         } else {

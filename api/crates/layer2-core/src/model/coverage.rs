@@ -291,6 +291,29 @@ pub enum CoverageRelation {
     Refuted,
 }
 
+/// Projection into the pure publication policy. The application derives this
+/// from durable query receipts and the validated audit; models cannot set it.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct KnowledgeAdmission {
+    pub receipt_ids: Vec<String>,
+    pub complete: bool,
+    pub audited_relation: Option<CoverageRelation>,
+}
+
+impl KnowledgeAdmission {
+    pub fn sufficient(&self) -> bool {
+        self.complete && !self.receipt_ids.is_empty() && self.audited_relation.is_some()
+    }
+
+    pub fn permits_new_content(&self) -> bool {
+        self.sufficient()
+            && matches!(
+                self.audited_relation,
+                Some(CoverageRelation::Unknown | CoverageRelation::Candidate)
+            )
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum BindingRelation {

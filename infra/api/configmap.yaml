@@ -13,6 +13,8 @@ data:
   WISHPOOL_PUBLIC_URL: "https://mathesis.example.org"
   WISHPOOL_ROLE: "api"
   WISHPOOL_REVIEW_CONCURRENCY: "2"
+  # Immutable downstream index revision, imported into this deployment's MongoDB.
+  WISHPOOL_KNOWLEDGE_INDEX: ""
   WISHPOOL_STORAGE: "mongo"
   WISHPOOL_MONGODB_DATABASE: "wishpool"
   WISHPOOL_AUTH_MODE: "nyxid"

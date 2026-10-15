@@ -451,6 +451,106 @@ async fn referee_routes_project_visibility_roles_and_letter_validation() {
         .await
         .unwrap();
     app.begin_referee_round(&reviewer, &id).await.unwrap();
+    {
+        use mathesis_core::{model::*, ports::BlobStore};
+        let subject = app
+            .knowledge_subject(&reviewer, &id, 1, &"C1".into())
+            .await
+            .unwrap();
+        let digest = format!("sha256:{}", "a".repeat(64));
+        let mut intent = KnowledgeQueryIntent {
+            id: "query-1".into(),
+            subject: subject.clone(),
+            snapshot: Some(digest.clone()),
+            index_revision: Some(digest),
+            request_digest: String::new(),
+            query: "bounded fixture query".into(),
+            scopes: vec!["fixture".into()],
+            admitted_at: mathesis_core::ports::Clock::now(&SystemClock),
+        };
+        intent.request_digest = KnowledgeQueryReceipt::request_digest(
+            &subject,
+            &intent.snapshot,
+            &intent.index_revision,
+            &intent.query,
+            &intent.scopes,
+        );
+        app.record_knowledge_event(
+            &reviewer,
+            &id,
+            KnowledgeEvent::QueryAdmitted {
+                intent: intent.clone(),
+            },
+        )
+        .await
+        .unwrap();
+        let response = stores
+            .put(br#"{"hits":[],"private_fixture":true}"#, "application/json")
+            .await
+            .unwrap();
+        let receipt = KnowledgeQueryReceipt {
+            id: intent.id,
+            protocol: KNOWLEDGE_QUERY_PROTOCOL.into(),
+            subject,
+            snapshot: intent.snapshot,
+            index_revision: intent.index_revision,
+            request_digest: intent.request_digest,
+            query: intent.query,
+            scopes: intent.scopes,
+            state: KnowledgeQueryState::Complete,
+            response: Some(response),
+            returned: vec![],
+            limits: vec![],
+            retryable: false,
+            started_at: intent.admitted_at,
+            completed_at: mathesis_core::ports::Clock::now(&SystemClock),
+        };
+        app.record_knowledge_event(&reviewer, &id, KnowledgeEvent::QueryCompleted { receipt })
+            .await
+            .unwrap();
+        let path = format!("{base}/knowledge/query-1");
+        let (status, response, headers) = call(&router, "GET", &path, Some("author"), None).await;
+        assert_eq!(status, StatusCode::OK);
+        assert_eq!(response["private_fixture"], true);
+        assert_eq!(headers, "application/json");
+        let raw = router
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .uri(&path)
+                    .header("x-test-subject", "author")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(raw.headers()["cache-control"], "private, no-store");
+        assert_eq!(
+            call(&router, "GET", &path, Some("editor"), None).await.0,
+            StatusCode::OK
+        );
+        assert_eq!(
+            call(&router, "GET", &path, Some("stranger"), None).await.0,
+            StatusCode::NOT_FOUND
+        );
+        assert_eq!(
+            call(&router, "GET", &path, None, None).await.0,
+            StatusCode::UNAUTHORIZED
+        );
+        assert_eq!(
+            call(
+                &router,
+                "GET",
+                &format!("{base}/knowledge/missing"),
+                Some("author"),
+                None
+            )
+            .await
+            .0,
+            StatusCode::NOT_FOUND
+        );
+    }
+
     assert_eq!(
         call(
             &router,

@@ -167,6 +167,23 @@ impl Policy {
             };
         }
 
+        if let Some(claim) = main.iter().find(|claim| {
+            assessments
+                .iter()
+                .find(|a| a.claim == claim.id)
+                .and_then(|a| a.methodology.as_ref())
+                .and_then(|m| m.knowledge.as_ref())
+                .is_some_and(|k| !k.sufficient())
+        }) {
+            return Decision::Pending {
+                awaiting: Stage::Literature,
+                detail: format!(
+                    "Statement {} awaits a completed required knowledge query and a usable source-based comparison. The private review can continue; retry this manuscript version after the recorded limitation is resolved.",
+                    claim.id
+                ),
+            };
+        }
+
         let settles = main.iter().any(|c| {
             c.settles.is_some()
                 && known_by(&c.id).is_none()
@@ -224,6 +241,11 @@ impl Policy {
                     });
                 }
                 if let Some(reading) = &assessment.methodology {
+                    if reading.knowledge.as_ref().is_some_and(|k| {
+                        k.audited_relation == Some(crate::model::CoverageRelation::Covered)
+                    }) {
+                        reasons.push(RejectReason::InsufficientEvidence { claim: claim.id.clone(), detail: format!("Statement {} is covered by the source-audited pinned knowledge comparison and cannot support admission as a new result. Any claimed named open-problem settlement needs its independent audited evidence.", claim.id) });
+                    }
                     if reading.literature != crate::model::EvidenceStatus::Supported
                         || reading.escape == crate::model::ProofShape::Undetermined
                         || reading.validate(false).is_err()
@@ -284,6 +306,23 @@ impl Policy {
             Some(StagePayload::Escape { assessments }) => assessments.as_slice(),
             _ => &[],
         };
+        if let Some(claim) = main.iter().find(|claim| {
+            assessments
+                .iter()
+                .find(|a| a.claim == claim.id)
+                .and_then(|a| a.methodology.as_ref())
+                .and_then(|m| m.knowledge.as_ref())
+                .is_some_and(|k| !k.sufficient())
+        }) {
+            return Decision::Pending {
+                awaiting: Stage::Literature,
+                detail: format!(
+                    "Statement {} awaits a completed required knowledge query and usable source-based comparison. Open status is not established by an unavailable or incomplete search.",
+                    claim.id
+                ),
+            };
+        }
+
         let passes = main.iter().any(|c| {
             assessments.iter().any(|a| {
                 a.claim == c.id

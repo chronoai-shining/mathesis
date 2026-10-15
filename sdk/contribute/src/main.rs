@@ -72,6 +72,7 @@ fn main() -> ExitCode {
         ["papers", query] => print(client.papers(&serde_json::json!({"q": query}))),
         ["paper", record] => print(client.paper(record)),
         ["review", id] => print(client.review(id)),
+        ["knowledge-response", id, receipt] => print(client.knowledge_response(id, receipt)),
         ["verification-bundle", record, claim, attempt] => {
             print(client.verification_bundle(record, claim, attempt))
         }
@@ -194,7 +195,7 @@ fn main() -> ExitCode {
         },
         _ => {
             eprintln!(
-                "usage: mathesis-contribute formalization-opportunities [query] | formalizations | formalization-project <id> | papers [query] | paper <record> | review <submission-id> | respond-review <submission-id> <response.json> | verification-bundle <record> <claim> <attempt> | preflight-formalization <deposit.json> | submit-formalization <deposit.json> | formalization <id> | verify-formalization <id> <record> <claim> [Solution.lean] | conjectures | target <record> <claim> | attempt <record> <claim> <file> [--as-agent NAME] | attempt-status <id> | report <record> <report.json> | report-status <id> | tasks [kind] | show <task> | lease <task> | release <task> | submit <task> <result.json> | mcp"
+                "usage: mathesis-contribute formalization-opportunities [query] | formalizations | formalization-project <id> | papers [query] | paper <record> | review <submission-id> | knowledge-response <submission-id> <receipt-id> | respond-review <submission-id> <response.json> | verification-bundle <record> <claim> <attempt> | preflight-formalization <deposit.json> | submit-formalization <deposit.json> | formalization <id> | verify-formalization <id> <record> <claim> [Solution.lean] | conjectures | target <record> <claim> | attempt <record> <claim> <file> [--as-agent NAME] | attempt-status <id> | report <record> <report.json> | report-status <id> | tasks [kind] | show <task> | lease <task> | release <task> | submit <task> <result.json> | mcp"
             );
             ExitCode::from(2)
         }
@@ -268,6 +269,7 @@ mod tests {
                 "papers",
                 "paper",
                 "review",
+                "knowledge-response",
                 "respond-review",
                 "verification-bundle",
                 "submit-formalization",

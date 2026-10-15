@@ -129,6 +129,27 @@ readings do not decide admission. These are reviewer judgments, never compiled
 Trureturing registrations, FIB proofs or Lean receipts. See
 `docs/REVIEW_METHODOLOGY.md` for protocol and compatibility details.
 
+New referee rounds additionally pin `knowledge_contract: 1`. Before Oracle
+admission the worker runs an actual bounded source query for each confirmed
+claim against one immutable, operator-admitted Trureturing publication/index.
+Intent precedes execution; exact response bytes and receipt identities precede
+model consumption. The same saved evidence reaches Oracle, the source auditor,
+advice and the letter. Query completion is scoped; no match is not global novelty.
+Source-audited coverage requires returned declaration identities, a joint premise
+argument, parameter substitutions and discharged hypotheses. It is not a formal
+coverage certificate. Old rounds without this contract retain their prompts and
+have no retrospective receipts.
+
+New-round admission requires both complete required queries and usable independent
+comparisons. The application derives that gate from saved evidence, never a model's
+claimed completion. Missing evidence leaves publication pending in review while
+private advice and a letter can finish. Explicit mathematical errors still block
+publication. Covered conclusions cannot support the new-result route; a named
+open-problem settlement retains its separate evidence requirements. Staff may
+restart a settled review on the same manuscript version after restoring the
+knowledge source; previous rounds and queries stay immutable. Review-only requests
+remain private and never receive a publication decision.
+
 ## 2. Repository layout
 
 The root contains exactly: `.github/ api/ web/ sdk/ infra/ docs/ CLAUDE.md

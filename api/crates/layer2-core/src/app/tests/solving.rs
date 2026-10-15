@@ -477,6 +477,7 @@ async fn paper_problem_policy_excludes_private_settled_and_failed_audit_candidat
         agrees_with_referee: true,
         summary: "PRIVATE_AUDIT".into(),
         claims: vec![AuditedClaim {
+            coverage: None,
             methodology: Some(method_for(ProofShape::Content, true)),
             claim: "C1".into(),
             conjecture: Some(reading),

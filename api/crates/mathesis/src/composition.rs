@@ -326,6 +326,14 @@ impl Composition {
                 _ => None,
             };
         let worker = Worker {
+            knowledge: config.knowledge_index.as_ref().zip(mongo.as_ref()).map(
+                |(revision, store)| {
+                    Arc::new(crate::knowledge::Knowledge::new(
+                        store.clone(),
+                        revision.clone(),
+                    )) as Arc<dyn crate::knowledge::KnowledgeSource>
+                },
+            ),
             review_concurrency: config.review_concurrency,
             cma_factory: cma.as_ref().map(|operator| {
                 Arc::new(crate::cma_tokens::CmaFactory {

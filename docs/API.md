@@ -945,3 +945,46 @@ submitted in source archives with a root `mathesis-evidence.json` manifest, appe
 in `PaperVersion.evidence`, and is downloadable through
 `GET /api/v1/submissions/{id}/evidence?version=<n>&path=<relative path>` under the
 existing source authorization. See [full contracts and examples](PROJECT_AND_EVIDENCE_INTAKE.md).
+
+
+### Required knowledge search and private evidence
+
+New referee rounds pin `knowledge_contract: 1` and project `knowledge_events` in
+both the staff and author views. Old rounds default to zero and have no fabricated
+query history. Each query is bound to submission, version, claims revision, claim,
+round, source/claim digests and one admitted publication/index. `complete` means
+its recorded bounded plan ran; it does not mean all mathematics was searched.
+`partial`, `timeout`, `unavailable` and `invalid_publication` carry explicit limits.
+No returned declaration is a bounded no-match, never proof of novelty.
+
+`query_admitted` stores `intent`; `query_completed` stores `receipt` including
+request digest, private query, scope, actual execution times, optional exact
+response blob/hash/size, returned declaration identities, limits and retryability.
+`coverage_assessed` stores a `ClaimCoverage` and time. The complete wire schemas
+are in `/api/v1/openapi.json` and `web/src/api/types.ts`.
+
+Audited claims optionally carry `coverage`: exact subject and receipt ids,
+`relation: unknown|candidate|covered|refuted`, separate qualification, summary,
+limits and optional binding. Bindings retain the full joint premise set, relation
+(`equivalent|instance|implies|refutes|proof_use`), parameter substitutions,
+hypotheses/discharge, argument and unresolved obligations. `source_audited` is an
+independent reviewer judgment; `certificate_claim` does not admit a formal
+coverage certificate. A proof-use edge is not an entailment.
+
+`GET /submissions/:id/referee/knowledge/:receipt` returns the exact checksummed
+adapter JSON, including the bounded source excerpts that the review consumed.
+Use URL-encoded receipt ids from the review, not a GridFS blob id. It requires
+current author/staff access, returns 404 to others (including public-paper
+readers), and sends `Cache-Control: private, no-store`. Missing/failed-query
+responses return 404; storage/checksum failures return 503.
+SDK/CLI/MCP expose `knowledge-response` with submission `id` and `receipt`.
+
+The review dossier JSON and Markdown include queries, limits, bindings and
+unresolved obligations. JSON additionally exposes `decision`, including a pending
+publication decision. The application derives the methodology `knowledge` gate
+from durable evidence; clients/models cannot assert query completion. Missing
+required queries or usable comparisons leave publication pending in review while
+private feedback may complete. Explicit proof errors retain their existing block.
+After restoring the source, staff can use the existing referee restart route on
+the same manuscript version; a new round preserves all previous evidence.
+`review_only` still has no publication decision or record.

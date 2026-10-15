@@ -104,6 +104,8 @@ pub struct InformationGainReading {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MethodologyReading {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub knowledge: Option<super::KnowledgeAdmission>,
     pub baseline: Vec<PrerequisiteReading>,
     pub searched: Vec<String>,
     pub literature: EvidenceStatus,
@@ -120,6 +122,7 @@ pub struct MethodologyReading {
 impl MethodologyReading {
     pub fn insufficient(reason: &str) -> Self {
         Self {
+            knowledge: None,
             baseline: vec![],
             searched: vec![],
             literature: EvidenceStatus::Insufficient,
@@ -228,11 +231,18 @@ impl MethodologyReading {
             && self.literature == EvidenceStatus::Supported
             && self.escape == ProofShape::Content
             && self.utility.supports_admission()
+            && self
+                .knowledge
+                .as_ref()
+                .is_none_or(|k| k.permits_new_content())
     }
 
     pub fn supports_settlement(&self, problem: &OpenProblemRef) -> bool {
         self.validate(false).is_ok()
             && self.literature == EvidenceStatus::Supported
+            && self.knowledge.as_ref().is_none_or(|k| {
+                k.sufficient() && k.audited_relation != Some(super::CoverageRelation::Refuted)
+            })
             && self.settlement.as_ref().is_some_and(|reading| {
                 reading.status == EvidenceStatus::Supported && &reading.problem == problem
             })

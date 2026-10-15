@@ -86,19 +86,17 @@ impl MongoStore {
             .read_checked_blob(&snapshot.index, MAX_INDEX_BYTES)
             .await?;
         let index: SourceIndex = serde_json::from_slice(&bytes)
-            .map_err(|_| CoreError::Unavailable("invalid stored knowledge index".into()))?;
+            .map_err(|_| CoreError::invalid("invalid stored knowledge index"))?;
         index
             .validate()
-            .map_err(|e| CoreError::Unavailable(e.to_string()))?;
+            .map_err(|e| CoreError::invalid(e.to_string()))?;
         if index.revision != revision
             || index.publication != snapshot.publication
             || index.candidate_module_count != snapshot.candidate_modules
             || index.modules.len() != snapshot.indexed_modules
             || index.omissions.len() != snapshot.omitted_modules
         {
-            return Err(CoreError::Unavailable(
-                "knowledge snapshot header mismatch".into(),
-            ));
+            return Err(CoreError::invalid("knowledge snapshot header mismatch"));
         }
         Ok(index)
     }
@@ -156,9 +154,7 @@ impl MongoStore {
         maximum: u64,
     ) -> CoreResult<Vec<u8>> {
         if blob.bytes > maximum {
-            return Err(CoreError::Unavailable(
-                "stored knowledge exceeds read limit".into(),
-            ));
+            return Err(CoreError::invalid("stored knowledge exceeds read limit"));
         }
         let download = self
             .bucket()
@@ -172,9 +168,7 @@ impl MongoStore {
             .await
             .map_err(|_| CoreError::Unavailable("cannot read stored knowledge".into()))?;
         if bytes.len() as u64 != blob.bytes || sha256(&bytes) != format!("sha256:{}", blob.sha256) {
-            return Err(CoreError::Unavailable(
-                "stored knowledge checksum mismatch".into(),
-            ));
+            return Err(CoreError::invalid("stored knowledge checksum mismatch"));
         }
         Ok(bytes)
     }

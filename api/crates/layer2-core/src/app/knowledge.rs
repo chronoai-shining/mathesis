@@ -9,6 +9,57 @@ use crate::{
 };
 use sha2::{Digest, Sha256};
 
+pub(super) fn knowledge_admission(
+    file: &RefereeFile,
+    round: &RefereeRound,
+    reading: &AuditedClaim,
+) -> KnowledgeAdmission {
+    let receipts = file
+        .knowledge_events
+        .iter()
+        .filter_map(|event| match event {
+            KnowledgeEvent::QueryCompleted { receipt }
+                if receipt.subject.submission == file.id
+                    && receipt.subject.round == round.number
+                    && receipt.subject.version == round.version
+                    && receipt.subject.claims_revision == round.claims_revision
+                    && receipt.subject.claim == reading.claim =>
+            {
+                Some(receipt.clone())
+            }
+            _ => None,
+        })
+        .collect::<Vec<_>>();
+    let audited_relation = reading
+        .coverage
+        .as_ref()
+        .filter(|c| {
+            c.validate(&receipts).is_ok()
+                && matches!(c.qualification, CoverageQualification::SourceAudited { .. })
+                && c.receipt_ids.len() == receipts.len()
+                && receipts.iter().all(|r| c.receipt_ids.contains(&r.id))
+        })
+        .map(|c| c.relation);
+    let admitted = file
+        .knowledge_events
+        .iter()
+        .filter(|event| {
+            matches!(event,
+        KnowledgeEvent::QueryAdmitted { intent } if intent.subject.round == round.number
+            && intent.subject.claim == reading.claim)
+        })
+        .count();
+    KnowledgeAdmission {
+        receipt_ids: receipts.iter().map(|r| r.id.clone()).collect(),
+        complete: !receipts.is_empty()
+            && receipts.len() == admitted
+            && receipts
+                .iter()
+                .all(|r| r.state == KnowledgeQueryState::Complete),
+        audited_relation,
+    }
+}
+
 impl App {
     pub async fn knowledge_subject(
         &self,
@@ -32,6 +83,7 @@ impl App {
         if Some(round.version) != submission.current_version().map(|v| v.number)
             || round.claims_revision != submission.claims_revision
             || round.is_settled()
+            || round.audit.is_settled()
         {
             return Err(CoreError::conflict(
                 "knowledge work refers to changed or settled review inputs",
@@ -69,6 +121,129 @@ impl App {
         id: &SubmissionId,
         event: KnowledgeEvent,
     ) -> CoreResult<RefereeFile> {
+        self.record_knowledge_event_inner(caller, id, event, None)
+            .await
+    }
+
+    pub async fn record_knowledge_event_leased(
+        &self,
+        caller: &Caller,
+        job: &crate::ports::LeasedJob,
+        leases: &dyn crate::ports::JobLease,
+        event: KnowledgeEvent,
+    ) -> CoreResult<RefereeFile> {
+        self.record_knowledge_event_inner(caller, &job.submission, event, Some((job, leases)))
+            .await
+    }
+
+    /// Store the actual bounded adapter response with the same blob authority as
+    /// the review, then append its completion under the worker's live lease.
+    pub async fn complete_knowledge_query_leased(
+        &self,
+        caller: &Caller,
+        job: &crate::ports::LeasedJob,
+        leases: &dyn crate::ports::JobLease,
+        mut receipt: KnowledgeQueryReceipt,
+        response: Option<&[u8]>,
+    ) -> CoreResult<RefereeFile> {
+        caller.require(Role::Reviewer)?;
+        let subject = self
+            .knowledge_subject(
+                caller,
+                &job.submission,
+                receipt.subject.round,
+                &receipt.subject.claim,
+            )
+            .await?;
+        if subject != receipt.subject || !leases.renew(job).await? {
+            return Err(CoreError::conflict(
+                "knowledge query lost its input or lease fence",
+            ));
+        }
+        let (file, _) = self.referee_file(&job.submission).await?;
+        if let Some(prior) = file.knowledge_events.iter().find_map(|event| match event {
+            KnowledgeEvent::QueryCompleted { receipt: prior } if prior.id == receipt.id => {
+                Some(prior)
+            }
+            _ => None,
+        }) {
+            receipt.response = prior.response.clone();
+            let bytes_match = match (&prior.response, response) {
+                (Some(blob), Some(bytes)) => {
+                    blob.bytes == bytes.len() as u64
+                        && blob.sha256 == format!("{:x}", Sha256::digest(bytes))
+                }
+                (None, None) => true,
+                _ => false,
+            };
+            if &receipt == prior && bytes_match {
+                return Ok(file);
+            }
+            return Err(CoreError::conflict("completed query receipt is immutable"));
+        }
+        if let Some(bytes) = response {
+            if bytes.is_empty() || bytes.len() > 2 * 1024 * 1024 {
+                return Err(CoreError::invalid(
+                    "knowledge response exceeds its byte limit",
+                ));
+            }
+            receipt.response = Some(self.ports.blobs.put(bytes, "application/json").await?);
+        } else {
+            receipt.response = None;
+        }
+        self.record_knowledge_event_leased(
+            caller,
+            job,
+            leases,
+            KnowledgeEvent::QueryCompleted { receipt },
+        )
+        .await
+    }
+
+    pub async fn knowledge_response(
+        &self,
+        caller: &Caller,
+        id: &SubmissionId,
+        receipt_id: &str,
+    ) -> CoreResult<Option<Vec<u8>>> {
+        // The ordinary referee projection enforces current author/staff access.
+        let view = self.referee(caller, id).await?;
+        let blob = view
+            .rounds
+            .iter()
+            .flat_map(|r| &r.knowledge_events)
+            .find_map(|e| match e {
+                KnowledgeEvent::QueryCompleted { receipt } if receipt.id == receipt_id => {
+                    receipt.response.as_ref()
+                }
+                _ => None,
+            });
+        let Some(blob) = blob else {
+            return Ok(None);
+        };
+        let bytes = self
+            .ports
+            .blobs
+            .get(&blob.id)
+            .await?
+            .ok_or_else(|| CoreError::Unavailable("stored query response is missing".into()))?;
+        if bytes.len() as u64 != blob.bytes
+            || format!("{:x}", Sha256::digest(&bytes)) != blob.sha256
+        {
+            return Err(CoreError::Unavailable(
+                "stored query response checksum mismatch".into(),
+            ));
+        }
+        Ok(Some(bytes))
+    }
+
+    async fn record_knowledge_event_inner(
+        &self,
+        caller: &Caller,
+        id: &SubmissionId,
+        event: KnowledgeEvent,
+        lease: Option<(&crate::ports::LeasedJob, &dyn crate::ports::JobLease)>,
+    ) -> CoreResult<RefereeFile> {
         caller.require(Role::Reviewer)?;
         let (mut file, stored) = self.referee_file(id).await?;
         // Identical replay is read-only even after a round has settled.
@@ -105,14 +280,13 @@ impl App {
                         KnowledgeEvent::QueryAdmitted { intent }
                             if intent.subject.round == subject.round =>
                         {
-                            intent.snapshot.as_ref().zip(intent.index_revision.as_ref())
+                            Some((&intent.snapshot, &intent.index_revision))
                         }
                         _ => None,
                     })
                     .next();
                 if let Some((snapshot, index)) = pinned
-                    && (intent.snapshot.as_ref() != Some(snapshot)
-                        || intent.index_revision.as_ref() != Some(index))
+                    && (&intent.snapshot != snapshot || &intent.index_revision != index)
                 {
                     return Err(CoreError::conflict(
                         "review knowledge snapshot is already pinned",
@@ -168,6 +342,11 @@ impl App {
             }
         }
         file.knowledge_events.push(event);
+        if let Some((job, leases)) = lease
+            && !leases.renew(job).await?
+        {
+            return Err(CoreError::conflict("knowledge query lost its lease"));
+        }
         self.store_referee_file(&mut file, stored).await?;
         Ok(file)
     }
