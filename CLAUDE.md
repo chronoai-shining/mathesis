@@ -129,7 +129,7 @@ readings do not decide admission. These are reviewer judgments, never compiled
 Trureturing registrations, FIB proofs or Lean receipts. See
 `docs/REVIEW_METHODOLOGY.md` for protocol and compatibility details.
 
-New referee rounds additionally pin `knowledge_contract: 2`. Before Oracle
+New referee rounds additionally pin `knowledge_contract: 3`. Before Oracle
 admission the worker runs an actual bounded source query for each confirmed
 claim against one immutable, operator-admitted Trureturing publication/index.
 Intent precedes execution; exact response bytes and receipt identities precede
@@ -138,8 +138,12 @@ hypotheses, quantifiers, conclusion and standard search terms); the system admit
 and executes that batch before the audit. The auditor may request one additional
 batch on the same pin, at most one query per claim; a fresh durable audit step
 uses the saved results. Missing required reformulations or unexecuted retrieval
-gaps keep the knowledge gate incomplete. These are lexical source queries with
-model-proposed mathematical terms, not certified semantic equivalence. Contract 1
+gaps keep the knowledge gate incomplete. Contract 3 pins `mathesis.source-ranker.identifier-paths.v1` in each
+request digest: retain whole identifiers and case components, add a separate
+module-path field, and rank reformulations by their search terms. The original
+mathematical extraction is retained and hashed in the request scope. Candidate
+ranking never establishes semantic equivalence. Contract 2 preserves the original
+full-field lexical reformulations and ranker. Contract 1
 retains its original raw-query prompts and contract 0 has no retrospective
 evidence. The same saved evidence reaches Oracle, the source auditor,
 advice and the letter. Query completion is scoped; no match is not global novelty.

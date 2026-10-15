@@ -28,7 +28,10 @@ async fn knowledge_receipts_are_durable_private_idempotent_and_version_bound() {
         Err(CoreError::Forbidden(_))
     ));
     let query = "the confirmed mathematical statement".to_owned();
-    let scopes = vec!["configured source lookup".to_owned()];
+    let scopes = vec![
+        "configured source lookup".to_owned(),
+        KNOWLEDGE_RANKER_SCOPE.into(),
+    ];
     let now = chrono::Utc::now();
     let intent = KnowledgeQueryIntent {
         id: "query-1".into(),
@@ -163,7 +166,7 @@ async fn a_review_pins_one_index_and_rejects_a_second_snapshot() {
         index_revision: Some(format!("sha256:{:x}", Sha256::digest(b"index"))),
         request_digest: String::new(),
         query: "a statement".into(),
-        scopes: vec!["statement index".into()],
+        scopes: vec!["statement index".into(), KNOWLEDGE_RANKER_SCOPE.into()],
         admitted_at: chrono::Utc::now(),
     };
     intent.request_digest = KnowledgeQueryReceipt::request_digest(
@@ -228,7 +231,10 @@ async fn completed_query_requires_the_actual_immutable_response_bytes() {
         index_revision: Some(format!("sha256:{:x}", Sha256::digest(b"index"))),
         request_digest: String::new(),
         query: "statement".into(),
-        scopes: vec!["bounded source search".into()],
+        scopes: vec![
+            "bounded source search".into(),
+            KNOWLEDGE_RANKER_SCOPE.into(),
+        ],
         admitted_at: chrono::Utc::now(),
     };
     intent.request_digest = KnowledgeQueryReceipt::request_digest(
@@ -328,6 +334,7 @@ pub(super) async fn with_comparisons(
             .unwrap();
         let query = paper.claim(&reading.claim).unwrap().statement.clone();
         let scopes = vec![
+            KNOWLEDGE_RANKER_SCOPE.into(),
             "explicit synthetic source fixture".to_owned(),
             KNOWLEDGE_ORACLE_SCOPE.into(),
         ];

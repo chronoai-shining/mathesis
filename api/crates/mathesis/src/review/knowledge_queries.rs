@@ -131,16 +131,32 @@ impl Worker {
                 outcome.unexecuted.insert(proposal.claim);
                 continue;
             }
-            let Some(query) = proposal.query() else {
+            let Some(full_query) = proposal.query() else {
                 outcome.invalid += 1;
                 outcome.unexecuted.insert(proposal.claim);
                 continue;
             };
+            let query = if round.knowledge_contract >= 3 {
+                proposal.search_terms.join("; ")
+            } else {
+                full_query.clone()
+            };
+            let mut scopes = vec![
+                super::knowledge::QUERY_SCOPE.into(),
+                origin.into(),
+                format!("Retrieval gap: {}", proposal.reason),
+            ];
+            if round.knowledge_contract >= 3 {
+                use sha2::{Digest, Sha256};
+                scopes.push(KNOWLEDGE_RANKER_SCOPE.into());
+                scopes.push(format!("Standard search terms from mathematical reformulation sha256:{:x}; full definitions, hypotheses, quantifiers and conclusion retained in the originating model response.", Sha256::digest(full_query.as_bytes())));
+            }
             if used {
                 if !intents.iter().any(|i| {
                     i.subject.claim == proposal.claim
                         && i.query == query
                         && i.scopes.iter().any(|s| s == origin)
+                        && (round.knowledge_contract < 3 || i.scopes == scopes)
                 }) {
                     outcome.unexecuted.insert(proposal.claim);
                 }
@@ -150,11 +166,6 @@ impl Worker {
                 .app
                 .knowledge_subject(&self.referee_account, &paper.id, number, &proposal.claim)
                 .await?;
-            let scopes = vec![
-                super::knowledge::QUERY_SCOPE.into(),
-                origin.into(),
-                format!("Retrieval gap: {}", proposal.reason),
-            ];
             let request_digest = KnowledgeQueryReceipt::request_digest(
                 &subject,
                 &pin.snapshot,

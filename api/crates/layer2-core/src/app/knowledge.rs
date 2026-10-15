@@ -102,6 +102,7 @@ impl App {
         let mut replayed = 0;
         for intent in &intents {
             intent.validate()?;
+            validate_knowledge_ranker(file.current().unwrap().knowledge_contract, &intent.scopes)?;
             if !ids.insert(&intent.id)
                 || !claims.insert(&intent.subject.claim)
                 || intent.subject.round != intents[0].subject.round
@@ -392,6 +393,10 @@ impl App {
         match &event {
             KnowledgeEvent::QueryAdmitted { intent } => {
                 intent.validate()?;
+                validate_knowledge_ranker(
+                    file.current().unwrap().knowledge_contract,
+                    &intent.scopes,
+                )?;
                 if file.knowledge_events.iter().any(|e| {
                     matches!(e,
                     KnowledgeEvent::QueryAdmitted { intent: previous } if previous.id == intent.id)

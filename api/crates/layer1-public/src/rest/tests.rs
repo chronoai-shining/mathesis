@@ -465,7 +465,7 @@ async fn referee_routes_project_visibility_roles_and_letter_validation() {
             index_revision: Some(digest),
             request_digest: String::new(),
             query: "bounded fixture query".into(),
-            scopes: vec!["fixture".into()],
+            scopes: vec!["fixture".into(), KNOWLEDGE_RANKER_SCOPE.into()],
             admitted_at: mathesis_core::ports::Clock::now(&SystemClock),
         };
         intent.request_digest = KnowledgeQueryReceipt::request_digest(

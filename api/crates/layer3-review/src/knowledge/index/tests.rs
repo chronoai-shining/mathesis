@@ -158,3 +158,93 @@ fn unsafe_path_and_mixed_snapshot_never_reach_source_loader() {
         );
     }
 }
+
+#[test]
+fn experimental_identifier_components_preserve_whole_names_and_legacy_behavior() {
+    let source = "namespace Project.SemigroupOrbit\ntheorem stabilityWitness := 0\nend Project.SemigroupOrbit";
+    let index = SourceIndex::build(
+        publication(),
+        vec![declaration("A.lean", "stabilityWitness", source)],
+        |_| Ok(source.as_bytes().to_vec()),
+    )
+    .unwrap();
+    let legacy = SearchIndex::new(index.clone()).unwrap();
+    assert!(
+        legacy
+            .search("semigroup orbit stability witness", None, 5)
+            .unwrap()
+            .hits
+            .is_empty()
+    );
+    let candidate = SearchIndex::with_identifier_components(index).unwrap();
+    assert_eq!(
+        candidate
+            .search("semigroup orbit stability witness", None, 5)
+            .unwrap()
+            .hits
+            .len(),
+        1
+    );
+    assert_eq!(
+        candidate
+            .search("SemigroupOrbit", None, 5)
+            .unwrap()
+            .hits
+            .len(),
+        1
+    );
+    assert_eq!(
+        identifier_terms("HTTPResponse"),
+        vec!["httpresponse", "http", "response"]
+    );
+}
+
+#[test]
+fn experimental_path_field_discovers_source_without_changing_legacy_or_identity() {
+    let source = "theorem result := 0";
+    let index = SourceIndex::build(
+        publication(),
+        vec![declaration("Algebra/SemigroupOrbit.lean", "result", source)],
+        |_| Ok(source.as_bytes().to_vec()),
+    )
+    .unwrap();
+    let legacy = SearchIndex::new(index.clone()).unwrap();
+    assert!(
+        legacy
+            .search("semigroup orbit", None, 1)
+            .unwrap()
+            .hits
+            .is_empty()
+    );
+    let candidate = SearchIndex::with_identifier_fields(index).unwrap();
+    assert_eq!(candidate.identity(), legacy.identity());
+    let result = candidate.search("semigroup orbit", None, 1).unwrap();
+    assert_eq!(result.hits[0].module_path, "Algebra/SemigroupOrbit.lean");
+    assert_eq!(result.hits[0].source_excerpt, source);
+    assert_eq!(result.hits[0].source_sha256, sha256(source.as_bytes()));
+}
+
+#[test]
+fn empty_index_still_retains_its_selected_ranker_identity() {
+    let empty = SourceIndex::build(publication(), vec![], |_| unreachable!()).unwrap();
+    let ranked = SearchIndex::with_identifier_fields(empty.clone()).unwrap();
+    assert_eq!(ranked.ranking_protocol(), Some(IDENTIFIER_PATH_RANKER));
+    assert_eq!(
+        ranked
+            .search("anything", None, 6)
+            .unwrap()
+            .ranking_protocol
+            .as_deref(),
+        Some(IDENTIFIER_PATH_RANKER)
+    );
+    let legacy = SearchIndex::new(empty)
+        .unwrap()
+        .search("anything", None, 6)
+        .unwrap();
+    assert!(
+        serde_json::to_value(legacy)
+            .unwrap()
+            .get("ranking_protocol")
+            .is_none()
+    );
+}

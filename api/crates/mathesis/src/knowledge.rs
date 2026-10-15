@@ -22,6 +22,20 @@ pub(crate) struct IndexPin {
     pub revision: String,
 }
 
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub(crate) enum SourceRanking {
+    Legacy,
+    IdentifierPaths,
+}
+impl SourceRanking {
+    pub(crate) fn protocol(self) -> Option<&'static str> {
+        match self {
+            Self::Legacy => None,
+            Self::IdentifierPaths => Some(knowledge::index::IDENTIFIER_PATH_RANKER),
+        }
+    }
+}
+
 #[async_trait::async_trait]
 pub(crate) trait KnowledgeSource: Send + Sync {
     async fn pin(&self) -> CoreResult<IndexPin>;
@@ -29,6 +43,7 @@ pub(crate) trait KnowledgeSource: Send + Sync {
         &self,
         revision: &str,
         query: &str,
+        ranking: SourceRanking,
     ) -> CoreResult<knowledge::index::SourceQueryResult>;
 }
 
@@ -243,9 +258,19 @@ impl Knowledge {
     }
 
     pub(crate) async fn index(&self, revision: &str) -> CoreResult<Arc<SearchIndex>> {
+        self.ranked_index(revision, SourceRanking::Legacy).await
+    }
+
+    async fn ranked_index(
+        &self,
+        revision: &str,
+        ranking: SourceRanking,
+    ) -> CoreResult<Arc<SearchIndex>> {
         let mut cache = self.cache.lock().await;
         loop {
-            if let Some(index) = cache.loaded.as_ref().filter(|i| i.identity().1 == revision) {
+            if let Some(index) = cache.loaded.as_ref().filter(|i| {
+                i.identity().1 == revision && i.ranking_protocol() == ranking.protocol()
+            }) {
                 return Ok(index.clone());
             }
             if cache.loading.is_none() {
@@ -253,12 +278,15 @@ impl Knowledge {
                 let revision = revision.to_owned();
                 cache.loading = Some(tokio::spawn(async move {
                     let source = store.load_knowledge_index(&revision).await?;
-                    let index = tokio::task::spawn_blocking(move || SearchIndex::new(source))
-                        .await
-                        .map_err(|_| {
-                            CoreError::Unavailable("knowledge index worker failed".into())
-                        })?
-                        .map_err(|e| CoreError::Unavailable(e.to_string()))?;
+                    let index = tokio::task::spawn_blocking(move || match ranking {
+                        SourceRanking::Legacy => SearchIndex::new(source),
+                        SourceRanking::IdentifierPaths => {
+                            SearchIndex::with_identifier_fields(source)
+                        }
+                    })
+                    .await
+                    .map_err(|_| CoreError::Unavailable("knowledge index worker failed".into()))?
+                    .map_err(|e| CoreError::Unavailable(e.to_string()))?;
                     Ok(Arc::new(index))
                 }));
             }
@@ -294,8 +322,9 @@ impl KnowledgeSource for Knowledge {
         &self,
         revision: &str,
         query: &str,
+        ranking: SourceRanking,
     ) -> CoreResult<knowledge::index::SourceQueryResult> {
-        let index = self.index(revision).await?;
+        let index = self.ranked_index(revision, ranking).await?;
         let query = query.to_owned();
         tokio::task::spawn_blocking(move || index.search(&query, None, 6))
             .await
@@ -325,6 +354,21 @@ mod tests {
         };
         let index = SourceIndex::build(publication, vec![], |_| unreachable!()).unwrap();
         let revision = index.revision.clone();
+        let blob = store.put_knowledge_index(&index).await.unwrap();
+        store
+            .insert_knowledge_snapshot(&KnowledgeSnapshot {
+                id: revision.clone(),
+                publication: index.publication.clone(),
+                index: blob,
+                artifacts: Default::default(),
+                candidate_modules: 0,
+                indexed_modules: 0,
+                omitted_modules: 0,
+                admitted_at: chrono::Utc::now(),
+                admission: serde_json::json!({"synthetic_test":true}),
+            })
+            .await
+            .unwrap();
         let service = Knowledge::new(store.clone(), revision.clone());
         let release = Arc::new(tokio::sync::Notify::new());
         let ready = release.clone();
@@ -349,6 +393,22 @@ mod tests {
         let replay = service.index(&revision).await.unwrap();
         assert!(Arc::ptr_eq(&first, &replay));
         assert_eq!(calls.load(std::sync::atomic::Ordering::SeqCst), 1);
+        let ranked = tokio::time::timeout(
+            std::time::Duration::from_secs(5),
+            service.ranked_index(&revision, SourceRanking::IdentifierPaths),
+        )
+        .await
+        .unwrap()
+        .unwrap();
+        assert_eq!(ranked.identity(), first.identity());
+        assert_eq!(
+            ranked.ranking_protocol(),
+            SourceRanking::IdentifierPaths.protocol()
+        );
+        assert!(!Arc::ptr_eq(&first, &ranked));
+        let old_again = service.index(&revision).await.unwrap();
+        assert_eq!(old_again.ranking_protocol(), None);
+        assert_eq!(old_again.identity(), first.identity());
         let client = mongodb::Client::with_uri_str(&uri).await.unwrap();
         client.database(&database).drop().await.unwrap();
         client.shutdown().await;
