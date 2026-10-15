@@ -1,0 +1,34 @@
+{
+  "proposal": [
+    {
+      "claim": "C1",
+      "definitions": [
+        "M=(1/n) sum_{i=1}^n P_i.",
+        "S=(1/n!) sum_{sigma in Sym(n)} P_{sigma(1)}...P_{sigma(n)}, counting labeled permutations.",
+        "At n=2, M=(P_1+P_2)/2 and S=(P_1P_2+P_2P_1)/2.",
+        "For symmetric D, D is PSD iff x^T D x>=0 for every x in R^N."
+      ],
+      "hypotheses": [
+        "n=2.",
+        "P_1,P_2 are real N-by-N matrices.",
+        "P_i^T=P_i and P_i^2=P_i for i=1,2; no commutation, rank, invertibility or distinctness assumption."
+      ],
+      "quantifiers": "For the implicit finite dimension N, existence of P_1,P_2 satisfying the hypotheses and a nonzero x in R^N with x^T(M^2-S)x<0. N is not explicitly quantified: distinguish fixed-N and dimension-existential readings. Conventionally N>=1; N=0, if allowed, has no such x.",
+      "conclusion": "M^2-S is not PSD for some admissible pair. C1 also asserts that an unidentified cited n=3 counterexample establishes this n=2 conclusion.",
+      "search_terms": [
+        "orthogonal projections",
+        "symmetrized product",
+        "Jordan product",
+        "Loewner order",
+        "two-matrix noncommutative AM-GM",
+        "Hermitian square positivity",
+        "matrix Young inequality",
+        "counterexample factor-count transfer"
+      ],
+      "reason": "Retrieve a hypothesis-matched two-factor Loewner-order result or its negation and assess the asserted three-to-two-factor transfer. A norm inequality or an unrelated projection theorem is not a match. The supplied diagnostic hits did not address this assertion."
+    }
+  ],
+  "query": "orthogonal projections; symmetrized product; Jordan product; Loewner order; two-matrix noncommutative AM-GM; Hermitian square positivity; matrix Young inequality; counterexample factor-count transfer",
+  "index_revision": "sha256:2838a557bfddda5a1f9410e0dcf596a67112c0ec0f163c4cf1a787abcce15d2b",
+  "answer_sha256": "038437be099dc7eb2f3487494779f3b6e5df8d0be588fa16a353c431e6d0bd15"
+}

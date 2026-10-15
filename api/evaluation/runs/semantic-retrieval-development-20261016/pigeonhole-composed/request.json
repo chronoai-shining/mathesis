@@ -1,0 +1,34 @@
+{
+  "proposal": [
+    {
+      "claim": "C1",
+      "definitions": [
+        "|X| is the number of elements of a finite set X.",
+        "The composition g∘f sends a∈A to g(f(a))∈C."
+      ],
+      "hypotheses": [
+        "A,B,C are finite sets.",
+        "|C|≤|B|.",
+        "|B|<|A|.",
+        "f:A→B is a total function.",
+        "g:B→C is a total function."
+      ],
+      "quantifiers": "For every finite A,B,C satisfying the cardinality inequalities, for every f:A→B and every g:B→C, there exist a,a′∈A. The pair may depend on the maps. No nonemptiness assumption is added; nonexistent function choices give vacuous cases.",
+      "conclusion": "There exist a,a′∈A such that a≠a′ and g(f(a))=g(f(a′)).",
+      "search_terms": [
+        "finite pigeonhole principle",
+        "Dirichlet box principle",
+        "collision in a function to a smaller finite set",
+        "finite cardinality obstruction to injectivity",
+        "postcomposition preserves equal images",
+        "injectivity of a composite implies injectivity of the first map",
+        "Fintype.exists_ne_map_eq_of_card_lt",
+        "Fintype.card_le_of_injective"
+      ],
+      "reason": "Retrieve a generic collision or injectivity-cardinality statement with matching total-function hypotheses and degenerate cases, rather than unrelated domain-specific keyword hits. This is one proposed semantic query for later source auditing; it is not a completed query or a verification claim."
+    }
+  ],
+  "query": "Definitions: |X| is the number of elements of a finite set X.; The composition g∘f sends a∈A to g(f(a))∈C.\nHypotheses: A,B,C are finite sets.; |C|≤|B|.; |B|<|A|.; f:A→B is a total function.; g:B→C is a total function.\nQuantifiers: For every finite A,B,C satisfying the cardinality inequalities, for every f:A→B and every g:B→C, there exist a,a′∈A. The pair may depend on the maps. No nonemptiness assumption is added; nonexistent function choices give vacuous cases.\nConclusion: There exist a,a′∈A such that a≠a′ and g(f(a))=g(f(a′)).\nRelated mathematical terms: finite pigeonhole principle; Dirichlet box principle; collision in a function to a smaller finite set; finite cardinality obstruction to injectivity; postcomposition preserves equal images; injectivity of a composite implies injectivity of the first map; Fintype.exists_ne_map_eq_of_card_lt; Fintype.card_le_of_injective",
+  "index_revision": "sha256:2838a557bfddda5a1f9410e0dcf596a67112c0ec0f163c4cf1a787abcce15d2b",
+  "answer_sha256": "bd89a5277a9613ca147db3889aee094a81bc82c02672fd7f3a5e11945d6f75b0"
+}

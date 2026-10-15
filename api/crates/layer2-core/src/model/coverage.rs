@@ -17,6 +17,23 @@ mod tests;
 pub const KNOWLEDGE_QUERY_PROTOCOL: &str = "mathesis.artifact-query.v1";
 pub const KNOWLEDGE_ORACLE_SCOPE: &str = "mathesis.semantic-query.v1:oracle";
 pub const KNOWLEDGE_CMA_SCOPE: &str = "mathesis.semantic-query.v1:cma";
+pub const KNOWLEDGE_RANKER_SCOPE: &str = "mathesis.source-ranker.identifier-paths.v1";
+
+/// Ranker identity is part of each digest-bound request, including failed ones.
+pub fn validate_knowledge_ranker(contract: u32, scopes: &[String]) -> CoreResult<()> {
+    let rankers = scopes
+        .iter()
+        .filter(|s| s.starts_with("mathesis.source-ranker."))
+        .collect::<Vec<_>>();
+    if (contract >= 3 && (rankers.len() != 1 || rankers[0].as_str() != KNOWLEDGE_RANKER_SCOPE))
+        || (contract < 3 && !rankers.is_empty())
+    {
+        return Err(CoreError::invalid(
+            "knowledge query ranker differs from its round contract",
+        ));
+    }
+    Ok(())
+}
 
 fn digest(value: &[u8]) -> String {
     format!("sha256:{:x}", Sha256::digest(value))

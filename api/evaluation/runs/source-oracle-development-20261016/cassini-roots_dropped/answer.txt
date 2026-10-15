@@ -1,0 +1,158 @@
+Referee assessmentC1 is false as written, rather than an open Cassini-type conjecture. The substantive issue is the unrestricted quantification over the integer bases  $p,q$ . The fixed quadratic expression in C1 belongs to the Fibonacci recurrence; replacing its characteristic roots by arbitrary integers is not a renaming of the classical statement. The opened sources consistently distinguish the recurrence coefficients, its characteristic roots, and the initial values. Indian National Science Academy+2No PDF was available in this conversation. An exact-title Library search also did not locate it. This assessment therefore concerns the pasted C1 and source context, not an inspected manuscript PDF.C1: definitions, hypotheses, and statusUnder the usual interpretation that  $j,m$  are nonnegative integer indices and  $x^0=1$ , the assertion is well-posed. Its domain includes zero coefficients, zero bases, negative bases, and coincident bases. None of these cases may be silently excluded. The index domain and exponent-zero convention should nevertheless be explicit in the displayed statement.The classical comparison is
+$$F_{n-1}F_{n+1}-F_n^2=(-1)^n,\qquad n\ge 1,$$
+where  $F_0=0$ ,  $F_1=1$ , and  $F_{n+1}=F_n+F_{n-1}$ . This is the identity stated in equation (1) of the opened paper by Craveiro, Pereira Spreafico, and Rachidi. It is a recurrence-specific assertion, not a statement about arbitrary exponential bases. Indian National Science AcademyGeneralizing initial values does not remove that recurrence requirement. Adegoke explicitly uses “generalized Fibonacci numbers” for sequences with the same Fibonacci recurrence but arbitrary initial values. arxiv.org Tan’s Theorem 3 gives a corresponding initial-value-dependent Cassini identity; its hypotheses include nonzero initial values and specified recurrence parameters. Those restrictions must remain visible when using it as a comparison. NNTDM+1For the familiar two-exponential Fibonacci formulation, the bases are the two distinct roots
+$$\frac{1+\sqrt5}{2},\qquad \frac{1-\sqrt5}{2},$$
+rather than arbitrary integers. Thus restoring the intended root condition also requires changing the stated domain of  $p,q$ . Simply appending those root conditions while retaining  $p,q\in\mathbb Z$  would produce an empty parameter domain, not a meaningful repair. This domain observation is part of the referee’s mathematical assessment, not a claim that a retrieved paper discusses this submission. NNTDMProof escape, information gain, and utilityProof escape is undetermined for C1. No proof is submitted, and the inspected baseline does not yield the unrestricted assertion by instantiation, substitution, projection, recombination, or normalization. That failure of entailment is not evidence of new mathematical content. In particular, a missing essential hypothesis cannot be credited as a valuable generalization.The supplied diagnostic excerpt concerning golden Lucas doubling concerns a fixed golden-ring element and its norm. Its statement is not C1, and its visible hypotheses cannot be replaced by arbitrary integer bases. The other five supplied candidate modules do not supply the missing recurrence/root correspondence. Their retrieval metadata are not independent verification of either applicability or formal correctness.The proof-review field remains correctness: not_checked, because there is no submitted proof to check; this is separate from the negative mathematical-status assessment. There are no live witnesses and no proof shape. Information gain remains null: no explicit model, readout, task, faithful correspondence, or evidence was supplied.The proposed utility category is general_theorem, with status unsupported. Pure mathematics does not need an artificial downstream application, but a false universal assertion does not establish a theorem. No separate counterexample submission or computational result is being credited. No named open-problem settlement is claimed.The appropriate revision is to decide whether the intended subject is the fixed Fibonacci-root identity or a parameter-dependent identity for arbitrary bases. These are different statements. The former must be presented with its actual root domain and classical baseline; the latter needs a correctly formulated conclusion and a fresh statement-level comparison.JSON{
+  "recommendation": "revise",
+  "summary": "C1 is well-posed under the conventional nonnegative-integer index and exponent-zero conventions, but the assertion is known_false on its stated unrestricted integer-base domain. Its fixed Fibonacci quadratic has been retained without the corresponding characteristic-root restrictions. A root-restricted repair would change the statement and the domain of p and q. No submitted proof, proof-escape witness, computational utility, information-gain measurement, or named open-problem settlement is established.",
+  "strengths": [
+    "The submission isolates one explicit assertion and clearly indicates that no proof is submitted.",
+    "The explicit formula and universal quantifiers make comparison of the stated parameter domain with recurrence-based literature possible."
+  ],
+  "concerns": [
+    "The asserted identity is false for unrestricted integer bases p and q; it should not be displayed as an open conjecture in its current form.",
+    "The Fibonacci characteristic-root conditions cannot be imported silently from the title, the diagnostic retrieval, or the classical identity.",
+    "Adding the two Fibonacci-root conditions while retaining integer bases would create an empty parameter domain.",
+    "The requested PDF was unavailable, so no manuscript-page comparison or audit of possible additional hypotheses was possible.",
+    "The supplied diagnostic results do not establish entailment, proof escape, novelty, utility, or formal verification."
+  ],
+  "claims": [
+    {
+      "claim": "C1",
+      "correctness": "not_checked",
+      "shape": null,
+      "witnesses": [],
+      "note": "Mathematical status and proof correctness are separate: the unrestricted assertion is classified known_false, whereas correctness is not_checked because no proof is submitted. Proof escape is undetermined, not bind_only by default and not content merely because the inspected baseline does not imply the claim. General-theorem utility is unsupported for this false assertion. Information gain is null because no explicit model/readout/task/correspondence/evidence is supplied. No named settlement is claimed. The negative status is a referee assessment of the supplied statement, not a claim that the opened papers publish this exact assertion or its refutation.",
+      "conjecture": {
+        "well_posed": true,
+        "well_posed_reason": "On the conventional discrete-sequence reading, p,q,a,b are arbitrary integers, j and m are nonnegative integer indices, and integer exponentiation uses x^0=1, including at x=0. The formula then defines every required term. The statement should explicitly specify the index domain and exponent-zero convention. It does not assume distinct or nonzero bases, nonzero coefficients, a Fibonacci recurrence, or characteristic-root equations.",
+        "status": "known_false",
+        "status_reason": "The fixed Fibonacci quadratic and the factor -5ab(-1)^m are not a universal identity for arbitrary integer exponential bases. The familiar root-based identity uses the two distinct roots of t^2-t-1, whereas C1 quantifies over all integer p and q. This is a substantive change of hypotheses, not a renamed special case of the classical theorem. The literature comparison supports the recurrence/root distinction; no claim is made that a retrieved publication contains this submission's exact wording.",
+        "named_works": [
+          "Generalized Cassini identities via the generalized Fibonacci fundamental system. Applications [opened: DOI:10.1007/s13226-023-00430-1]",
+          "An Identity for Second Order Sequences Obeying the Same Recurrence Relation [opened: arXiv:1901.08662]",
+          "Some properties of the bi-periodic Horadam sequences [opened: https://nntdm.net/papers/nntdm-23/NNTDM-23-4-56-65.pdf]"
+        ],
+        "known": [
+          "Generalized Cassini identities via the generalized Fibonacci fundamental system. Applications [opened: DOI:10.1007/s13226-023-00430-1]",
+          "An Identity for Second Order Sequences Obeying the Same Recurrence Relation [opened: arXiv:1901.08662]",
+          "Some properties of the bi-periodic Horadam sequences [opened: https://nntdm.net/papers/nntdm-23/NNTDM-23-4-56-65.pdf]"
+        ],
+        "not_checkable": [
+          "The missing manuscript PDF and any additional hypotheses or explanations it might contain.",
+          "The canonical repository materials, imported definitions, and formal validation underlying the supplied diagnostic metadata.",
+          "Historical primary-paper full texts whose retrieval attempts timed out or were blocked; these were not used as inspected baselines."
+        ],
+        "escape": "undetermined",
+        "escape_reason": "There is no submitted deduction to analyze. The available classical comparisons retain recurrence or root hypotheses absent from C1. Their failure to imply C1 does not establish a non-binding contribution, and the assertion's false unrestricted extension cannot be credited as new content. A binding assessment of a corrected statement must not be transferred to C1.",
+        "suggestions": [
+          "Specify j,m in the nonnegative integers and state the exponent-zero convention, preserving the currently included zero and coincident-base cases.",
+          "Decide whether p and q are intended to be arbitrary integer bases or the two distinct roots of t^2-t-1; do not conflate these domains.",
+          "For the Fibonacci-root interpretation, replace the integer-base domain by an appropriate real or quadratic-field domain and present the resulting statement against the classical baseline.",
+          "For an arbitrary-base interpretation, formulate the intended parameter-dependent identity and compare its exact coefficients and degenerate cases with general second-order recurrence results.",
+          "Do not describe omitted hypotheses, an unsuccessful source match, or the absence of a submitted proof as evidence of novelty or valuable open status."
+        ]
+      },
+      "methodology": {
+        "baseline": [
+          {
+            "statement": "The only supplied mathematical definition is u_j=a*p^j+b*q^j with p,q,a,b arbitrary integers. C1 supplies m>=0 but no root equations, recurrence hypothesis, distinctness condition, or nonvanishing condition. Nonnegative integer indexing is the conventional reading used in this report.",
+            "location": "Pasted CONFIRMED STATEMENTS[0].statement, claim C1; repeated in SOURCE CONTEXT, sole paragraph.",
+            "source": null
+          },
+          {
+            "statement": "For F_0=0, F_1=1 and F_{n+1}=F_n+F_{n-1}, Cassini's identity is F_{n-1}F_{n+1}-F_n^2=(-1)^n for every integer n>=1.",
+            "location": "Section 1, equation (1), printed page 1234.",
+            "source": "Generalized Cassini identities via the generalized Fibonacci fundamental system. Applications [opened: DOI:10.1007/s13226-023-00430-1]"
+          },
+          {
+            "statement": "The source defines second-order sequences with fixed nonzero complex recurrence coefficients and integer initial terms not both zero. Its generalized Fibonacci sequences retain the Fibonacci recurrence while allowing arbitrary initial values within that setup.",
+            "location": "Version 1, Section 1, equations (1.1)-(1.4), and Section 1.1, paragraph defining generalized Fibonacci numbers.",
+            "source": "An Identity for Second Order Sequences Obeying the Same Recurrence Relation [opened: arXiv:1901.08662]"
+          },
+          {
+            "statement": "In the specialization of the source's recurrence parameters to a=b=1, with its nonzero initial-value hypotheses retained, w_{n+2}=w_{n+1}+w_n and w_{n-1}w_{n+1}-w_n^2=(-1)^n*(w_1^2-w_0*w_1-w_0^2) for n>=1. These source parameters are not C1's exponential coefficients.",
+            "location": "Section 1, equation (1.7) and its hypotheses, printed page 57; Section 2, Theorem 3, printed page 59.",
+            "source": "Some properties of the bi-periodic Horadam sequences [opened: https://nntdm.net/papers/nntdm-23/NNTDM-23-4-56-65.pdf]"
+          }
+        ],
+        "searched": [
+          "Files: searched current-conversation content for the supplied title and assertion; the tool reported that no files were present.",
+          "Files Library: exact-title query cassini-roots_dropped returned no result. This does not establish absence from every possible file representation.",
+          "General web search queries: generalized Cassini identity arbitrary initial values second order recurrence roots Horadam; \"Cassini\" \"p+q\" \"pq\".",
+          "General web search queries: Horadam \"Basic Properties\" \"1965\" pdf; \"Cassini\" \"A\" \"B\" \"arbitrary\" \"roots\" \"identity\"; \"Cassini\" \"u\" \"-5ab\".",
+          "General web search queries: \"Basic properties of a certain generalized sequence of numbers\" \"pdf\" \"horadam\"; \"Horadam\" \"Cassini\" \"AB\" \"q\"; \"Cassini\" \"u_{n+1}\" \"roots\".",
+          "Opened primary material: the arXiv version identified in the baseline, the Notes on Number Theory and Discrete Mathematics PDF identified in the baseline, and the Indian Journal of Pure and Applied Mathematics PDF identified by its DOI. Relevant PDF pages were visually inspected.",
+          "Several historical-article archive and publisher PDF requests failed through timeouts, access errors, or a forbidden response; their full texts were not counted as inspected.",
+          "Compared the six supplied diagnostic candidate excerpts at statement level. The system-reported repository search was not rerun or independently authenticated.",
+          "Scope: targeted web discovery and inspection of relevant primary-source clauses. No exhaustive literature, MathSciNet, zbMATH, or full-repository search was performed. The knowledge_queries entry below is a proposal for a subsequent search, not a completed search."
+        ],
+        "literature": "supported",
+        "binding_analysis": "The supported comparison is limited to the classical recurrence-specific baseline, not a published occurrence of C1's literal wording. Inlining u_j replaces the sequence notation by its two exponential terms; it does not supply a Fibonacci recurrence or characteristic-root assumptions. Instantiation, assumption substitution, projection, recombination and normalization preserve the prerequisites of the cited identities and cannot silently enlarge their domains. The displayed specialization of the bi-periodic theorem is itself binding and retains that source's initial-value restrictions. The supplied golden Lucas doubling excerpt concerns a fixed golden-ring element and its norm; it does not authorize replacing that element and its conjugate by arbitrary integer bases. No proof of C1 consumes any retrieved helper, so none is a live witness. The other five diagnostic candidates provide no stated correspondence to C1. No unseen imported definitions or tactic implementations are treated as inspected.",
+        "delta": "The exact conditional obligation would be to establish, for every p,q,a,b in the integers and every nonnegative integer m, that u_{m+1}^2-u_{m+1}*u_m-u_m^2=-5*a*b*(-1)^m for u_j=a*p^j+b*q^j, without any root or recurrence hypothesis and including zero and coincident-base cases. This unrestricted obligation is false as stated and is not discharged by the baseline. Restricting the bases or changing the conclusion would create a different claim, not discharge this delta. No conditional new-content credit is assigned.",
+        "escape": "undetermined",
+        "witnesses": [],
+        "utility": {
+          "kind": "general_theorem",
+          "status": "unsupported",
+          "rationale": "A general pure-mathematical theorem needs no artificial downstream consumer. Here the proposed universal assertion is false, and no alternative established theorem or submitted refutation is present. The negative status assessment and possible repairs are not credited as independent computational utility.",
+          "problem": "Does the displayed fixed quadratic identity hold for every integer quadruple p,q,a,b and every nonnegative integer m?",
+          "progress": "The statement-level review identifies a false unrestricted extension and a mismatch with recurrence-specific classical identities. No proof, certified instance, checker, numerical reduction, or separate counterexample artifact is supplied.",
+          "prerequisites": "Exactly the integer parameter domain, the displayed definition of u_j, and nonnegative integer indexing under the stated interpretive convention; no characteristic-root or recurrence assumptions may be added.",
+          "discharge": "The supplied text specifies the parameters and sequence but does not establish the asserted identity. The inspected comparisons do not discharge its unrestricted hypotheses, and the asserted conclusion is false on that domain."
+        },
+        "settlement": null,
+        "information_gain": null,
+        "limits": [
+          "This is an initial statement-level referee report, not an independent subsequent source audit.",
+          "No manuscript PDF was available; local locations refer only to the exact pasted fields.",
+          "Correctness is not_checked because there is no submitted proof; that field is separate from the known_false status diagnosis.",
+          "No proof shape, live witness, compiled registration, Lean verification, or AURIC/FIB measurement is claimed.",
+          "The literature-supported designation concerns the identified classical baseline and its hypotheses, not exhaustive novelty assessment or a located publication of this exact false assertion.",
+          "The bi-periodic source's nonzero initial-value restrictions were retained; its theorem was not silently applied to all of C1's degenerate cases.",
+          "Unavailable historical texts and canonical repository validation remain not_checkable and were not substituted by search snippets or metadata.",
+          "No quantitative information-gain analysis is available.",
+          "No named open-problem settlement is claimed."
+        ]
+      }
+    }
+  ],
+  "knowledge_queries": [
+    {
+      "claim": "C1",
+      "definitions": [
+        "u_j=a*p^j+b*q^j; nonnegative integer sequence indexing is the conventional reading, with the exponent-zero convention to be stated explicitly."
+      ],
+      "hypotheses": [
+        "p,q,a,b are arbitrary integers.",
+        "m>=0, interpreted as a nonnegative integer sequence index."
+      ],
+      "quantifiers": "For every p,q,a,b in Z and every m in Z_{>=0}, with u defined by the displayed formula. There are no distinctness, nonzero, characteristic-root, or recurrence hypotheses; zero bases, zero coefficients and p=q remain included.",
+      "conclusion": "u_{m+1}^2-u_{m+1}*u_m-u_m^2=-5*a*b*(-1)^m.",
+      "search_terms": [
+        "Cassini identity",
+        "Simson identity",
+        "generalized Fibonacci quadratic invariant",
+        "Horadam sequence Cassini identity",
+        "second-order linear recurrence",
+        "two-exponential sequence",
+        "characteristic roots versus recurrence coefficients",
+        "Casoratian determinant identity",
+        "Fibonacci characteristic polynomial t^2-t-1",
+        "coincident roots and zero-base cases"
+      ],
+      "reason": "Retrieve an exact hypothesis-level comparison for arbitrary exponential bases, rather than golden Lucas doubling. Distinguish fixed Fibonacci characteristic roots from unrestricted integer bases, and preserve m=0, coincident bases and zero parameters. This is a proposed search, not an assertion of entailment, novelty or verification."
+    }
+  ],
+  "limits": [
+    "Only the pasted assertion and supplied diagnostic excerpts were available as submission material; no PDF was inspected.",
+    "Searches were targeted and non-exhaustive. A missing match does not establish novelty or open status.",
+    "Opened sources are model-reported references, not venue-verified references.",
+    "The known_false classification is a statement-level mathematical assessment, not a claim that a cited source publishes C1 verbatim.",
+    "No submitted proof was checked, and no proof-escape witness or formal verification is claimed.",
+    "The proposed knowledge query has not yet been executed as part of the subsequent independent source audit.",
+    "Correctness, escape, utility, settlement and information gain were assessed separately; no combined score or escape percentage is reported.",
+    "The recommendation is advisory feedback and does not decide publication."
+  ],
+  "text": "Revise the statement before display. C1 should not be presented as an open conjecture on unrestricted integer bases. A Fibonacci-root formulation requires a different domain and an explicit classical comparison; a formulation retaining arbitrary bases requires a different, correctly specified parameter-dependent conclusion. Neither proposed repair is treated as an established new contribution in this report."
+}

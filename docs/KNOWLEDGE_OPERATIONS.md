@@ -99,7 +99,7 @@ existing staff restart action on the same manuscript version. This creates a new
 round without rewriting previous receipts or model task identities. Unavailable
 sources do not trigger upstream Lean or upstream publication changes.
 
-New rounds use knowledge contract 2. After the initial raw queries, Oracle's
+New rounds use knowledge contract 3; historical contract 2 retains its original queries and ranking. After the initial raw queries, Oracle's
 saved response proposes one query per confirmed claim with definitions,
 hypotheses, quantifiers, conclusion and standard mathematical terms. These
 fields form the actual query; the retrieval reason is bound into its scope and
@@ -119,3 +119,34 @@ Queries still run lexical matching over checked source text. Model-proposed
 reformulation is candidate discovery, not a proof of semantic equivalence.
 Measured end-to-end quality remains in `CAPABILITY_DELIVERY.md`; real managed
 CMA review evidence is still required.
+
+
+## Pinned ranking in contract 3
+
+Each new raw and reformulated request includes the exact scope
+`mathesis.source-ranker.identifier-paths.v1` in its request digest. The source
+index revision continues to identify the same immutable artifact; the ranker
+pin identifies how candidates are selected. Responses from a different ranker
+are rejected. In-flight old requests retain the legacy tokenizer and scores.
+The cache is keyed by both source revision and ranking protocol; interrupted
+loads retain their original handle.
+
+The new ranker preserves whole identifiers and adds CamelCase/acronym components.
+It uses the existing full-source BM25 score plus a separate module-path field
+with weight 2 and inverse document frequency. Mathematical reformulations search
+only the proposed standard terms; the full extraction remains in the originating
+model response and its SHA-256 is bound into the request scope. A changed premise
+with identical terms is still a different proposal. Raw confirmed statements
+are also searched and retained. Result, source-byte, declaration and query budgets
+are unchanged. No equivalence, entailment or novelty follows from a higher rank.
+
+The `evaluation_ranker` example compares all three algorithms on the same
+hash-checked artifact. `api/evaluation/ranking_eval.py` prepares development-only
+raw/full-reformulation/terms ablations, stores exact compressed outputs, and
+recomputes source-set recall with original identities. It performs no model or
+upstream execution. Its warm-query timing excludes Mongo/GridFS and network.
+
+For actual Mongo/GridFS diagnostics, the existing command accepts an optional
+explicit ranker: `--knowledge-query INDEX_REVISION QUERY mathesis.source-ranker.identifier-paths.v1`.
+Omitting the argument retains the legacy diagnostic. Both return at most ten
+modules; the worker uses six. Unsupported ranker arguments are refused.

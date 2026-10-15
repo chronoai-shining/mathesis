@@ -207,3 +207,54 @@ review receipts or upgrade Oracle output to independently audited coverage.
 
 The source-informed Oracle acquisition is still running as this increment is
 prepared. It is not a completed source-audit or quality improvement claim.
+
+
+## Complete reformulation/ranking development comparison
+
+The source-informed Oracle acquisition completed all 12 original streaming calls
+with observed `gpt_6` / `pro`. All requests, streams, extracted answers and
+receipts are retained in `api/evaluation/runs/source-oracle-development-20261016`.
+It has coverage recall 6/6, refutation recall 3/6, relation agreement 9/12 and
+one unsupported open/content reading. The 11 cases usable in both Oracle runs
+have identical normalized relations. The apparent +1 agreement and +1 coverage
+come from obtaining the previously missing Cassini answer, not a measured gain
+on the common cases. The projection AM–GM original remains falsely open/content;
+the renamed projection and signed-weight Bonferroni cases remain unknown.
+These are statement-only readings, not independent audits or full manuscripts.
+
+The original 12 raw queries, 12 actual full-field reformulations and 12 actual
+ranked-term queries all completed on the same MongoDB/GridFS source index. The
+last run uses the explicit new ranker pin. Every returned JSON result matches
+the corresponding direct-index experiment exactly, including sources, identities,
+ordering, excerpt/declaration truncation and limits.
+
+| Method | Complete predeclared declarations @6 | @10 |
+| --- | --- | --- |
+| Raw statement, legacy ranker | 0/12 | 0/12 |
+| Full reformulation, legacy ranker | 3/12 | 3/12 |
+| Terms only, legacy ranker | 7/12 | 7/12 |
+| Terms only, identifier components | 7/12 | 8/12 |
+| Terms only, identifier components plus module paths | 10/12 | 10/12 |
+
+The selected method still misses the predeclared `cassini-renamed` and
+`projection_amgm-two_factors` sources; this does not adjudicate alternative
+returned theorems. The full-field/identifier-path ablation yields 6/12. All
+counts require the complete declaration set, not merely a module hit. Labels
+remain provisional, all tuning uses development only, and holdout is unqueried.
+No audited correctness/coverage gain is claimed from these retrieval counts.
+
+Release cold-load mean through Mongo/GridFS is 12,480 ms for the selected method,
+versus 10,353 ms for the original raw queries. Direct local-index construction
+was 8,872 ms; warm terms-only searches averaged 10.5 ms (range 8–13), excluding
+Mongo/GridFS/network/provider latency. Runtime warm latency is not measured. These single runs used a shared development machine; they are not an isolated performance benchmark.
+The earlier debug diagnostic timed out on all 12 cold loads at 180 seconds;
+those failures remain in the task evidence directory and do not replace the
+release measurements. No infrastructure or runner change was made.
+
+Reproduction tools are `ranking_eval.py verify` (exact compressed outputs and
+query derivations), `normalize_source_oracle.py` (provider streams), and
+`score_semantic_retrieval.py` (actual full-field or ranked-term queries).
+The four corresponding run directories preserve original upstream source licenses.
+New review rounds pin knowledge contract 3; contracts 0/1/2 retain their prior
+behavior. Independent managed CMA review, human adjudication, held-out quality,
+full manuscript evidence, cost and production deployment remain unmeasured.

@@ -1,10 +1,10 @@
 //! Bounded semantic query proposals become durable system work, never receipts.
 use super::worker::{Failure, Worker};
 use mathesis_core::{ids::ClaimId, model::*, ports::LeasedJob};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 struct Proposal {
     claim: ClaimId,
     definitions: Vec<String>,
@@ -131,16 +131,35 @@ impl Worker {
                 outcome.unexecuted.insert(proposal.claim);
                 continue;
             }
-            let Some(query) = proposal.query() else {
+            let Some(full_query) = proposal.query() else {
                 outcome.invalid += 1;
                 outcome.unexecuted.insert(proposal.claim);
                 continue;
             };
+            let query = if round.knowledge_contract >= 3 {
+                proposal.search_terms.join("; ")
+            } else {
+                full_query.clone()
+            };
+            let mut scopes = vec![
+                super::knowledge::QUERY_SCOPE.into(),
+                origin.into(),
+                format!("Retrieval gap: {}", proposal.reason),
+            ];
+            if round.knowledge_contract >= 3 {
+                use sha2::{Digest, Sha256};
+                scopes.push(KNOWLEDGE_RANKER_SCOPE.into());
+                let structured = serde_json::to_vec(&proposal).map_err(|_| {
+                    Failure::Permanent("cannot encode mathematical reformulation".into())
+                })?;
+                scopes.push(format!("Standard search terms from mathematical reformulation sha256:{:x}; full definitions, hypotheses, quantifiers and conclusion retained in the originating model response.", Sha256::digest(structured)));
+            }
             if used {
                 if !intents.iter().any(|i| {
                     i.subject.claim == proposal.claim
                         && i.query == query
                         && i.scopes.iter().any(|s| s == origin)
+                        && (round.knowledge_contract < 3 || i.scopes == scopes)
                 }) {
                     outcome.unexecuted.insert(proposal.claim);
                 }
@@ -150,11 +169,6 @@ impl Worker {
                 .app
                 .knowledge_subject(&self.referee_account, &paper.id, number, &proposal.claim)
                 .await?;
-            let scopes = vec![
-                super::knowledge::QUERY_SCOPE.into(),
-                origin.into(),
-                format!("Retrieval gap: {}", proposal.reason),
-            ];
             let request_digest = KnowledgeQueryReceipt::request_digest(
                 &subject,
                 &pin.snapshot,

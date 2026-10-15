@@ -1,0 +1,19 @@
+{
+  "case_id": "projection_amgm-two_factors",
+  "exit_code": 0,
+  "stream_done": true,
+  "errors": [],
+  "oracle": {
+    "task_id": "1c185862-8bad-477b-b8b7-9dc2c3ca51f6",
+    "conversation_id": null,
+    "pool": "chrono-chatgpt-pro-pool",
+    "model_label": "chatgpt-6-pro",
+    "observed_model_switcher": "gpt_6",
+    "observed_model_effort": "pro",
+    "chatgpt_url": "https://chatgpt.com/c/6ad14289-1b74-83ec-8491-c09bca174515",
+    "usage_estimated": true
+  },
+  "elapsed_ms": 523880,
+  "request_sha256": "ca5e7371854758b3be4d35ae7f6726c25cda2acc8c4b16ed4e57a05e5a05b7ed",
+  "response_sha256": "3f7e3a3e5787af5ce69eb99270df0b422bca75be9f64f272d08708764a3ed990"
+}

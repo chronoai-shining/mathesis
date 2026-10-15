@@ -3758,6 +3758,8 @@ fn fixture_comparison(
 }
 
 struct LocalKnowledge {
+    return_wrong_ranker: bool,
+    fielded: mathesis_review::knowledge::index::SearchIndex,
     index: mathesis_review::knowledge::index::SearchIndex,
     publication: mathesis_review::knowledge::PublicationIdentity,
     calls: AtomicUsize,
@@ -3800,6 +3802,8 @@ impl LocalKnowledge {
         })
         .unwrap();
         Self {
+            return_wrong_ranker: false,
+            fielded: SearchIndex::with_identifier_fields(source.clone()).unwrap(),
             index: SearchIndex::new(source).unwrap(),
             publication,
             calls: AtomicUsize::new(0),
@@ -3821,6 +3825,7 @@ impl crate::knowledge::KnowledgeSource for LocalKnowledge {
         &self,
         revision: &str,
         query: &str,
+        ranking: crate::knowledge::SourceRanking,
     ) -> mathesis_core::CoreResult<mathesis_review::knowledge::index::SourceQueryResult> {
         assert_eq!(revision, self.index.identity().1);
         self.calls.fetch_add(1, Ordering::SeqCst);
@@ -3844,9 +3849,17 @@ impl crate::knowledge::KnowledgeSource for LocalKnowledge {
             jobs.defer(job, Duration::ZERO).await.unwrap();
             jobs.claim().await.unwrap().unwrap();
         }
-        self.index
-            .search(query, None, 6)
-            .map_err(|e| mathesis_core::CoreError::Unavailable(e.to_string()))
+        let ranking = if self.return_wrong_ranker {
+            crate::knowledge::SourceRanking::Legacy
+        } else {
+            ranking
+        };
+        (match ranking {
+            crate::knowledge::SourceRanking::Legacy => &self.index,
+            crate::knowledge::SourceRanking::IdentifierPaths => &self.fielded,
+        })
+        .search(query, None, 6)
+        .map_err(|e| mathesis_core::CoreError::Unavailable(e.to_string()))
     }
 }
 
@@ -4530,6 +4543,147 @@ async fn unassignable_cma_retrieval_gap_cannot_leave_any_comparison_complete() {
             .decision,
         Some(mathesis_core::policy::Decision::Pending { .. })
     ));
+}
+
+#[tokio::test]
+async fn query_upgrade_preserves_old_pending_plans_and_binds_new_reformulations() {
+    use mathesis_core::model::{KNOWLEDGE_ORACLE_SCOPE, KNOWLEDGE_RANKER_SCOPE, KnowledgeEvent};
+    for contract in [2, 3] {
+        let w = World::new(vec![], true).await;
+        w.worker
+            .app
+            .begin_referee_round(&w.worker.referee_account, &w.paper.id)
+            .await
+            .unwrap();
+        let mut file = w.file().await;
+        file.rounds[0].knowledge_contract = contract;
+        mathesis_core::ports::RefereeStore::replace(w.stores.as_ref(), &file, file.revision)
+            .await
+            .unwrap();
+        let job = w.job().await;
+        w.worker
+            .query_confirmed_claims(&job, &w.paper, 1)
+            .await
+            .unwrap();
+        let proposals = fixture_semantic_queries();
+        assert!(
+            w.worker
+                .admit_query_proposals(&job, &w.paper, 1, &proposals, KNOWLEDGE_ORACLE_SCOPE)
+                .await
+                .unwrap()
+                .admitted
+        );
+        let admitted = w.file().await;
+        for event in &admitted.knowledge_events {
+            if let KnowledgeEvent::QueryAdmitted { intent } = event {
+                assert_eq!(
+                    intent.scopes.iter().any(|s| s == KNOWLEDGE_RANKER_SCOPE),
+                    contract == 3
+                );
+                if intent.scopes.iter().any(|s| s == KNOWLEDGE_ORACLE_SCOPE) {
+                    let proposal = proposals
+                        .iter()
+                        .find(|p| p["claim"] == intent.subject.claim.as_str())
+                        .unwrap();
+                    if contract == 3 {
+                        assert_eq!(
+                            intent.query,
+                            proposal["search_terms"]
+                                .as_array()
+                                .unwrap()
+                                .iter()
+                                .map(|v| v.as_str().unwrap())
+                                .collect::<Vec<_>>()
+                                .join("; ")
+                        );
+                        assert!(
+                            intent
+                                .scopes
+                                .iter()
+                                .any(|s| s.contains("reformulation sha256:"))
+                        );
+                    } else {
+                        assert!(intent.query.starts_with("Definitions: "));
+                    }
+                }
+            }
+        }
+        // The current binary resumes using each admitted intent, including contract 2.
+        assert!(w.worker.resume_query_plan(&job, &w.paper, 1).await.unwrap());
+        let completed = w.file().await;
+        assert_eq!(
+            &completed.knowledge_events[..admitted.knowledge_events.len()],
+            &admitted.knowledge_events
+        );
+        for event in &completed.knowledge_events {
+            if let KnowledgeEvent::QueryCompleted { receipt } = event {
+                let response = w
+                    .worker
+                    .app
+                    .knowledge_response(&w.author, &w.paper.id, &receipt.id)
+                    .await
+                    .unwrap()
+                    .unwrap();
+                let value: serde_json::Value = serde_json::from_slice(&response).unwrap();
+                if contract == 3 {
+                    assert_eq!(value["ranking_protocol"], KNOWLEDGE_RANKER_SCOPE);
+                } else {
+                    assert!(value.get("ranking_protocol").is_none());
+                }
+            }
+        }
+        if contract == 3 {
+            let mut changed = proposals;
+            changed[0]["hypotheses"] = serde_json::json!(["different mathematical premise"]);
+            let outcome = w
+                .worker
+                .admit_query_proposals(&job, &w.paper, 1, &changed, KNOWLEDGE_ORACLE_SCOPE)
+                .await
+                .unwrap();
+            assert!(
+                outcome
+                    .unexecuted
+                    .contains(&mathesis_core::ids::ClaimId("C1".into()))
+            );
+            assert_eq!(w.file().await, completed);
+        }
+    }
+}
+
+#[tokio::test]
+async fn a_response_from_the_wrong_ranker_cannot_complete_an_admitted_query() {
+    use mathesis_core::model::{KnowledgeEvent, KnowledgeQueryState};
+    let mut w = World::new(vec![], true).await;
+    let mut source = LocalKnowledge::new();
+    source.return_wrong_ranker = true;
+    w.worker.knowledge = Some(Arc::new(source));
+    w.worker
+        .app
+        .begin_referee_round(&w.worker.referee_account, &w.paper.id)
+        .await
+        .unwrap();
+    let job = w.job().await;
+    w.worker
+        .query_confirmed_claims(&job, &w.paper, 1)
+        .await
+        .unwrap();
+    let file = w.file().await;
+    let receipts = file
+        .knowledge_events
+        .iter()
+        .filter_map(|e| match e {
+            KnowledgeEvent::QueryCompleted { receipt } => Some(receipt),
+            _ => None,
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(receipts.len(), 2);
+    assert!(
+        receipts
+            .iter()
+            .all(|r| r.state == KnowledgeQueryState::InvalidPublication
+                && r.response.is_none()
+                && r.returned.is_empty())
+    );
 }
 
 async fn with_computation_attachment(w: &mut World) {

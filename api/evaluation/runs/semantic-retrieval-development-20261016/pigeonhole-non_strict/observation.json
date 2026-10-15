@@ -1,0 +1,8 @@
+{
+  "id": "pigeonhole-non_strict",
+  "state": "complete",
+  "request_sha256": "444949517eea83ef4621acce92a35366f6c50e928e73f1d0177929595234f207",
+  "exit_code": 0,
+  "latency_ms": 10633,
+  "response_sha256": "330dcff053305173b851e0a4fa20779395455a0cec6ce0592ca6dea4df362238"
+}

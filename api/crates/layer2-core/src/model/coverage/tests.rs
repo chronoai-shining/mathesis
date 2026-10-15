@@ -1,5 +1,16 @@
 use super::*;
 
+#[test]
+fn ranker_pins_reject_mixing_unknown_duplicate_and_missing_protocols() {
+    let current = vec![KNOWLEDGE_RANKER_SCOPE.to_owned()];
+    assert!(validate_knowledge_ranker(3, &current).is_ok());
+    assert!(validate_knowledge_ranker(2, &[]).is_ok());
+    assert!(validate_knowledge_ranker(3, &[]).is_err());
+    assert!(validate_knowledge_ranker(2, &current).is_err());
+    assert!(validate_knowledge_ranker(3, &vec![current[0].clone(); 2]).is_err());
+    assert!(validate_knowledge_ranker(3, &["mathesis.source-ranker.unrecognized".into()]).is_err());
+}
+
 fn example() -> (ClaimCoverage, Vec<KnowledgeQueryReceipt>) {
     let subject = CoverageSubject {
         submission: "paper".into(),

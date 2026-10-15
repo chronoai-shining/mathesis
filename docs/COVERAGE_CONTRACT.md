@@ -78,7 +78,7 @@ successful receipt. Oracle and CMA receive the same admitted receipts. Additiona
 CMA queries append receipts; model-written receipt ids must resolve to the same
 subject and snapshot before they can support a reading.
 
-Knowledge contract 2 requires a completed Oracle reformulation for each assessed
+Knowledge contracts 2 and 3 require a completed Oracle reformulation for each assessed
 claim in addition to the raw query. Its proposed fields are definitions,
 hypotheses, quantifiers, conclusion, search terms and retrieval reason. Query
 plans have one origin and at most one query per claim, admitted as one atomic
@@ -158,3 +158,11 @@ payloads or provider metadata. Challenge duration without actual participating
 reviewers grants no evidence upgrade. Upstream feedback starts as an attributable,
 licensed proposal package; only a verified upstream acceptance/readback event
 can mark it accepted or frozen upstream.
+
+
+Knowledge contract 3 additionally pins the candidate ranker in the digest-bound
+query scope. It searches the standard-term part of each saved reformulation;
+the complete mathematical extraction is retained and hash-bound. Contract 2
+keeps its full-field query and legacy scores. Neither candidate ranking method
+qualifies a relation. Query completion requires the admitted source, index and
+ranker; omission or algorithm mismatch cannot yield a successful receipt.

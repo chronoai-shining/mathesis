@@ -49,12 +49,17 @@ async fn main() -> anyhow::Result<()> {
                     let snapshot = knowledge::import(&store, arguments[1].clone().into(), arguments[2].clone().into(), arguments[3].clone().into(), arguments[4].clone().into()).await?;
                     Ok(serde_json::to_value(snapshot)?)
                 }
-                "--knowledge-query" if arguments.len() == 3 => {
+                "--knowledge-query" if (3..=4).contains(&arguments.len()) => {
                     let knowledge = knowledge::Knowledge::new(store.clone(), arguments[1].clone());
-                    let index = knowledge.index(&knowledge.configured_revision).await?;
+                    let index = if arguments.len() == 3 {
+                        knowledge.index(&knowledge.configured_revision).await?
+                    } else {
+                        anyhow::ensure!(arguments[3] == mathesis_review::knowledge::index::IDENTIFIER_PATH_RANKER, "unsupported diagnostic ranker");
+                        knowledge.ranked_index(&knowledge.configured_revision, knowledge::SourceRanking::IdentifierPaths).await?
+                    };
                     Ok(serde_json::json!({"diagnostic_only":true,"result":index.search(&arguments[2], None, 10)?}))
                 }
-                _ => anyhow::bail!("use --knowledge-import PROJECTION REPORT SOURCES ADMISSION.json or --knowledge-query INDEX_REVISION QUERY"),
+                _ => anyhow::bail!("use --knowledge-import PROJECTION REPORT SOURCES ADMISSION.json or --knowledge-query INDEX_REVISION QUERY [mathesis.source-ranker.identifier-paths.v1]"),
             }
         }.await;
         store.shutdown().await;

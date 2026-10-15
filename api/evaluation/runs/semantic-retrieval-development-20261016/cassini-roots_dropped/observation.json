@@ -1,0 +1,8 @@
+{
+  "id": "cassini-roots_dropped",
+  "state": "complete",
+  "request_sha256": "0192b444043fb29d9b77beeb76deb2021c772d31b3ef7eb72686623c3b68e2fb",
+  "exit_code": 0,
+  "latency_ms": 10355,
+  "response_sha256": "94edc3c1198142bf8c4ed48de100b6ac688649bf4f94f8910e2ca467a89f1474"
+}

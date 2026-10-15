@@ -2143,7 +2143,7 @@
                     },
                     "knowledge_contract": {
                       "type": "integer",
-                      "description": "2 requires raw and Oracle-reformulated source queries, with one optional recorded CMA query batch; 1 retains raw-query behavior; legacy absent/0 creates no retrospective evidence."
+                      "description": "3 pins identifier/path ranking and uses the saved reformulation search terms; 2 preserves full-field lexical reformulations; both require raw and Oracle queries and allow one recorded CMA follow-up batch. 1 retains raw lexical queries; absent/0 creates no retrospective evidence."
                     },
                     "knowledge_events": {
                       "type": "array",

@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 
 pub const INDEX_PROTOCOL: &str = "mathesis.source-index.v1";
+pub const IDENTIFIER_PATH_RANKER: &str = "mathesis.source-ranker.identifier-paths.v1";
 pub const MAX_SOURCE_BYTES: usize = 2 * 1024 * 1024;
 pub const MAX_EXCERPT_BYTES: usize = 80_000;
 pub const MAX_INDEX_SOURCE_BYTES: usize = 256 * 1024 * 1024;
@@ -237,6 +238,33 @@ fn terms(text: &str) -> Vec<String> {
         .collect()
 }
 
+/// Preserve whole identifiers and their case components for explicitly pinned
+/// new queries. Historical queries continue using `terms`.
+fn identifier_terms(text: &str) -> Vec<String> {
+    let mut output = terms(text);
+    for word in text.split(|c: char| !c.is_alphanumeric()) {
+        let chars = word.chars().collect::<Vec<_>>();
+        let mut segmented = String::new();
+        let mut split = false;
+        for (index, c) in chars.iter().enumerate() {
+            if index > 0
+                && c.is_uppercase()
+                && (chars[index - 1].is_lowercase()
+                    || (chars[index - 1].is_uppercase()
+                        && chars.get(index + 1).is_some_and(|next| next.is_lowercase())))
+            {
+                segmented.push(' ');
+                split = true;
+            }
+            segmented.push(*c);
+        }
+        if split {
+            output.extend(terms(&segmented));
+        }
+    }
+    output
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SourceHit {
     pub module_path: String,
@@ -249,6 +277,8 @@ pub struct SourceHit {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SourceQueryResult {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ranking_protocol: Option<String>,
     pub snapshot: String,
     pub index_revision: String,
     pub searched_modules: usize,
@@ -264,16 +294,42 @@ pub struct SearchIndex {
     postings: BTreeMap<String, Vec<(usize, usize)>>,
     lengths: Vec<usize>,
     average_length: f64,
+    identifier_components: bool,
+    path_terms: Vec<BTreeSet<String>>,
+    path_field: bool,
 }
 
 impl SearchIndex {
     pub fn new(index: SourceIndex) -> ReviewResult<Self> {
+        Self::build(index, false, false)
+    }
+
+    /// Experimental opt-in for measured candidate comparisons; no runtime
+    /// consumer switches an existing query's algorithm through this method.
+    pub fn with_identifier_components(index: SourceIndex) -> ReviewResult<Self> {
+        Self::build(index, true, false)
+    }
+
+    /// Versioned field weighting: module paths are a separate, short field.
+    pub fn with_identifier_fields(index: SourceIndex) -> ReviewResult<Self> {
+        Self::build(index, true, true)
+    }
+
+    fn build(
+        index: SourceIndex,
+        identifier_components: bool,
+        path_field: bool,
+    ) -> ReviewResult<Self> {
         index.validate()?;
         let mut postings: BTreeMap<String, Vec<(usize, usize)>> = BTreeMap::new();
         let mut lengths = Vec::new();
         for (i, module) in index.modules.iter().enumerate() {
             let mut counts = BTreeMap::new();
-            let words = terms(&module.source);
+            let words = if identifier_components {
+                identifier_terms(&module.source)
+            } else {
+                terms(&module.source)
+            };
             lengths.push(words.len());
             for word in words {
                 *counts.entry(word).or_insert(0) += 1;
@@ -283,16 +339,38 @@ impl SearchIndex {
             }
         }
         let average_length = lengths.iter().sum::<usize>() as f64 / lengths.len().max(1) as f64;
+        let path_terms = if path_field {
+            index
+                .modules
+                .iter()
+                .map(|module| identifier_terms(&module.path).into_iter().collect())
+                .collect()
+        } else {
+            Vec::new()
+        };
         Ok(Self {
             index,
             postings,
             lengths,
             average_length: average_length.max(1.0),
+            identifier_components,
+            path_terms,
+            path_field,
         })
     }
 
     pub fn identity(&self) -> (&str, &str) {
         (&self.index.publication.bundle_digest, &self.index.revision)
+    }
+
+    pub fn ranking_protocol(&self) -> Option<&'static str> {
+        if self.path_field {
+            Some(IDENTIFIER_PATH_RANKER)
+        } else if self.identifier_components {
+            Some("mathesis.source-ranker.identifier-components.experimental")
+        } else {
+            None
+        }
     }
 
     /// Ranking is only candidate discovery. No similarity value is exported as
@@ -308,7 +386,12 @@ impl SearchIndex {
             "invalid source query",
         )?;
         let mut scores: BTreeMap<usize, f64> = BTreeMap::new();
-        for word in terms(query).into_iter().collect::<BTreeSet<_>>() {
+        let query_terms = if self.identifier_components {
+            identifier_terms(query)
+        } else {
+            terms(query)
+        };
+        for word in query_terms.into_iter().collect::<BTreeSet<_>>() {
             if let Some(hits) = self.postings.get(&word) {
                 let idf = (1.0
                     + (self.index.modules.len() as f64 - hits.len() as f64 + 0.5)
@@ -319,6 +402,22 @@ impl SearchIndex {
                         1.2 * (0.25 + 0.75 * self.lengths[*i] as f64 / self.average_length);
                     *scores.entry(*i).or_insert(0.0) +=
                         idf * (*count as f64 * 2.2) / (*count as f64 + normalization);
+                }
+            }
+            if !self.path_terms.is_empty() {
+                let hits = self
+                    .path_terms
+                    .iter()
+                    .enumerate()
+                    .filter(|(_, terms)| terms.contains(&word))
+                    .map(|(i, _)| i)
+                    .collect::<Vec<_>>();
+                let idf = (1.0
+                    + (self.index.modules.len() as f64 - hits.len() as f64 + 0.5)
+                        / (hits.len() as f64 + 0.5))
+                    .ln();
+                for i in hits {
+                    *scores.entry(i).or_insert(0.0) += 2.0 * idf;
                 }
             }
         }
@@ -367,7 +466,7 @@ impl SearchIndex {
                 }
             })
             .collect();
-        Ok(SourceQueryResult {snapshot:self.index.publication.bundle_digest.clone(),index_revision:self.index.revision.clone(),
+        Ok(SourceQueryResult {ranking_protocol:self.ranking_protocol().map(str::to_owned), snapshot:self.index.publication.bundle_digest.clone(),index_revision:self.index.revision.clone(),
             searched_modules:self.index.modules.len(),omitted_modules:self.index.omissions.len(),
             matching_modules, result_truncated:matching_modules>hits.len() || hits.iter().any(|h| h.excerpt_truncated || h.declarations_truncated),hits,
             limits:vec!["Full-source term retrieval and optional exact type identity discover candidates; they do not establish entailment or exhaust mathematical reformulations.".into(),

@@ -1,0 +1,8 @@
+{
+  "id": "bonferroni-signed_weights",
+  "state": "complete",
+  "request_sha256": "fcc70794b3fb5c5e20ad5cfe083f8ed3f9f3a662731999a73cccca742ed4f696",
+  "exit_code": 0,
+  "latency_ms": 10458,
+  "response_sha256": "d99375ea0ccc6c389e097bcaf0e03a177dbe7a4a1e377100aba5ea0137015c83"
+}

@@ -1,0 +1,19 @@
+{
+  "case_id": "pigeonhole-non_strict",
+  "exit_code": 0,
+  "stream_done": true,
+  "errors": [],
+  "oracle": {
+    "task_id": "ce9afb14-7b21-4cf2-8614-e7ce66993416",
+    "conversation_id": null,
+    "pool": "chrono-chatgpt-pro-pool",
+    "model_label": "chatgpt-6-pro",
+    "observed_model_switcher": "gpt_6",
+    "observed_model_effort": "pro",
+    "chatgpt_url": "https://chatgpt.com/c/6ad13c50-eff8-83ec-a80d-d20258c7b270",
+    "usage_estimated": true
+  },
+  "elapsed_ms": 339467,
+  "request_sha256": "913f891fd3f419aa0d503695aa21a02af091048edb95af27fb25ebf760c52b8f",
+  "response_sha256": "36d72ef20276970cc63f69f74f853f4c357e8526125b741ee7883b0f7cd57672"
+}

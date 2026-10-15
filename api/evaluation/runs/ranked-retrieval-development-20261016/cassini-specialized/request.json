@@ -1,0 +1,36 @@
+{
+  "proposal": [
+    {
+      "claim": "C1",
+      "definitions": [
+        "v_j=p^j-q^j for every nonnegative integer j; zeroth powers are 1_R."
+      ],
+      "hypotheses": [
+        "R is a commutative ring, with identity implicit in the statement.",
+        "p,q are elements of R.",
+        "p^2=p+1_R.",
+        "q^2=q+1_R.",
+        "p+q=1_R.",
+        "pq=-1_R.",
+        "m is a nonnegative integer."
+      ],
+      "quantifiers": "For every such R, every p,q in R satisfying the four equations, and every m in Z_{≥0}, with v defined for all j in Z_{≥0}. Retain arbitrary characteristic, zero divisors, coincident roots, and m=0.",
+      "conclusion": "Equality in R: v_{m+1}^2-v_{m+1}v_m-v_m^2=5_R(-1_R)^m, with integer constants interpreted in R.",
+      "search_terms": [
+        "Cassini identity",
+        "Simson identity",
+        "Fibonacci polynomial Cassini identity",
+        "unnormalized Binet formula",
+        "Fibonacci recurrence quadratic invariant",
+        "Lucas sequences U_n(P,Q)",
+        "Casoratian identity",
+        "two-element generalized Vandermonde identity",
+        "commutative rings arbitrary characteristic"
+      ],
+      "reason": "Retrieve a source-level match preserving the complete ring domain and index boundary. Check the adjacent-index expression, discriminant factor 5, and parity sign against an explicitly applicable general theorem. This proposal targets the semantic gap in the supplied diagnostic candidates and awaits system execution."
+    }
+  ],
+  "query": "Cassini identity; Simson identity; Fibonacci polynomial Cassini identity; unnormalized Binet formula; Fibonacci recurrence quadratic invariant; Lucas sequences U_n(P,Q); Casoratian identity; two-element generalized Vandermonde identity; commutative rings arbitrary characteristic",
+  "index_revision": "sha256:2838a557bfddda5a1f9410e0dcf596a67112c0ec0f163c4cf1a787abcce15d2b",
+  "answer_sha256": "17273365a6df9a05ab2f21a442cb283d2c4a27b0c584825196fc9b6df21083b2"
+}

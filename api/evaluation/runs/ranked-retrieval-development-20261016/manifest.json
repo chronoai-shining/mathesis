@@ -1,0 +1,12 @@
+{
+  "schema": "mathesis.semantic-retrieval-run.v1",
+  "freeze_sha256": "4cbc93154e116f57923b3cf475904638640856a92e929573670b6a60c8bf884b",
+  "index_revision": "sha256:2838a557bfddda5a1f9410e0dcf596a67112c0ec0f163c4cf1a787abcce15d2b",
+  "snapshot": "sha256:6c92665f572be41df6f8fad0d246f4e141e9cf036196608239792f787121ec26",
+  "binary_sha256": "8358333a8e2b36a47d88bb0f6f1ccf74bff57c5bde5fdc63da4ba511611bf955",
+  "initial_retrieval_manifest_sha256": "f38e91b6b00cc8ff4854c83ab7ca39c9042dc7d910b398a642d24f02d42c55d2",
+  "acquisition_metadata_sha256": "7595e4a430f61e08a47b84b3149f2fbabb87235c9b71dd0673bf34593e300c9c",
+  "scope": "Actual standard-term queries with pinned identifier/path ranking; complete original proposal retained; no CMA audit or review receipt",
+  "ranking_protocol": "mathesis.source-ranker.identifier-paths.v1",
+  "implementation_revision": "812afd14663d9922a95054e1bc1c995d82a832bb"
+}

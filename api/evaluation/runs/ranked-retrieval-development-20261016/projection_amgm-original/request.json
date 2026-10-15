@@ -1,0 +1,33 @@
+{
+  "proposal": [
+    {
+      "claim": "C1",
+      "definitions": [
+        "P_i are real orthogonal projections: P_i^T=P_i and P_i^2=P_i.",
+        "M=(1/n) sum_{i=1}^n P_i.",
+        "S=(1/n!) sum_{sigma in Sym(n)} P_sigma(1)...P_sigma(n), counting label permutations even when matrices repeat.",
+        "M^n-S is positive semidefinite iff x^T(M^n-S)x>=0 for every x in R^N."
+      ],
+      "hypotheses": [
+        "n is an integer with n>=1.",
+        "N is a finite matrix dimension.",
+        "Every P_i is a real N-by-N symmetric idempotent matrix."
+      ],
+      "quantifiers": "For every integer n>=1 and every finite matrix dimension N, for every tuple (P_1,...,P_n) satisfying the hypotheses, the conclusion holds. No commutativity, distinctness, rank restriction, or relation between n and N is assumed. N=0 is vacuous if zero-dimensional matrices are allowed.",
+      "conclusion": "S<=M^n in Loewner order, equivalently M^n-S is positive semidefinite.",
+      "search_terms": [
+        "orthogonal projection matrix AM-GM conjecture",
+        "Sun Luo Ye Conjecture 3.1 equation 37",
+        "symmetrized noncommutative product",
+        "Loewner order arithmetic-geometric mean",
+        "sampling with and without replacement",
+        "weak projection AM-GM inequality",
+        "noncommutative polynomial positivity with idempotent constraints"
+      ],
+      "reason": "Retrieve a theorem, exact prior formulation, or matching refutation for the projection-specific matrix-order assertion. Distinguish it from general PSD norm inequalities, averages of product norms, and the weaker S<=M bound. This is a proposed search, not evidence of entailment or settlement."
+    }
+  ],
+  "query": "orthogonal projection matrix AM-GM conjecture; Sun Luo Ye Conjecture 3.1 equation 37; symmetrized noncommutative product; Loewner order arithmetic-geometric mean; sampling with and without replacement; weak projection AM-GM inequality; noncommutative polynomial positivity with idempotent constraints",
+  "index_revision": "sha256:2838a557bfddda5a1f9410e0dcf596a67112c0ec0f163c4cf1a787abcce15d2b",
+  "answer_sha256": "9c822c87244e93a7f6559713216fa7cc5fb44ea3ce6d709a30577034c1663765"
+}

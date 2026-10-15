@@ -1,0 +1,32 @@
+{
+  "proposal": [
+    {
+      "claim": "C1",
+      "definitions": [
+        "u_j=a*p^j+b*q^j; nonnegative integer sequence indexing is the conventional reading, with the exponent-zero convention to be stated explicitly."
+      ],
+      "hypotheses": [
+        "p,q,a,b are arbitrary integers.",
+        "m>=0, interpreted as a nonnegative integer sequence index."
+      ],
+      "quantifiers": "For every p,q,a,b in Z and every m in Z_{>=0}, with u defined by the displayed formula. There are no distinctness, nonzero, characteristic-root, or recurrence hypotheses; zero bases, zero coefficients and p=q remain included.",
+      "conclusion": "u_{m+1}^2-u_{m+1}*u_m-u_m^2=-5*a*b*(-1)^m.",
+      "search_terms": [
+        "Cassini identity",
+        "Simson identity",
+        "generalized Fibonacci quadratic invariant",
+        "Horadam sequence Cassini identity",
+        "second-order linear recurrence",
+        "two-exponential sequence",
+        "characteristic roots versus recurrence coefficients",
+        "Casoratian determinant identity",
+        "Fibonacci characteristic polynomial t^2-t-1",
+        "coincident roots and zero-base cases"
+      ],
+      "reason": "Retrieve an exact hypothesis-level comparison for arbitrary exponential bases, rather than golden Lucas doubling. Distinguish fixed Fibonacci characteristic roots from unrestricted integer bases, and preserve m=0, coincident bases and zero parameters. This is a proposed search, not an assertion of entailment, novelty or verification."
+    }
+  ],
+  "query": "Cassini identity; Simson identity; generalized Fibonacci quadratic invariant; Horadam sequence Cassini identity; second-order linear recurrence; two-exponential sequence; characteristic roots versus recurrence coefficients; Casoratian determinant identity; Fibonacci characteristic polynomial t^2-t-1; coincident roots and zero-base cases",
+  "index_revision": "sha256:2838a557bfddda5a1f9410e0dcf596a67112c0ec0f163c4cf1a787abcce15d2b",
+  "answer_sha256": "d24f46a111b9fc2d641491e9be8f4fac76c70ae8fea5fbb65a1b14bd1244fae8"
+}

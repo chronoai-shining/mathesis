@@ -71,7 +71,10 @@ impl Worker {
                 .clone()
                 .map(|(s, i)| (Some(s), Some(i)))
                 .unwrap_or_default();
-            let scopes = vec![QUERY_SCOPE.into()];
+            let mut scopes = vec![QUERY_SCOPE.into()];
+            if round.knowledge_contract >= 3 {
+                scopes.push(KNOWLEDGE_RANKER_SCOPE.into());
+            }
             let digest = KnowledgeQueryReceipt::request_digest(
                 &subject,
                 &snapshot,
@@ -125,9 +128,18 @@ impl Worker {
         pin_failure: KnowledgeQueryState,
     ) -> Result<(), Failure> {
         let started_at = chrono::Utc::now();
+        let ranking = if intent.scopes.iter().any(|s| s == KNOWLEDGE_RANKER_SCOPE) {
+            crate::knowledge::SourceRanking::IdentifierPaths
+        } else {
+            crate::knowledge::SourceRanking::Legacy
+        };
         let result = match (&self.knowledge, intent.index_revision.as_deref()) {
             (Some(source), Some(revision)) => {
-                tokio::time::timeout(QUERY_TIMEOUT, source.query(revision, &intent.query)).await
+                tokio::time::timeout(
+                    QUERY_TIMEOUT,
+                    source.query(revision, &intent.query, ranking),
+                )
+                .await
             }
             _ => Ok(Err(CoreError::Unavailable(
                 "no admitted knowledge index is configured".into(),
@@ -136,7 +148,7 @@ impl Worker {
         let mut response = None;
         let mut returned = vec![];
         let (state, mut limits, retryable) = match result {
-                Ok(Ok(result)) if Some(&result.snapshot) == intent.snapshot.as_ref() && Some(&result.index_revision) == intent.index_revision.as_ref() => {
+                Ok(Ok(result)) if Some(&result.snapshot) == intent.snapshot.as_ref() && Some(&result.index_revision) == intent.index_revision.as_ref() && result.ranking_protocol.as_deref() == ranking.protocol() => {
                     let encoded = serde_json::to_vec(&result).map_err(|_| Failure::Permanent("knowledge response serialization failed".into()))?;
                     if encoded.len() > 2 * 1024 * 1024 {
                         (KnowledgeQueryState::Unavailable, vec!["Source query response exceeded the review evidence byte limit.".into()], false)
