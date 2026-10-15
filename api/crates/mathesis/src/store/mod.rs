@@ -121,6 +121,7 @@ impl MongoStore {
             .create_indexes([
                 unique(doc! { "id": 1 }),
                 plain(doc! {"binding_directory":1,"id":-1}),
+                plain(doc! {"feedback_directory":1,"id":-1}),
             ])
             .await?;
         self.raw(knowledge::KNOWLEDGE_SNAPSHOTS)

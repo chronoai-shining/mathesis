@@ -574,6 +574,31 @@ impl RefereeStore for MemoryStores {
         Ok(Listing { items, next_before })
     }
 
+    async fn feedback_sources(
+        &self,
+        limit: u32,
+        before: Option<String>,
+    ) -> CoreResult<Listing<SubmissionId>> {
+        let files = self.referees.lock().await;
+        let mut items = files
+            .values()
+            .filter(|f| {
+                !f.feedback_proposals.is_empty()
+                    && before.as_ref().is_none_or(|b| f.id.as_str() < b.as_str())
+            })
+            .map(|f| f.id.clone())
+            .collect::<Vec<_>>();
+        items.sort_by(|a, b| b.cmp(a));
+        let more = items.len() > limit as usize;
+        items.truncate(limit as usize);
+        let next_before = if more {
+            items.last().map(ToString::to_string)
+        } else {
+            None
+        };
+        Ok(Listing { items, next_before })
+    }
+
     async fn get(&self, submission: &SubmissionId) -> CoreResult<Option<RefereeFile>> {
         Ok(self.referees.lock().await.get(submission).cloned())
     }

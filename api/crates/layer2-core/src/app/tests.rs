@@ -3095,6 +3095,14 @@ impl crate::ports::RefereeStore for BarrierReferees {
         crate::ports::RefereeStore::binding_sources(self.stores.as_ref(), limit, before).await
     }
 
+    async fn feedback_sources(
+        &self,
+        limit: u32,
+        before: Option<String>,
+    ) -> CoreResult<crate::ports::Listing<SubmissionId>> {
+        crate::ports::RefereeStore::feedback_sources(self.stores.as_ref(), limit, before).await
+    }
+
     async fn get(&self, id: &SubmissionId) -> CoreResult<Option<RefereeFile>> {
         let snapshot = crate::ports::RefereeStore::get(self.stores.as_ref(), id).await?;
         if self.reads.fetch_add(1, std::sync::atomic::Ordering::SeqCst) < 2 {
@@ -3260,6 +3268,14 @@ impl crate::ports::RefereeStore for AdmissionReadBarrier {
         crate::ports::RefereeStore::binding_sources(self.stores.as_ref(), limit, before).await
     }
 
+    async fn feedback_sources(
+        &self,
+        limit: u32,
+        before: Option<String>,
+    ) -> CoreResult<crate::ports::Listing<SubmissionId>> {
+        crate::ports::RefereeStore::feedback_sources(self.stores.as_ref(), limit, before).await
+    }
+
     async fn get(&self, id: &SubmissionId) -> CoreResult<Option<RefereeFile>> {
         let snapshot = crate::ports::RefereeStore::get(self.stores.as_ref(), id).await?;
         self.entered.notify_one();
@@ -3350,3 +3366,5 @@ async fn cma_admission_and_fallback_recheck_lease_after_async_reads() {
 mod services;
 
 mod bindings;
+
+mod feedback;

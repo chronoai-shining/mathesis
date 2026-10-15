@@ -151,6 +151,7 @@ pub enum JobKind {
     LeanStatement,
     ResearchTarget,
     BindingAudit,
+    FeedbackReadback,
     VerifyResearch,
     OpenProblems,
     VerifyAttempt,
@@ -283,6 +284,12 @@ pub trait RefereeStore: Send + Sync {
     /// Small directory of histories with binding boards, including revoked boards
     /// for cleanup. The application rechecks current authorization on every read.
     async fn binding_sources(
+        &self,
+        limit: u32,
+        before: Option<String>,
+    ) -> CoreResult<Listing<SubmissionId>>;
+    /// Small private proposal directory for recovering saved observation intents.
+    async fn feedback_sources(
         &self,
         limit: u32,
         before: Option<String>,

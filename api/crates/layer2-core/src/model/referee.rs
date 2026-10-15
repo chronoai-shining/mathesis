@@ -469,6 +469,8 @@ pub struct NewFindingResponse {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RefereeFile {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub feedback_proposals: Vec<super::FeedbackProposal>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub binding_boards: Vec<super::BindingBoard>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub research_obligations: Vec<super::ResearchObligation>,
@@ -499,6 +501,7 @@ impl RefereeFile {
             id,
             research_obligations: vec![],
             binding_boards: vec![],
+            feedback_proposals: vec![],
             knowledge_events: vec![],
             finding_responses: vec![],
             agent_steps: Default::default(),

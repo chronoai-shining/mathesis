@@ -1230,3 +1230,114 @@ export type BindingProfileEntry = {
   credited: boolean;
   latest_verdict: PublicBindingAudit['verdict'] | null;
 };
+
+export type FeedbackKind =
+  | { kind: 'open_problem'; claim: string }
+  | { kind: 'verified_solution'; claim: string; attempt: string }
+  | { kind: 'library_binding'; board: string; contribution: string }
+  | { kind: 'witness_formalization'; claim: string; witness: number }
+  | {
+      kind: 'dtr_registration';
+      claim: string;
+      attempt: string;
+      slots: {
+        escape_from: string;
+        readout_via: string;
+        realization: string;
+        escape_continues: string;
+      };
+    }
+  | { kind: 'erratum'; report: string; upstream: KnowledgeDeclarationRef[] };
+export type FeedbackSource = {
+  submission: string;
+  record: string;
+  version: number;
+  claims_revision: number;
+  source_digest: string;
+};
+export type FeedbackPreview = {
+  digest: string;
+  producer: string;
+  source: FeedbackSource;
+  kind: FeedbackKind;
+  required_signers: string[];
+  license: string;
+  payload: Record<string, unknown>;
+};
+export type FeedbackObservation = {
+  request: string;
+  pull_request: number;
+  upstream_repository: string;
+  upstream_base: string;
+  reference_state: string;
+  merge_commit: string | null;
+  merged_at: string | null;
+  consumed_source_commit: string;
+  consumed_source_tree: string;
+  snapshot: string;
+  index_revision: string;
+  merge_in_consumed_source: boolean;
+  declarations: {
+    identity: KnowledgeDeclarationRef;
+    present: boolean;
+    source_sha256: string | null;
+    freeze_status: string | null;
+    frozen_node_id: string | null;
+    package_marker_present: boolean;
+  }[];
+  evidence: Blob;
+  observed_at: string;
+  limits: string[];
+};
+export type FeedbackReadbackRequest = {
+  pull_request: number;
+  index_revision: string;
+  declarations: KnowledgeDeclarationRef[];
+  observation_key: string;
+};
+export type FeedbackEvent =
+  | {
+      event: 'authorized';
+      by: string;
+      digest: string;
+      license: string;
+      consent: string;
+      rights_asserted: boolean;
+      at: string;
+    }
+  | { event: 'revoked'; by: string; reason: string; at: string }
+  | { event: 'exported'; by: string; at: string }
+  | {
+      event: 'readback_requested';
+      id: string;
+      request: FeedbackReadbackRequest;
+      by: string;
+      at: string;
+    }
+  | { event: 'observed'; observation: FeedbackObservation };
+export type FeedbackProposal = {
+  id: string;
+  digest: string;
+  producer: string;
+  source: FeedbackSource;
+  kind: FeedbackKind;
+  payload: Blob;
+  required_signers: string[];
+  prepared_by: string;
+  prepared_at: string;
+  preparation_consent: string;
+  events: FeedbackEvent[];
+};
+export type FeedbackView = {
+  proposal: FeedbackProposal;
+  payload: Record<string, unknown> | null;
+  state: 'revoked' | 'source_or_evidence_changed' | 'authorized' | 'awaiting_authorizations';
+};
+export type FeedbackExport = {
+  protocol: string;
+  proposal: string;
+  digest: string;
+  payload: Record<string, unknown>;
+  authorizations: FeedbackEvent[];
+  proposal_markdown: string;
+};

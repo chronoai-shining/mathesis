@@ -210,6 +210,9 @@ impl Worker {
                 .await?;
             return Ok(false);
         }
+        if job.kind == JobKind::FeedbackReadback {
+            return self.feedback_readback_job(job).await;
+        }
         if job.kind.lane() == JobLane::Review {
             self.cleanup_agents(job).await?;
         }
@@ -244,6 +247,7 @@ impl Worker {
             | JobKind::AgentAttempt
             | JobKind::OpenProblems
             | JobKind::VerifyAttempt
+            | JobKind::FeedbackReadback
             | JobKind::BindingAudit
             | JobKind::ResearchTarget
             | JobKind::VerifyResearch

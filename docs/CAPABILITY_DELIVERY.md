@@ -19,8 +19,8 @@ implemented and verified.
 | P2-A research obligations and solving | Engineering merged; live author/CMA acceptance pending | Private exact adoption, bounded author consent, elaborated/independently inspected target, cookie confirmation, private attempts, strict verifier receipts, live cancellation and revision/lease fences, frozen fresh-review readback, API/CLI/MCP/UI and author exports. PR #11 (`5ea7fb98e2ca6b5847eb872380f42af93e21fdf6`) merged as `930699f7fb296ea275a9fbc3344b6efef3368a70` after original CI `38816365280` passed every applicable gate, including actual Linux Lean. 357 API, 325 Web and 3 SDK tests passed; strict Clippy/fmt, dependencies, builds and secret scan passed. See `RESEARCH_OBLIGATIONS_VALIDATION_2026-10-16.md`. Engineering tests are not live CMA or external-author acceptance evidence. |
 | P2-B computational evidence replay | Complete | Exact rational three-projection AM–GM replay reproduces −8/243. 61 independent Python contraction checks agree with Rust. Source/version-bound receipts precede Oracle and feed audit/advice/letter plus private author exports. 343 API and 322 Web tests passed. PR #9 merged as `5b02983c54ec0c44ea36a422b95e5055d694391b`; integrated head `35cd6ffb16821db7b256bfd8656fb05034bb3cf9` passed all existing gates in CI `38808453551`, including real Linux Lean. See `COMPUTATION_REPLAY_VALIDATION_2026-10-16.md`. |
 | P2-C coverage certificate consumer | Downstream fallback implemented; real upgrade unavailable | Exact admitted truth-export/report contracts provide source evidence but no target-specific coverage certificate/checker. API, CLI/MCP and reports expose unsupported status and an empty protocol list; ordinary Lean/certificate claims cannot replace source audit in admission. See `COVERAGE_CERTIFICATE_CAPABILITY_2026-10-16.md`. PR #12 merged as `0455533bc81915db7db9cbdf25931d8aa6b51fd8` after original CI `38818399096` passed all applicable gates, including actual Linux Lean. A real L2 → L3 upgrade remains unachieved pending the specified external capability. |
-| P3-A binding contributions and challenges | Implemented; validation in progress | Separate public-summary consent on accepted/public/contributor-enabled publications; bounded licensed joint bindings, independent durable source inspection, challenge/appeal history, canonical credit/withdrawal, public profiles, live CMA authorization fences and REST/SDK/MCP/UI. Real external participation remains absent. See `BINDING_CONTRIBUTIONS.md`. |
-| P3-B authorized feedback and consumption | Pending | Proposal packages with provenance/license, existing upstream admission references, verified downstream readback; no automatic upstream write without the applicable explicit authorization. |
+| P3-A binding contributions and challenges | Engineering merged; external participation pending | Separate public-summary consent on accepted/public/contributor-enabled publications; bounded licensed joint bindings, independent durable source inspection, challenge/appeal history, canonical credit/withdrawal, public profiles, live CMA authorization fences and REST/SDK/MCP/UI. PR #13 merged as `167f13227929152f9257e237c796910f8665fe0b` after original CI `38821556330` passed all gates, including real Linux Lean, at `bdb2b7410478e8b0ce79bb2c8588d89f28e0d562`. Local 369 API, 328 Web and 3 SDK tests passed. Real external participation remains absent. See `BINDING_CONTRIBUTIONS_VALIDATION_2026-10-16.md`. |
+| P3-B authorized feedback and consumption | Engineering implemented; validation and merge pending | Six exact public-evidence channels, immutable GridFS packages, separate digest-bound Apache-2.0 rights approvals from every required owner, revocation and current-evidence gates, durable leased read-only GitHub/admitted-index observations, original source/freeze identities and raw checksummed evidence. REST/OpenAPI/CLI/MCP/Web and private dossiers agree. No upstream writes or aggregate acceptance claims. All 381 API, 331 Web and 3 SDK tests passed locally; final checks ongoing. Real authorized upstream admission/reimport remains absent. See `AUTHORIZED_FEEDBACK.md`. |
 
 Current worktrees:
 
@@ -67,3 +67,15 @@ Latest GitHub observation: issue #4 was closed on 2026-10-15 at 19:24:16 UTC
 by `AlyciaBHZ`, immediately after PR #5 merged. This checklist retains its
 unfulfilled acceptance work; GitHub closure is not evidence of runtime,
 semantic-retrieval or end-to-end completion.
+
+
+P3-B worktree: `/Users/lexa/Desktop/lexa/omega/mathesis-authorized-feedback-20261016`,
+branch `codex/mathesis-authorized-feedback`, synchronized with merged P3-A.
+
+Deployment observation on 2026-10-16: the GitHub API lists zero repository
+environments and zero Actions variables; its Pages endpoint returns 404. The
+current machine has no kubectl/docker executable, kube config, Docker config or
+Mathesis/Wishpool deployment environment. Checked-in manifests still point to
+existing legacy image names and the documented domain is a placeholder. These
+observations do not prove no deployment exists elsewhere; its actual operator
+target and connection have not been identified. No production rollout is claimed.

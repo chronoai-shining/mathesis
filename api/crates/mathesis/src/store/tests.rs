@@ -1614,3 +1614,86 @@ async fn binding_directory_projects_small_metadata_from_checksumming_gridfs_hist
     assert!(RefereeStore::get(s, &file.id).await.is_err());
     db.drop().await;
 }
+
+#[tokio::test]
+async fn feedback_history_retains_payload_and_observation_blobs_in_offline_collection() {
+    let Some(db) = TestDb::open().await else {
+        return;
+    };
+    let s = &db.store;
+    let payload = BlobStore::put(s, b"exact authorized payload", "application/json")
+        .await
+        .unwrap();
+    let evidence = BlobStore::put(s, b"exact observation evidence", "application/json")
+        .await
+        .unwrap();
+    let orphan = BlobStore::put(s, b"unreferenced retry blob", "application/json")
+        .await
+        .unwrap();
+    let mut file = RefereeFile::new("feedback-history".into());
+    let now = Utc::now();
+    file.feedback_proposals.push(FeedbackProposal {
+        id: "proposal".into(),
+        digest: format!("sha256:{}", payload.sha256),
+        producer: "fixture".into(),
+        source: FeedbackSource {
+            submission: file.id.clone(),
+            record: "WP-2026-0001".into(),
+            version: 1,
+            claims_revision: 1,
+            source_digest: "fixture".into(),
+        },
+        kind: FeedbackKind::OpenProblem { claim: "C1".into() },
+        payload: payload.clone(),
+        required_signers: vec!["author".into()],
+        prepared_by: "author".into(),
+        prepared_at: now,
+        preparation_consent: FEEDBACK_PREPARATION_CONSENT.into(),
+        events: vec![FeedbackEvent::Observed {
+            observation: Box::new(FeedbackObservation {
+                request: "fixture".into(),
+                pull_request: 9,
+                upstream_repository: "the-omega-institute/trureturing".into(),
+                upstream_base: String::new(),
+                reference_state: "unavailable".into(),
+                merge_commit: None,
+                merged_at: None,
+                consumed_source_commit: String::new(),
+                consumed_source_tree: String::new(),
+                snapshot: String::new(),
+                index_revision: String::new(),
+                merge_in_consumed_source: false,
+                declarations: vec![],
+                evidence: evidence.clone(),
+                observed_at: now,
+                limits: vec!["x".repeat(600_000)],
+            }),
+        }],
+    });
+    RefereeStore::insert(s, &file).await.unwrap();
+    let doc = s
+        .raw(REFEREE_FILES)
+        .find_one(doc! {"id":file.id.as_str()})
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(doc.get_str("storage_format"), Ok("gridfs-json-v1"));
+    assert_eq!(doc.get_bool("feedback_directory"), Ok(true));
+    assert!(doc.get("feedback_proposals").is_none());
+    let loaded = RefereeStore::get(s, &file.id).await.unwrap().unwrap();
+    assert_eq!(loaded.feedback_proposals, file.feedback_proposals);
+    assert_eq!(
+        RefereeStore::feedback_sources(s, 1, None)
+            .await
+            .unwrap()
+            .items,
+        vec![file.id]
+    );
+    s.raw("papers.files").update_many(doc!{},doc!{"$set":{"uploadDate":mongodb::bson::DateTime::from_chrono(now-chrono::Duration::days(10))}}).await.unwrap();
+    let audit = s.storage_audit().await.unwrap();
+    assert!(audit.missing_files.is_empty());
+    assert!(audit.orphan_files.contains(&orphan.id));
+    assert!(!audit.orphan_files.contains(&payload.id));
+    assert!(!audit.orphan_files.contains(&evidence.id));
+    db.drop().await;
+}
