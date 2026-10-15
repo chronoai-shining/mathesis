@@ -16,8 +16,9 @@ import { SourceFields } from '../SourceFields';
 import { Badge, InlineError } from '../ui';
 
 /**
- * S1: the author confirms each statement the server read from the source —
- * kind, main result or supporting, dependencies — or excludes it.
+ * Let the author correct extraction exceptions before the record enters review.
+ * The extracted rows are accepted by default; only edits and exclusions need
+ * author action.
  */
 export function ConfirmStatements({
   submission,
@@ -97,10 +98,10 @@ export function ConfirmStatements({
   return (
     <form className="confirm-form" onSubmit={submit} aria-label="Confirm statements">
       <p>
-        We found {extracted.length} statement{extracted.length === 1 ? '' : 's'} in your source.
-        The extracted labels, roles and dependencies are accepted by default. Edit only anything
-        we read incorrectly or exclude anything that does not belong in the review. You do not
-        need to rewrite the mathematics.{' '}
+        We found {extracted.length} statement{extracted.length === 1 ? '' : 's'} in your source. The
+        extracted labels, roles and dependencies are accepted by default. Edit only anything we read
+        incorrectly or exclude anything that does not belong in the review. You do not need to
+        rewrite the mathematics.{' '}
         {submission.kind === 'conjecture'
           ? 'Mark at least one conjecture or question as main.'
           : 'Mark at least one proved statement as a main result.'}
@@ -162,8 +163,8 @@ export function ConfirmStatements({
           </label>
         </div>
         <p className="hint">
-          This is a one-time review before publication. Edits stay in this page while you navigate;
-          unedited statements keep the extracted defaults.
+          This is a one-time source check before review. You only need to edit a row when the
+          extraction is wrong; unedited statements keep the extracted defaults.
         </p>
       </div>
       <div className="table-wrap">
@@ -239,7 +240,7 @@ export function ConfirmStatements({
         <button
           type="submit"
           className="button"
-          aria-label="Check statements and start Orchestra review"
+          aria-label="Start review with these statements"
           disabled={busy}
         >
           {busy ? 'Starting review…' : 'Confirm statements and start review'}

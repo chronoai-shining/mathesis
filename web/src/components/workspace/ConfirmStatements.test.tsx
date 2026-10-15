@@ -17,9 +17,7 @@ it('accepts extracted defaults and submits hidden rows without manual checking',
     <ConfirmStatements submission={paper} onChange={vi.fn()} />,
     fakeApi({ confirmClaims }),
   );
-  expect(
-    screen.getByRole('button', { name: 'Check statements and start Orchestra review' }),
-  ).toBeEnabled();
+  expect(screen.getByRole('button', { name: 'Start review with these statements' })).toBeEnabled();
   fireEvent.change(screen.getByLabelText('Role of C1'), { target: { value: 'supporting' } });
   for (let page = 0; page < 9; page++) {
     if (page < 8) fireEvent.click(screen.getByRole('button', { name: 'Next statements' }));
@@ -28,9 +26,7 @@ it('accepts extracted defaults and submits hidden rows without manual checking',
   fireEvent.change(screen.getByLabelText('Jump to statement'), { target: { value: 'C1' } });
   expect(screen.getByLabelText('Role of C1')).toHaveValue('supporting');
   fireEvent.change(screen.getByLabelText('Find a statement'), { target: { value: 'Theorem 41' } });
-  fireEvent.click(
-    screen.getByRole('button', { name: 'Check statements and start Orchestra review' }),
-  );
+  fireEvent.click(screen.getByRole('button', { name: 'Start review with these statements' }));
   await waitFor(() => expect(confirmClaims).toHaveBeenCalled());
   const rows = confirmClaims.mock.calls[0] as unknown as [string, { id: string; role: string }[]];
   expect(rows[1]).toHaveLength(41);
