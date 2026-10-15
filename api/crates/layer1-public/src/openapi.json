@@ -2143,7 +2143,7 @@
                     },
                     "knowledge_contract": {
                       "type": "integer",
-                      "description": "1 for required durable source search; legacy absent/0 creates no retrospective evidence."
+                      "description": "2 requires raw and Oracle-reformulated source queries, with one optional recorded CMA query batch; 1 retains raw-query behavior; legacy absent/0 creates no retrospective evidence."
                     },
                     "knowledge_events": {
                       "type": "array",

@@ -53,6 +53,10 @@ pub(super) fn knowledge_admission(
         receipt_ids: receipts.iter().map(|r| r.id.clone()).collect(),
         complete: !receipts.is_empty()
             && receipts.len() == admitted
+            && (round.knowledge_contract < 2
+                || receipts
+                    .iter()
+                    .any(|r| r.scopes.iter().any(|s| s == KNOWLEDGE_ORACLE_SCOPE)))
             && receipts
                 .iter()
                 .all(|r| r.state == KnowledgeQueryState::Complete),
@@ -61,6 +65,129 @@ pub(super) fn knowledge_admission(
 }
 
 impl App {
+    /// Admit a complete model-proposed query plan in one revision-fenced write.
+    /// A crash cannot preserve only the first query and silently lose the rest.
+    pub async fn admit_knowledge_plan_leased(
+        &self,
+        caller: &Caller,
+        job: &crate::ports::LeasedJob,
+        leases: &dyn crate::ports::JobLease,
+        intents: Vec<KnowledgeQueryIntent>,
+    ) -> CoreResult<RefereeFile> {
+        caller.require(Role::Reviewer)?;
+        if intents.is_empty() || intents.len() > 400 {
+            return Err(CoreError::invalid(
+                "knowledge plan needs 1–400 bounded queries",
+            ));
+        }
+        let (mut file, stored) = self.referee_file(&job.submission).await?;
+        let mut ids = std::collections::BTreeSet::new();
+        let mut claims = std::collections::BTreeSet::new();
+        let origin = |intent: &KnowledgeQueryIntent| {
+            let oracle = intent.scopes.iter().any(|s| s == KNOWLEDGE_ORACLE_SCOPE);
+            let cma = intent.scopes.iter().any(|s| s == KNOWLEDGE_CMA_SCOPE);
+            match (oracle, cma) {
+                (true, false) => Some(KNOWLEDGE_ORACLE_SCOPE),
+                (false, true) => Some(KNOWLEDGE_CMA_SCOPE),
+                _ => None,
+            }
+        };
+        let plan_origin = origin(&intents[0])
+            .ok_or_else(|| CoreError::invalid("knowledge plan needs one recognized origin"))?;
+        if file.current().is_none_or(|r| r.knowledge_contract < 2) {
+            return Err(CoreError::conflict(
+                "this round has no semantic query contract",
+            ));
+        }
+        let mut replayed = 0;
+        for intent in &intents {
+            intent.validate()?;
+            if !ids.insert(&intent.id)
+                || !claims.insert(&intent.subject.claim)
+                || intent.subject.round != intents[0].subject.round
+                || origin(intent) != Some(plan_origin)
+            {
+                return Err(CoreError::invalid(
+                    "knowledge plan has duplicate claims/ids or mixed rounds/origins",
+                ));
+            }
+            let subject = self
+                .knowledge_subject(
+                    caller,
+                    &job.submission,
+                    intent.subject.round,
+                    &intent.subject.claim,
+                )
+                .await?;
+            if intent.subject != subject {
+                return Err(CoreError::conflict("knowledge plan subject changed"));
+            }
+            let pin = file
+                .knowledge_events
+                .iter()
+                .find_map(|event| match event {
+                    KnowledgeEvent::QueryAdmitted { intent: old }
+                        if old.subject.round == intent.subject.round =>
+                    {
+                        Some((&old.snapshot, &old.index_revision))
+                    }
+                    _ => None,
+                })
+                .ok_or_else(|| {
+                    CoreError::conflict("additional queries require the original round pin")
+                })?;
+            if pin != (&intent.snapshot, &intent.index_revision) {
+                return Err(CoreError::conflict(
+                    "knowledge plan changed its pinned source",
+                ));
+            }
+            if let Some(old) = file.knowledge_events.iter().find_map(|event| match event {
+                KnowledgeEvent::QueryAdmitted { intent: old } if old.id == intent.id => Some(old),
+                _ => None,
+            }) {
+                if old != intent {
+                    return Err(CoreError::conflict(
+                        "query id already admitted with different inputs",
+                    ));
+                }
+                replayed += 1;
+            }
+        }
+        if replayed == intents.len() {
+            return Ok(file);
+        }
+        if replayed > 0 {
+            return Err(CoreError::conflict(
+                "a knowledge plan cannot overwrite an earlier partial plan",
+            ));
+        }
+        if file.knowledge_events.iter().any(|event| {
+            matches!(event,
+            KnowledgeEvent::QueryAdmitted { intent }
+                if intent.subject.round == intents[0].subject.round
+                    && origin(intent) == Some(plan_origin))
+        }) {
+            return Err(CoreError::conflict(
+                "this query origin has already used its round budget",
+            ));
+        }
+        if file.knowledge_events.len() + intents.len() > 10_000 {
+            return Err(CoreError::conflict(
+                "review knowledge history reached its event limit",
+            ));
+        }
+        file.knowledge_events.extend(
+            intents
+                .into_iter()
+                .map(|intent| KnowledgeEvent::QueryAdmitted { intent }),
+        );
+        if !leases.renew(job).await? {
+            return Err(CoreError::conflict("knowledge plan lost its lease"));
+        }
+        self.store_referee_file(&mut file, stored).await?;
+        Ok(file)
+    }
+
     pub async fn knowledge_subject(
         &self,
         caller: &Caller,

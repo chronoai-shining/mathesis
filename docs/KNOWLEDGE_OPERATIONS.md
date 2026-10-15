@@ -99,7 +99,23 @@ existing staff restart action on the same manuscript version. This creates a new
 round without rewriting previous receipts or model task identities. Unavailable
 sources do not trigger upstream Lean or upstream publication changes.
 
-This increment uses raw confirmed-statement term queries against checked full
-source text. Semantic reformulations, extra CMA queries and measured end-to-end
-quality remain in `CAPABILITY_DELIVERY.md`; do not claim those are delivered by
-an importer or query receipt. Real CMA review evidence is still required.
+New rounds use knowledge contract 2. After the initial raw queries, Oracle's
+saved response proposes one query per confirmed claim with definitions,
+hypotheses, quantifiers, conclusion and standard mathematical terms. These
+fields form the actual query; the retrieval reason is bound into its scope and
+request digest. The complete batch is admitted atomically before execution.
+Missing or malformed reformulations leave the required-search gate incomplete,
+even when every raw query completed. Author Markdown/UI identify those gaps.
+
+CMA may request one additional batch, at most one query per claim. Its initial
+response is not filed as a finished audit when it requests that work. Queries
+resume from their saved intents, then a separate durable follow-up audit uses
+all the saved results. Requests beyond this budget, invalid batches and
+unassignable claim ids cannot establish sufficient comparison evidence. Payer
+admission and replay use the existing CMA path. Contract 0/1 prompts are
+preserved; no old round receives this new work retroactively.
+
+Queries still run lexical matching over checked source text. Model-proposed
+reformulation is candidate discovery, not a proof of semantic equivalence.
+Measured end-to-end quality remains in `CAPABILITY_DELIVERY.md`; real managed
+CMA review evidence is still required.

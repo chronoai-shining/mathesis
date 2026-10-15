@@ -129,11 +129,19 @@ readings do not decide admission. These are reviewer judgments, never compiled
 Trureturing registrations, FIB proofs or Lean receipts. See
 `docs/REVIEW_METHODOLOGY.md` for protocol and compatibility details.
 
-New referee rounds additionally pin `knowledge_contract: 1`. Before Oracle
+New referee rounds additionally pin `knowledge_contract: 2`. Before Oracle
 admission the worker runs an actual bounded source query for each confirmed
 claim against one immutable, operator-admitted Trureturing publication/index.
 Intent precedes execution; exact response bytes and receipt identities precede
-model consumption. The same saved evidence reaches Oracle, the source auditor,
+model consumption. Oracle proposes structured per-claim reformulations (definitions,
+hypotheses, quantifiers, conclusion and standard search terms); the system admits
+and executes that batch before the audit. The auditor may request one additional
+batch on the same pin, at most one query per claim; a fresh durable audit step
+uses the saved results. Missing required reformulations or unexecuted retrieval
+gaps keep the knowledge gate incomplete. These are lexical source queries with
+model-proposed mathematical terms, not certified semantic equivalence. Contract 1
+retains its original raw-query prompts and contract 0 has no retrospective
+evidence. The same saved evidence reaches Oracle, the source auditor,
 advice and the letter. Query completion is scoped; no match is not global novelty.
 Source-audited coverage requires returned declaration identities, a joint premise
 argument, parameter substitutions and discharged hypotheses. It is not a formal

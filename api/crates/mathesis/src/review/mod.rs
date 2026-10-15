@@ -12,6 +12,7 @@ mod agent_store;
 mod error_reports;
 mod knowledge;
 mod knowledge_mapping;
+mod knowledge_queries;
 pub(crate) mod mapping;
 #[cfg(test)]
 mod methodology_tests;

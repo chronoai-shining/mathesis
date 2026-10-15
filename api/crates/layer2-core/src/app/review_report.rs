@@ -114,6 +114,26 @@ impl ReviewReport {
                     out,
                     "### Required knowledge queries\n\nCompletion covers only the recorded bounded plan, never all mathematical knowledge. No match is not evidence of global novelty.\n"
                 );
+                if round.knowledge_contract >= 2 {
+                    let claims: std::collections::BTreeSet<_> = round
+                        .knowledge_events
+                        .iter()
+                        .map(|event| &event.subject().claim)
+                        .collect();
+                    for claim in claims {
+                        if !round.knowledge_events.iter().any(|event| {
+                            matches!(event,
+                            KnowledgeEvent::QueryCompleted { receipt }
+                                if &receipt.subject.claim == claim
+                                    && receipt.scopes.iter().any(|s| s == KNOWLEDGE_ORACLE_SCOPE))
+                        }) {
+                            let _ = writeln!(
+                                out,
+                                "Required semantic query has no recorded result for statement {claim}.\n"
+                            );
+                        }
+                    }
+                }
                 for event in &round.knowledge_events {
                     if let KnowledgeEvent::QueryCompleted { receipt } = event {
                         let _ = writeln!(

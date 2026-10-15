@@ -327,7 +327,10 @@ pub(super) async fn with_comparisons(
             .await
             .unwrap();
         let query = paper.claim(&reading.claim).unwrap().statement.clone();
-        let scopes = vec!["explicit synthetic source fixture".to_owned()];
+        let scopes = vec![
+            "explicit synthetic source fixture".to_owned(),
+            KNOWLEDGE_ORACLE_SCOPE.into(),
+        ];
         let snapshot = Some(hash(b"test-publication"));
         let index_revision = Some(hash(b"test-index"));
         let intent = KnowledgeQueryIntent {

@@ -15,6 +15,8 @@ use crate::{
 mod tests;
 
 pub const KNOWLEDGE_QUERY_PROTOCOL: &str = "mathesis.artifact-query.v1";
+pub const KNOWLEDGE_ORACLE_SCOPE: &str = "mathesis.semantic-query.v1:oracle";
+pub const KNOWLEDGE_CMA_SCOPE: &str = "mathesis.semantic-query.v1:cma";
 
 fn digest(value: &[u8]) -> String {
     format!("sha256:{:x}", Sha256::digest(value))

@@ -78,6 +78,18 @@ successful receipt. Oracle and CMA receive the same admitted receipts. Additiona
 CMA queries append receipts; model-written receipt ids must resolve to the same
 subject and snapshot before they can support a reading.
 
+Knowledge contract 2 requires a completed Oracle reformulation for each assessed
+claim in addition to the raw query. Its proposed fields are definitions,
+hypotheses, quantifiers, conclusion, search terms and retrieval reason. Query
+plans have one origin and at most one query per claim, admitted as one atomic
+batch; each origin (Oracle or CMA) has one batch per round. Oracle proposals are
+read from its immutable saved report. A crash resumes every admitted unfinished
+query before a new audit. CMA follow-up uses a distinct durable audit identity,
+with the same payer admission rules and original snapshot. Malformed or
+unexecuted additional requests suppress the affected sufficient comparisons;
+unassignable gaps affect every comparison. Existing source evidence and
+correctness findings are retained. Contracts 0 and 1 preserve their old prompts.
+
 The original archive observed for the first source is approximately 621 MB
 compressed and 24 GB expanded, with one material approximately 611 MB. Ingestion
 therefore needs streaming hashes, bounded material reads and explicit missing
