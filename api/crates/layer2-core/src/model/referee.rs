@@ -371,6 +371,10 @@ impl<T> Step<T> {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RefereeRound {
+    #[serde(default)]
+    pub computation_contract: u32,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub computation_receipts: Vec<super::ComputationReceipt>,
     /// Independent knowledge protocol pin; absent historical rounds keep their
     /// original prompt bytes and never receive fabricated search receipts.
     #[serde(default)]
@@ -518,6 +522,9 @@ pub struct RefereeView {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct RefereeRoundView {
+    pub computation_contract: u32,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub computation_receipts: Vec<super::ComputationReceipt>,
     #[serde(default)]
     pub knowledge_contract: u32,
     #[serde(skip_serializing_if = "Vec::is_empty")]
@@ -681,6 +688,8 @@ impl RefereeFile {
                 .rounds
                 .into_iter()
                 .map(|r| RefereeRoundView {
+                    computation_contract: r.computation_contract,
+                    computation_receipts: r.computation_receipts.clone(),
                     knowledge_contract: r.knowledge_contract,
                     knowledge_events: self
                         .knowledge_events

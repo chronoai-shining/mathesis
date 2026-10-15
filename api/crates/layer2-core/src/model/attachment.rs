@@ -17,6 +17,8 @@ pub enum AttachmentKind {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct EvidenceDescriptor {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub replay_protocol: Option<String>,
     pub path: String,
     pub kind: AttachmentKind,
     pub description: String,
@@ -62,6 +64,20 @@ pub fn evidence_inventory(
         .files
         .into_iter()
         .map(|descriptor| {
+            if descriptor
+                .replay_protocol
+                .as_deref()
+                .is_some_and(|p| p != super::COMPUTATION_PROTOCOL)
+                || (descriptor.replay_protocol.is_some()
+                    && !matches!(
+                        descriptor.kind,
+                        AttachmentKind::Certificate | AttachmentKind::Computation
+                    ))
+            {
+                return Err(CoreError::invalid(
+                    "unsupported evidence replay protocol or attachment kind",
+                ));
+            }
             let path = &descriptor.path;
             if path.len() > 512
                 || path.contains(['\\', ':', '\0'])

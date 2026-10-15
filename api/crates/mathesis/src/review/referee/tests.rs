@@ -91,6 +91,7 @@ impl Oracle for FakeOracle {
 #[derive(Default)]
 struct FakeAdvisor {
     knowledge_inputs: Mutex<Vec<Option<serde_json::Value>>>,
+    computation_inputs: Mutex<Vec<Option<serde_json::Value>>>,
     request_more_knowledge: AtomicBool,
     request_beyond_knowledge_budget: AtomicBool,
     malformed_knowledge_query: AtomicBool,
@@ -223,6 +224,10 @@ impl Advisor for FakeAdvisor {
             .lock()
             .await
             .push(input.knowledge.clone());
+        self.computation_inputs
+            .lock()
+            .await
+            .push(input.computations.clone());
         self.audits.fetch_add(1, Ordering::SeqCst);
         tokio::time::sleep(self.audit_delay).await;
         if self
@@ -326,6 +331,10 @@ impl Advisor for FakeAdvisor {
     }
     async fn advise(&self, input: &AdvisorInput) -> ReviewResult<AdviceOut> {
         assert!(input.audit.is_some() && input.decision.is_some());
+        self.computation_inputs
+            .lock()
+            .await
+            .push(input.computations.clone());
         self.advice.fetch_add(1, Ordering::SeqCst);
         if self.fail_advice {
             return Err(ReviewError::Transport("advisor deadline".into()));
@@ -369,6 +378,10 @@ impl Advisor for FakeAdvisor {
         assert!(
             input.audit.is_some() && input.decision.as_ref().unwrap().get("decision").is_some()
         );
+        self.computation_inputs
+            .lock()
+            .await
+            .push(input.computations.clone());
         self.letters.fetch_add(1, Ordering::SeqCst);
         if self.fail_letter {
             return Err(ReviewError::Output("unusable letter".into()));
@@ -4670,5 +4683,222 @@ async fn a_response_from_the_wrong_ranker_cannot_complete_an_admitted_query() {
             .all(|r| r.state == KnowledgeQueryState::InvalidPublication
                 && r.response.is_none()
                 && r.returned.is_empty())
+    );
+}
+
+async fn with_computation_attachment(w: &mut World) {
+    let paper = w
+        .worker
+        .app
+        .upload_version(
+            &w.author,
+            &w.paper.id,
+            Upload {
+                filename: "projection-amgm.zip".into(),
+                bytes: include_bytes!("fixtures/projection-amgm.zip").to_vec(),
+            },
+            "Declared bounded arithmetic replay".into(),
+            Some("ai-review-2026-10-11".into()),
+        )
+        .await
+        .unwrap();
+    w.worker
+        .app
+        .record_compilation(&w.worker.reviewer, &paper.id, 2, Ok(b"%PDF".to_vec()))
+        .await
+        .unwrap();
+    let claims = paper
+        .extracted
+        .iter()
+        .map(|c| ClaimConfirmation {
+            depends_on_conjectures: vec![],
+            id: c.id.clone(),
+            kind: c.kind,
+            role: c.role,
+            depends_on: vec![],
+            settles: None,
+            excluded: false,
+        })
+        .collect();
+    w.paper = w
+        .worker
+        .app
+        .confirm_claims(&w.author, &paper.id, claims)
+        .await
+        .unwrap();
+    while w.stores.take_job().await.is_some() {}
+}
+
+#[tokio::test]
+async fn finite_computation_is_saved_before_oracle_replayed_once_and_shared_privately() {
+    use mathesis_core::model::ComputationState;
+    let mut w = World::new(vec![completed("accept")], true).await;
+    with_computation_attachment(&mut w).await;
+    w.worker
+        .app
+        .begin_referee_round(&w.worker.referee_account, &w.paper.id)
+        .await
+        .unwrap();
+    let job = w.job().await;
+    w.worker
+        .replay_computations(&job, &w.paper, 1)
+        .await
+        .unwrap();
+    let first = w.file().await;
+    let receipt = first.current().unwrap().computation_receipts[0].clone();
+    assert_eq!(receipt.state, ComputationState::Counterexample);
+    assert_eq!(
+        (receipt.numerator.as_deref(), receipt.denominator.as_deref()),
+        (Some("-8"), Some("243"))
+    );
+    assert_eq!(
+        receipt.attachment,
+        w.paper.current_version().unwrap().evidence[0]
+    );
+    assert_eq!(w.oracle.submitted.load(Ordering::SeqCst), 0);
+    w.worker
+        .replay_computations(&job, &w.paper, 1)
+        .await
+        .unwrap();
+    assert_eq!(w.file().await, first);
+    let mut fake = receipt.clone();
+    fake.attachment.sha256 = "0".repeat(64);
+    assert!(
+        w.worker
+            .app
+            .record_computation_leased(&w.worker.referee_account, &job, w.jobs.as_ref(), fake)
+            .await
+            .is_err()
+    );
+    let mut author = w.author.clone();
+    author.roles.insert(Role::Reviewer);
+    assert!(
+        w.worker
+            .app
+            .record_computation_leased(&author, &job, w.jobs.as_ref(), receipt.clone())
+            .await
+            .is_err()
+    );
+    w.oracle.submit_error.store(1, Ordering::SeqCst);
+    assert!(w.worker.referee_job(&job).await.unwrap());
+    w.run_round().await;
+    let final_file = w.file().await;
+    assert_eq!(
+        final_file.current().unwrap().computation_receipts,
+        vec![receipt.clone()]
+    );
+    let prompts = w.oracle.prompts.lock().await;
+    assert_eq!(prompts.len(), 2);
+    assert_eq!(prompts[0], prompts[1]);
+    assert!(prompts[0].contains("SYSTEM-REPLAYED FINITE COMPUTATIONS"));
+    assert!(prompts[0].contains(&receipt.attachment.sha256));
+    let contexts = w.advisor.computation_inputs.lock().await;
+    assert_eq!(contexts.len(), 3);
+    assert!(
+        contexts
+            .iter()
+            .all(|context| context == &contexts[0] && context.is_some())
+    );
+    // This fixture manuscript is unrelated to the matrix assertion. Arithmetic
+    // alone never changes its correctness or claims source faithfulness.
+    let paper = w
+        .worker
+        .app
+        .submission(&w.author, &w.paper.id)
+        .await
+        .unwrap();
+    assert!(matches!(paper.status, SubmissionStatus::Accepted { .. }));
+    let dossier = w
+        .worker
+        .app
+        .review_report(&w.author, &w.paper.id)
+        .await
+        .unwrap();
+    assert!(dossier.markdown().contains("Exact value: -8/243"));
+    let outsider = w
+        .worker
+        .app
+        .ensure_service_account(&"computation-outsider".into(), "Outsider", Role::Endorser)
+        .await
+        .unwrap();
+    assert!(matches!(
+        w.worker.app.referee(&outsider, &w.paper.id).await,
+        Err(mathesis_core::CoreError::NotFound { .. })
+    ));
+}
+
+#[tokio::test(start_paused = true)]
+async fn computation_contract_and_lease_fences_prevent_late_or_retrospective_receipts() {
+    let mut w = World::new(vec![], true).await;
+    with_computation_attachment(&mut w).await;
+    w.worker
+        .app
+        .begin_referee_round(&w.worker.referee_account, &w.paper.id)
+        .await
+        .unwrap();
+    let job = w.job().await;
+    let mut file = w.file().await;
+    file.rounds[0].computation_contract = 0;
+    mathesis_core::ports::RefereeStore::replace(w.stores.as_ref(), &file, file.revision)
+        .await
+        .unwrap();
+    w.worker
+        .replay_computations(&job, &w.paper, 1)
+        .await
+        .unwrap();
+    assert!(
+        w.file()
+            .await
+            .current()
+            .unwrap()
+            .computation_receipts
+            .is_empty()
+    );
+    file = w.file().await;
+    file.rounds[0].computation_contract = 1;
+    mathesis_core::ports::RefereeStore::replace(w.stores.as_ref(), &file, file.revision)
+        .await
+        .unwrap();
+    w.jobs.defer(&job, Duration::ZERO).await.unwrap();
+    let replacement = w.job().await;
+    assert!(matches!(
+        w.worker.replay_computations(&job, &w.paper, 1).await,
+        Err(Failure::LeaseLost)
+    ));
+    assert!(
+        w.file()
+            .await
+            .current()
+            .unwrap()
+            .computation_receipts
+            .is_empty()
+    );
+    w.worker
+        .replay_computations(&replacement, &w.paper, 1)
+        .await
+        .unwrap();
+    let receipt = w.file().await.current().unwrap().computation_receipts[0].clone();
+    let mut changed = w.paper.clone();
+    changed.claims_revision += 1;
+    mathesis_core::ports::SubmissionStore::replace(w.stores.as_ref(), &changed, changed.revision)
+        .await
+        .unwrap();
+    let mut late = receipt.clone();
+    late.checked_at += chrono::Duration::seconds(1);
+    assert!(
+        w.worker
+            .app
+            .record_computation_leased(
+                &w.worker.referee_account,
+                &replacement,
+                w.jobs.as_ref(),
+                late
+            )
+            .await
+            .is_err()
+    );
+    assert_eq!(
+        w.file().await.current().unwrap().computation_receipts,
+        vec![receipt]
     );
 }
