@@ -66,3 +66,6 @@ pub use research::*;
 
 mod knowledge_capabilities;
 pub use knowledge_capabilities::*;
+
+mod binding;
+pub use binding::*;

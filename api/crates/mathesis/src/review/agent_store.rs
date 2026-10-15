@@ -92,6 +92,17 @@ impl Worker {
                         .research_active(&self.auditor_account, &paper.id, key)
                         .await?;
                 }
+                if let Some(attempt) = step.cma_attempts.last()
+                    && let Some(board) = attempt
+                        .step
+                        .strip_prefix("binding:")
+                        .and_then(|s| s.split(':').next())
+                {
+                    superseded |= !self
+                        .app
+                        .binding_active(&self.auditor_account, &paper.id, board)
+                        .await?;
+                }
                 let expired = chrono::Utc::now().timestamp().max(0) as u64 >= state.deadline;
                 if !superseded && !expired && state.answer.is_none() && state.failure.is_none() {
                     continue;
@@ -137,6 +148,7 @@ impl Worker {
         };
         // Preserve initial keys of already-admitted conversations; successors use their saved ordinal.
         let initial_step = if step.starts_with("target:")
+            || step.starts_with("binding:")
             || step.starts_with("research:")
             || step.starts_with("agent-attempt:")
             || step.starts_with("error-report:")
@@ -190,6 +202,18 @@ impl RunStore for AgentStore {
             && !self
                 .app
                 .research_active(&self.caller, &paper.id, key)
+                .await
+                .map_err(|_| fence())?
+        {
+            return Ok(false);
+        }
+        if let Some(board) = self
+            .logical_step
+            .strip_prefix("binding:")
+            .and_then(|s| s.split(':').next())
+            && !self
+                .app
+                .binding_active(&self.caller, &paper.id, board)
                 .await
                 .map_err(|_| fence())?
         {

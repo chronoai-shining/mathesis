@@ -1719,6 +1719,435 @@
           }
         }
       }
+    },
+    "/bindings": {
+      "get": {
+        "summary": "List currently authorized public mathematical summaries",
+        "description": "Exact source/consent fences apply. Contributions and challenges are candidates until independently inspected. Public responses exclude private audit reason/evidence. Source-audited binding credit is separate from Lean verification and publication.",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 25
+            }
+          },
+          {
+            "name": "before",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current authorized result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BindingDirectory"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sign in required"
+          },
+          "404": {
+            "description": "Not available to caller or sharing revoked"
+          },
+          "409": {
+            "description": "Changed source, rate or history limit"
+          },
+          "422": {
+            "description": "Invalid input"
+          }
+        },
+        "security": []
+      }
+    },
+    "/bindings/{id}/{key}": {
+      "get": {
+        "summary": "Read public contributions, challenges and effective binding credit",
+        "description": "Exact source/consent fences apply. Contributions and challenges are candidates until independently inspected. Public responses exclude private audit reason/evidence. Source-audited binding credit is separate from Lean verification and publication.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current authorized result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicBindingBoard"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sign in required"
+          },
+          "404": {
+            "description": "Not available to caller or sharing revoked"
+          },
+          "409": {
+            "description": "Changed source, rate or history limit"
+          },
+          "422": {
+            "description": "Invalid input"
+          }
+        },
+        "security": []
+      }
+    },
+    "/submissions/{id}/bindings": {
+      "get": {
+        "summary": "Read private author/staff summary options and complete inspection history",
+        "description": "Exact source/consent fences apply. Contributions and challenges are candidates until independently inspected. Public responses exclude private audit reason/evidence. Source-audited binding credit is separate from Lean verification and publication.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current authorized result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrivateBindingView"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sign in required"
+          },
+          "404": {
+            "description": "Not available to caller or sharing revoked"
+          },
+          "409": {
+            "description": "Changed source, rate or history limit"
+          },
+          "422": {
+            "description": "Invalid input"
+          }
+        }
+      },
+      "post": {
+        "summary": "Submitter authorizes exact summary and selected source declarations",
+        "description": "Exact source/consent fences apply. Contributions and challenges are candidates until independently inspected. Public responses exclude private audit reason/evidence. Source-audited binding credit is separate from Lean verification and publication.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current authorized result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicBindingBoard"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sign in required"
+          },
+          "404": {
+            "description": "Not available to caller or sharing revoked"
+          },
+          "409": {
+            "description": "Changed source, rate or history limit"
+          },
+          "422": {
+            "description": "Invalid input"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewBindingBoard"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/submissions/{id}/bindings/{key}/revoke": {
+      "post": {
+        "summary": "Submitter revokes sharing and further auditing",
+        "description": "Exact source/consent fences apply. Contributions and challenges are candidates until independently inspected. Public responses exclude private audit reason/evidence. Source-audited binding credit is separate from Lean verification and publication.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current authorized result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "revoked": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "revoked"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sign in required"
+          },
+          "404": {
+            "description": "Not available to caller or sharing revoked"
+          },
+          "409": {
+            "description": "Changed source, rate or history limit"
+          },
+          "422": {
+            "description": "Invalid input"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000
+                  }
+                },
+                "required": [
+                  "reason"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bindings/{id}/{key}/contributions": {
+      "post": {
+        "summary": "Submit a licensed structured joint binding",
+        "description": "Exact source/consent fences apply. Contributions and challenges are candidates until independently inspected. Public responses exclude private audit reason/evidence. Source-audited binding credit is separate from Lean verification and publication.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current authorized result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicBindingBoard"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sign in required"
+          },
+          "404": {
+            "description": "Not available to caller or sharing revoked"
+          },
+          "409": {
+            "description": "Changed source, rate or history limit"
+          },
+          "422": {
+            "description": "Invalid input"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewBindingContribution"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bindings/{id}/{key}/challenges": {
+      "post": {
+        "summary": "Submit licensed challenge or appeal evidence",
+        "description": "Exact source/consent fences apply. Contributions and challenges are candidates until independently inspected. Public responses exclude private audit reason/evidence. Source-audited binding credit is separate from Lean verification and publication.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current authorized result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicBindingBoard"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sign in required"
+          },
+          "404": {
+            "description": "Not available to caller or sharing revoked"
+          },
+          "409": {
+            "description": "Changed source, rate or history limit"
+          },
+          "422": {
+            "description": "Invalid input"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewBindingChallenge"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/binding-contributors/{person}": {
+      "get": {
+        "summary": "Current public binding contributions and effective credit for one authenticated owner identity",
+        "security": [],
+        "parameters": [
+          {
+            "name": "person",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "before",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Visibility-checked current contributions; empty pages can carry a continuation cursor",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/BindingProfileEntry"
+                      }
+                    },
+                    "next_before": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -2628,6 +3057,9 @@
           },
           "research": {
             "$ref": "#/components/schemas/ResearchView"
+          },
+          "binding_discussions": {
+            "$ref": "#/components/schemas/PrivateBindingView"
           },
           "knowledge_capabilities": {
             "$ref": "#/components/schemas/KnowledgeCapabilities"
@@ -3681,6 +4113,691 @@
             }
           }
         }
+      },
+      "KnowledgeBinding": {
+        "type": "object",
+        "properties": {
+          "premises": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/KnowledgeDeclarationRef"
+            }
+          },
+          "relation": {
+            "enum": [
+              "equivalent",
+              "instance",
+              "implies",
+              "refutes",
+              "proof_use"
+            ]
+          },
+          "parameters": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "parameter": {
+                  "type": "string"
+                },
+                "expression": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "hypotheses": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "hypothesis": {
+                  "type": "string"
+                },
+                "argument": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "argument": {
+            "type": "string"
+          },
+          "unresolved": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "source_lineage": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "premises",
+          "relation",
+          "parameters",
+          "hypotheses",
+          "argument",
+          "unresolved",
+          "source_lineage"
+        ],
+        "additionalProperties": false
+      },
+      "BindingTarget": {
+        "type": "object",
+        "properties": {
+          "subject": {
+            "$ref": "#/components/schemas/CoverageSubject"
+          },
+          "statement": {
+            "type": "string"
+          },
+          "sources": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/KnowledgeDeclarationRef"
+            }
+          }
+        },
+        "required": [
+          "subject",
+          "statement",
+          "sources"
+        ],
+        "additionalProperties": false
+      },
+      "BindingOption": {
+        "type": "object",
+        "properties": {
+          "digest": {
+            "type": "string"
+          },
+          "target": {
+            "$ref": "#/components/schemas/BindingTarget"
+          }
+        },
+        "required": [
+          "digest",
+          "target"
+        ],
+        "additionalProperties": false
+      },
+      "NewBindingBoard": {
+        "type": "object",
+        "properties": {
+          "option_digest": {
+            "type": "string"
+          },
+          "sources": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/KnowledgeDeclarationRef"
+            },
+            "minItems": 1,
+            "maxItems": 40
+          },
+          "context": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 20000
+          },
+          "license": {
+            "const": "CC-BY-4.0"
+          },
+          "consent": {
+            "const": "binding-summary-2026-10-16"
+          }
+        },
+        "required": [
+          "option_digest",
+          "sources",
+          "context",
+          "license",
+          "consent"
+        ],
+        "additionalProperties": false
+      },
+      "NewBindingContribution": {
+        "type": "object",
+        "properties": {
+          "binding": {
+            "$ref": "#/components/schemas/KnowledgeBinding"
+          },
+          "license": {
+            "const": "CC-BY-4.0"
+          },
+          "consent": {
+            "const": "binding-contribution-2026-10-16"
+          }
+        },
+        "required": [
+          "binding",
+          "license",
+          "consent"
+        ],
+        "additionalProperties": false
+      },
+      "NewBindingChallenge": {
+        "type": "object",
+        "properties": {
+          "contribution": {
+            "type": "string"
+          },
+          "evidence": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 20000
+          },
+          "license": {
+            "const": "CC-BY-4.0"
+          },
+          "consent": {
+            "const": "binding-contribution-2026-10-16"
+          }
+        },
+        "required": [
+          "contribution",
+          "evidence",
+          "license",
+          "consent"
+        ],
+        "additionalProperties": false
+      },
+      "BindingContribution": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "canonical": {
+            "type": "string"
+          },
+          "contributor": {
+            "type": "string"
+          },
+          "binding": {
+            "$ref": "#/components/schemas/KnowledgeBinding"
+          },
+          "license": {
+            "type": "string"
+          },
+          "consent": {
+            "type": "string"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "canonical",
+          "contributor",
+          "binding",
+          "license",
+          "consent",
+          "at"
+        ],
+        "additionalProperties": false
+      },
+      "BindingChallenge": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "contribution": {
+            "type": "string"
+          },
+          "challenger": {
+            "type": "string"
+          },
+          "evidence": {
+            "type": "string"
+          },
+          "license": {
+            "type": "string"
+          },
+          "consent": {
+            "type": "string"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "contribution",
+          "challenger",
+          "evidence",
+          "license",
+          "consent",
+          "at"
+        ],
+        "additionalProperties": false
+      },
+      "PublicBindingAudit": {
+        "type": "object",
+        "properties": {
+          "request": {
+            "type": "string"
+          },
+          "contribution": {
+            "type": "string"
+          },
+          "verdict": {
+            "enum": [
+              "supported",
+              "rejected",
+              "unclear"
+            ]
+          },
+          "evidence_complete": {
+            "type": "boolean"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "request",
+          "contribution",
+          "verdict",
+          "evidence_complete",
+          "at"
+        ],
+        "additionalProperties": false
+      },
+      "BindingAudit": {
+        "type": "object",
+        "properties": {
+          "request": {
+            "type": "string"
+          },
+          "contribution": {
+            "type": "string"
+          },
+          "verdict": {
+            "enum": [
+              "supported",
+              "rejected",
+              "unclear"
+            ]
+          },
+          "evidence_complete": {
+            "type": "boolean"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "auditor": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "evidence": {
+            "type": "string"
+          },
+          "inspected_sources": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/KnowledgeDeclarationRef"
+            }
+          }
+        },
+        "required": [
+          "request",
+          "contribution",
+          "verdict",
+          "evidence_complete",
+          "at",
+          "auditor",
+          "reason",
+          "evidence",
+          "inspected_sources"
+        ],
+        "additionalProperties": false
+      },
+      "BindingCredit": {
+        "type": "object",
+        "properties": {
+          "canonical": {
+            "type": "string"
+          },
+          "contribution": {
+            "type": "string"
+          },
+          "contributor": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "canonical",
+          "contribution",
+          "contributor"
+        ],
+        "additionalProperties": false
+      },
+      "PublicBindingBoard": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "target": {
+            "$ref": "#/components/schemas/BindingTarget"
+          },
+          "context": {
+            "type": "string"
+          },
+          "license": {
+            "type": "string"
+          },
+          "authorized_by": {
+            "type": "string"
+          },
+          "authorized_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "contributions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BindingContribution"
+            }
+          },
+          "challenges": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BindingChallenge"
+            }
+          },
+          "audits": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicBindingAudit"
+            }
+          },
+          "credits": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BindingCredit"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "target",
+          "context",
+          "license",
+          "authorized_by",
+          "authorized_at",
+          "contributions",
+          "challenges",
+          "audits",
+          "credits"
+        ],
+        "additionalProperties": false
+      },
+      "BindingEvent": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "event": {
+                "const": "contributed"
+              },
+              "contribution": {
+                "$ref": "#/components/schemas/BindingContribution"
+              }
+            },
+            "required": [
+              "event",
+              "contribution"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "event": {
+                "const": "challenged"
+              },
+              "challenge": {
+                "$ref": "#/components/schemas/BindingChallenge"
+              }
+            },
+            "required": [
+              "event",
+              "challenge"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "event": {
+                "const": "audited"
+              },
+              "audit": {
+                "$ref": "#/components/schemas/BindingAudit"
+              }
+            },
+            "required": [
+              "event",
+              "audit"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "event": {
+                "const": "revoked"
+              },
+              "by": {
+                "type": "string"
+              },
+              "reason": {
+                "type": "string"
+              },
+              "at": {
+                "type": "string",
+                "format": "date-time"
+              }
+            },
+            "required": [
+              "event",
+              "by",
+              "reason",
+              "at"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "BindingBoard": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "target": {
+            "$ref": "#/components/schemas/BindingTarget"
+          },
+          "context": {
+            "type": "string"
+          },
+          "license": {
+            "type": "string"
+          },
+          "authorized_by": {
+            "type": "string"
+          },
+          "authorized_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "consent": {
+            "type": "string"
+          },
+          "receipt_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "events": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BindingEvent"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "target",
+          "context",
+          "license",
+          "authorized_by",
+          "authorized_at",
+          "consent",
+          "receipt_ids",
+          "events"
+        ],
+        "additionalProperties": false
+      },
+      "PrivateBindingView": {
+        "type": "object",
+        "properties": {
+          "options": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BindingOption"
+            }
+          },
+          "boards": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BindingBoard"
+            }
+          }
+        },
+        "required": [
+          "options",
+          "boards"
+        ],
+        "additionalProperties": false
+      },
+      "BindingDirectoryEntry": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "submission": {
+            "type": "string"
+          },
+          "claim": {
+            "type": "string"
+          },
+          "statement": {
+            "type": "string"
+          },
+          "authorized_by": {
+            "type": "string"
+          },
+          "authorized_at": {
+            "type": "string"
+          },
+          "contributions": {
+            "type": "integer"
+          },
+          "credits": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "submission",
+          "claim",
+          "statement",
+          "authorized_by",
+          "authorized_at",
+          "contributions",
+          "credits"
+        ],
+        "additionalProperties": false
+      },
+      "BindingDirectory": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BindingDirectoryEntry"
+            }
+          },
+          "next_before": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "items",
+          "next_before"
+        ],
+        "additionalProperties": false
+      },
+      "BindingProfileEntry": {
+        "type": "object",
+        "properties": {
+          "submission": {
+            "type": "string"
+          },
+          "board": {
+            "type": "string"
+          },
+          "statement": {
+            "type": "string"
+          },
+          "contribution": {
+            "$ref": "#/components/schemas/BindingContribution"
+          },
+          "credited": {
+            "type": "boolean"
+          },
+          "latest_verdict": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "supported",
+              "rejected",
+              "unclear",
+              null
+            ]
+          }
+        },
+        "required": [
+          "submission",
+          "board",
+          "statement",
+          "contribution",
+          "credited",
+          "latest_verdict"
+        ]
       }
     }
   }

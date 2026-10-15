@@ -3,7 +3,7 @@ use mathesis_core::{
     CoreError, CoreResult,
     ids::SubmissionId,
     model::{BlobRef, RefereeFile},
-    ports::{BlobStore, RefereeStore},
+    ports::{BlobStore, Listing, RefereeStore},
 };
 use mongodb::bson::{Document, doc};
 use sha2::{Digest, Sha256};
@@ -20,12 +20,15 @@ impl MongoStore {
         let bytes = serde_json::to_vec(file)
             .map_err(|error| CoreError::Unavailable(format!("encode review history: {error}")))?;
         if bytes.len() <= INLINE_BYTES {
-            return Ok((to_document(file)?, None));
+            let mut document = to_document(file)?;
+            document.insert("binding_directory", !file.binding_boards.is_empty());
+            return Ok((document, None));
         }
         let snapshot =
             BlobStore::put(self, &bytes, "application/vnd.mathesis.review-history+json").await?;
         let document = doc! {
             "id": file.id.as_str(),
+            "binding_directory": !file.binding_boards.is_empty(),
             "revision": file.revision as i64,
             "storage_format": "gridfs-json-v1",
             "snapshot": to_document(&snapshot)?,
@@ -81,6 +84,107 @@ impl MongoStore {
 
 #[async_trait]
 impl RefereeStore for MongoStore {
+    async fn admit_binding_submission(
+        &self,
+        person: &mathesis_core::ids::PersonId,
+        request: &str,
+        at: chrono::DateTime<chrono::Utc>,
+    ) -> CoreResult<()> {
+        let collection = self.raw("binding_admissions");
+        loop {
+            let Some(document) = collection
+                .find_one(doc! {"_id":person.as_str()})
+                .await
+                .map_err(unavailable)?
+            else {
+                match collection
+                    .insert_one(doc! {"_id":person.as_str(),"revision":0_i64,"admissions":[]})
+                    .await
+                {
+                    Ok(_) => continue,
+                    Err(e) => match write_error(e) {
+                        CoreError::Conflict(_) => continue,
+                        e => return Err(e),
+                    },
+                }
+            };
+            let revision = document
+                .get_i64("revision")
+                .map_err(|_| CoreError::Unavailable("invalid binding rate revision".into()))?;
+            let mut admissions: Vec<mathesis_core::model::BindingAdmission> =
+                mongodb::bson::from_bson(document.get("admissions").cloned().unwrap_or_default())
+                    .map_err(|_| CoreError::Unavailable("invalid binding rate admissions".into()))?;
+            admissions.retain(|e| e.at > at - chrono::Duration::days(1));
+            if admissions.iter().any(|e| e.request == request) {
+                return Ok(());
+            }
+            if admissions.len() >= 5 {
+                return Err(CoreError::conflict(
+                    "daily binding contribution/challenge limit reached",
+                ));
+            }
+            admissions.push(mathesis_core::model::BindingAdmission {
+                request: request.into(),
+                at,
+            });
+            let data = mongodb::bson::to_bson(&admissions)
+                .map_err(|_| CoreError::Unavailable("cannot encode binding admission".into()))?;
+            if collection
+                .replace_one(
+                    doc! {"_id":person.as_str(),"revision":revision},
+                    doc! {"_id":person.as_str(),"revision":revision+1,"admissions":data},
+                )
+                .await
+                .map_err(write_error)?
+                .matched_count
+                == 1
+            {
+                return Ok(());
+            }
+        }
+    }
+
+    async fn binding_sources(
+        &self,
+        limit: u32,
+        before: Option<String>,
+    ) -> CoreResult<Listing<SubmissionId>> {
+        use futures::TryStreamExt;
+        let mut filter = doc! {"binding_directory":true};
+        if let Some(before) = before {
+            filter.insert("id", doc! {"$lt":before});
+        }
+        let docs = self
+            .raw(REFEREE_FILES)
+            .find(filter)
+            .projection(doc! {"id":1,"_id":0})
+            .sort(doc! {"id":-1})
+            .limit(i64::from(limit) + 1)
+            .await
+            .map_err(unavailable)?
+            .try_collect::<Vec<_>>()
+            .await
+            .map_err(unavailable)?;
+        let mut items = docs
+            .into_iter()
+            .map(|d| {
+                d.get_str("id")
+                    .map(|s| SubmissionId(s.into()))
+                    .map_err(|_| {
+                        CoreError::Unavailable("invalid binding directory identity".into())
+                    })
+            })
+            .collect::<CoreResult<Vec<_>>>()?;
+        let more = items.len() > limit as usize;
+        items.truncate(limit as usize);
+        let next_before = if more {
+            items.last().map(ToString::to_string)
+        } else {
+            None
+        };
+        Ok(Listing { items, next_before })
+    }
+
     async fn get(&self, id: &SubmissionId) -> CoreResult<Option<RefereeFile>> {
         let Some(document) = self
             .raw(REFEREE_FILES)

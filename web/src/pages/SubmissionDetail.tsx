@@ -1,3 +1,4 @@
+import { BindingWorkspace } from '../components/BindingWorkspace';
 import { InlineLatex } from '../components/Markdown';
 import { EvidenceInventory } from '../components/EvidenceFiles';
 import { MyCma, CmaHistory } from '../components/MyCma';
@@ -242,6 +243,7 @@ export function Workspace({
           />
         ) : null}
 
+        {state !== 'draft' && (isAuthor || isStaff) ? <BindingWorkspace submission={s} /> : null}
         {state !== 'draft' && (isAuthor || isStaff) ? <ResearchWorkspace submission={s} /> : null}
         {state === 'draft' ? <DraftNotice submission={s} /> : null}
         {state === 'draft' && isAuthor ? (

@@ -3072,6 +3072,29 @@ struct BarrierReferees {
 }
 #[async_trait::async_trait]
 impl crate::ports::RefereeStore for BarrierReferees {
+    async fn admit_binding_submission(
+        &self,
+        person: &PersonId,
+        request: &str,
+        at: chrono::DateTime<chrono::Utc>,
+    ) -> CoreResult<()> {
+        crate::ports::RefereeStore::admit_binding_submission(
+            self.stores.as_ref(),
+            person,
+            request,
+            at,
+        )
+        .await
+    }
+
+    async fn binding_sources(
+        &self,
+        limit: u32,
+        before: Option<String>,
+    ) -> CoreResult<crate::ports::Listing<SubmissionId>> {
+        crate::ports::RefereeStore::binding_sources(self.stores.as_ref(), limit, before).await
+    }
+
     async fn get(&self, id: &SubmissionId) -> CoreResult<Option<RefereeFile>> {
         let snapshot = crate::ports::RefereeStore::get(self.stores.as_ref(), id).await?;
         if self.reads.fetch_add(1, std::sync::atomic::Ordering::SeqCst) < 2 {
@@ -3214,6 +3237,29 @@ struct AdmissionReadBarrier {
 }
 #[async_trait::async_trait]
 impl crate::ports::RefereeStore for AdmissionReadBarrier {
+    async fn admit_binding_submission(
+        &self,
+        person: &PersonId,
+        request: &str,
+        at: chrono::DateTime<chrono::Utc>,
+    ) -> CoreResult<()> {
+        crate::ports::RefereeStore::admit_binding_submission(
+            self.stores.as_ref(),
+            person,
+            request,
+            at,
+        )
+        .await
+    }
+
+    async fn binding_sources(
+        &self,
+        limit: u32,
+        before: Option<String>,
+    ) -> CoreResult<crate::ports::Listing<SubmissionId>> {
+        crate::ports::RefereeStore::binding_sources(self.stores.as_ref(), limit, before).await
+    }
+
     async fn get(&self, id: &SubmissionId) -> CoreResult<Option<RefereeFile>> {
         let snapshot = crate::ports::RefereeStore::get(self.stores.as_ref(), id).await?;
         self.entered.notify_one();
@@ -3302,3 +3348,5 @@ async fn cma_admission_and_fallback_recheck_lease_after_async_reads() {
 }
 
 mod services;
+
+mod bindings;

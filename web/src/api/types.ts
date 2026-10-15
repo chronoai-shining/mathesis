@@ -868,6 +868,7 @@ export type CmaAttemptView = {
     | 'problem_audit'
     | 'target_faithfulness'
     | 'error_report_audit'
+    | 'binding_audit'
     | 'venue_attempt'
     | 'legacy_unknown';
   round?: number | null;
@@ -1137,4 +1138,95 @@ export type KnowledgeCapabilities = {
     required_bindings: string[];
     ordinary_lean_establishes_coverage: boolean;
   };
+};
+
+export type KnowledgeBinding = NonNullable<ClaimCoverage['binding']>;
+export type BindingTarget = {
+  subject: CoverageSubject;
+  statement: string;
+  sources: KnowledgeDeclarationRef[];
+};
+export type BindingOption = { digest: string; target: BindingTarget };
+export type NewBindingBoard = {
+  option_digest: string;
+  sources: KnowledgeDeclarationRef[];
+  context: string;
+  license: string;
+  consent: string;
+};
+export type NewBindingContribution = {
+  binding: KnowledgeBinding;
+  license: string;
+  consent: string;
+};
+export type NewBindingChallenge = {
+  contribution: string;
+  evidence: string;
+  license: string;
+  consent: string;
+};
+export type BindingContribution = NewBindingContribution & {
+  id: string;
+  canonical: string;
+  contributor: string;
+  at: string;
+};
+export type BindingChallenge = NewBindingChallenge & { id: string; challenger: string; at: string };
+export type PublicBindingAudit = {
+  request: string;
+  contribution: string;
+  verdict: 'supported' | 'rejected' | 'unclear';
+  evidence_complete: boolean;
+  at: string;
+};
+export type BindingAudit = PublicBindingAudit & {
+  auditor: string;
+  reason: string;
+  evidence: string;
+  inspected_sources: KnowledgeDeclarationRef[];
+};
+export type BindingCredit = { canonical: string; contribution: string; contributor: string };
+export type PublicBindingBoard = {
+  id: string;
+  target: BindingTarget;
+  context: string;
+  license: string;
+  authorized_by: string;
+  authorized_at: string;
+  contributions: BindingContribution[];
+  challenges: BindingChallenge[];
+  audits: PublicBindingAudit[];
+  credits: BindingCredit[];
+};
+export type BindingEvent =
+  | { event: 'contributed'; contribution: BindingContribution }
+  | { event: 'challenged'; challenge: BindingChallenge }
+  | { event: 'audited'; audit: BindingAudit }
+  | { event: 'revoked'; by: string; reason: string; at: string };
+export type PrivateBindingView = {
+  options: BindingOption[];
+  boards: (Omit<PublicBindingBoard, 'contributions' | 'challenges' | 'audits' | 'credits'> & {
+    consent: string;
+    receipt_ids: string[];
+    events: BindingEvent[];
+  })[];
+};
+export type BindingDirectoryEntry = {
+  id: string;
+  submission: string;
+  claim: string;
+  statement: string;
+  authorized_by: string;
+  authorized_at: string;
+  contributions: number;
+  credits: number;
+};
+
+export type BindingProfileEntry = {
+  submission: string;
+  board: string;
+  statement: string;
+  contribution: BindingContribution;
+  credited: boolean;
+  latest_verdict: PublicBindingAudit['verdict'] | null;
 };

@@ -26,7 +26,7 @@ impl Verifier for ResearchVerifier {
         })
     }
 }
-async fn fixture() -> (World, Caller, Caller, Submission, NewResearchObligation) {
+pub(super) async fn fixture() -> (World, Caller, Caller, Submission, NewResearchObligation) {
     let stores = Arc::new(MemoryStores::default());
     let mut ports = stores.ports(Arc::new(SystemClock), Arc::new(FakeReader));
     ports.verifier = Arc::new(ResearchVerifier);

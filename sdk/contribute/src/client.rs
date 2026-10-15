@@ -198,6 +198,63 @@ impl Client {
     pub fn knowledge_capabilities(&self) -> ApiResult<Value> {
         self.get("/knowledge/capabilities")
     }
+    pub fn bindings(&self, before: Option<&str>) -> ApiResult<Value> {
+        self.send(
+            self.http.get(format!("{}/bindings", self.base)).query(
+                &before
+                    .map(|v| ("before", v))
+                    .into_iter()
+                    .collect::<Vec<_>>(),
+            ),
+        )
+    }
+    pub fn binding_profile(&self, person: &str, before: Option<&str>) -> ApiResult<Value> {
+        self.send(
+            self.http
+                .get(format!(
+                    "{}/binding-contributors/{}",
+                    self.base,
+                    segment(person)
+                ))
+                .query(
+                    &before
+                        .map(|v| ("before", v))
+                        .into_iter()
+                        .collect::<Vec<_>>(),
+                ),
+        )
+    }
+    pub fn private_bindings(&self, id: &str) -> ApiResult<Value> {
+        self.get(&format!("/submissions/{}/bindings", segment(id)))
+    }
+    pub fn binding(&self, id: &str, key: &str) -> ApiResult<Value> {
+        self.get(&format!("/bindings/{}/{}", segment(id), segment(key)))
+    }
+    pub fn publish_binding(&self, id: &str, body: &Value) -> ApiResult<Value> {
+        self.post(&format!("/submissions/{}/bindings", segment(id)), body)
+    }
+    pub fn revoke_binding(&self, id: &str, key: &str, reason: &str) -> ApiResult<Value> {
+        self.post(
+            &format!(
+                "/submissions/{}/bindings/{}/revoke",
+                segment(id),
+                segment(key)
+            ),
+            &json!({"reason":reason}),
+        )
+    }
+    pub fn contribute_binding(&self, id: &str, key: &str, body: &Value) -> ApiResult<Value> {
+        self.post(
+            &format!("/bindings/{}/{}/contributions", segment(id), segment(key)),
+            body,
+        )
+    }
+    pub fn challenge_binding(&self, id: &str, key: &str, body: &Value) -> ApiResult<Value> {
+        self.post(
+            &format!("/bindings/{}/{}/challenges", segment(id), segment(key)),
+            body,
+        )
+    }
     pub fn research(&self, id: &str) -> ApiResult<Value> {
         self.get(&format!("/submissions/{}/research", segment(id)))
     }

@@ -370,7 +370,7 @@ pub struct KnowledgeBinding {
 }
 
 impl KnowledgeBinding {
-    fn validate(&self, subject: &CoverageSubject) -> CoreResult<()> {
+    pub(crate) fn validate(&self, subject: &CoverageSubject) -> CoreResult<()> {
         if self.premises.is_empty()
             || self.premises.len() > 40
             || self.parameters.len() > 80

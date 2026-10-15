@@ -12,7 +12,17 @@ const PROTOCOL_VERSION: &str = "2025-06-18";
 
 fn tools() -> Value {
     let string = |description: &str| json!({ "type": "string", "description": description });
-    json!([
+    let binding_tools = json!([
+        {"name":"binding-profile","description":"Read current public contributions and effective binding credit with permanent discussion/contribution identities; revoked/private sources are excluded.","inputSchema":{"type":"object","properties":{"person":{"type":"string"},"before":{"type":"string"}},"required":["person"]}},
+        {"name": "bindings", "description": "List current author-approved public binding summaries", "inputSchema": {"type": "object", "properties": {"before": {"type": "string"}}, "required": []}},
+        {"name": "private-bindings", "description": "Read author/staff summary options and complete private audit history", "inputSchema": {"type": "object", "properties": {"id": {"type": "string"}}, "required": ["id"]}},
+        {"name": "binding", "description": "Read a public summary, contributions, challenges and source-audited credit", "inputSchema": {"type": "object", "properties": {"id": {"type": "string"}, "key": {"type": "string"}}, "required": ["id", "key"]}},
+        {"name": "publish-binding", "description": "Submitter explicitly licenses the exact statement/context and selected actual sources. Requires binding-summary-2026-10-16 and CC-BY-4.0.", "inputSchema": {"type": "object", "properties": {"id": {"type": "string"}, "summary": {"type": "object"}}, "required": ["id", "summary"]}},
+        {"name": "revoke-binding", "description": "Submitter revokes public sharing and further independent inspection", "inputSchema": {"type": "object", "properties": {"id": {"type": "string"}, "key": {"type": "string"}, "reason": {"type": "string"}}, "required": ["id", "key", "reason"]}},
+        {"name": "contribute-binding", "description": "Submit a structured joint binding; requires binding-contribution-2026-10-16 consent and CC-BY-4.0. No client verdict is accepted.", "inputSchema": {"type": "object", "properties": {"id": {"type": "string"}, "key": {"type": "string"}, "contribution": {"type": "object"}}, "required": ["id", "key", "contribution"]}},
+        {"name": "challenge-binding", "description": "Submit challenge or appeal evidence for independent inspection, with explicit license and contribution consent. Never decides success.", "inputSchema": {"type": "object", "properties": {"id": {"type": "string"}, "key": {"type": "string"}, "challenge": {"type": "object"}}, "required": ["id", "key", "challenge"]}},
+    ]);
+    let mut common = json!([
         {"name":"knowledge-capabilities","description":"Read the downstream consumer's admitted source-query/ranking protocols and exact coverage-certificate support. Unsupported protocols cannot be promoted by ordinary Lean proof receipts.","inputSchema":{"type":"object","properties":{}}},
         {"name":"research", "description":"Read private audited research candidates, author-authorized goals, targets and independent verification receipts.","inputSchema":{"type":"object","properties":{"id":string("Submission id")},"required":["id"]}},
         {"name":"adopt-research", "description":"Authorize a precise private research goal and bounded attempts/deadline. Requires the submitting author's explicit research consent. Confirmation of the resulting exact Lean target is browser-session only.","inputSchema":{"type":"object","properties":{"id":string("Submission id"),"obligation":{"type":"object","description":"NewResearchObligation: exact round, claim, gap, candidate_digest, complete goal (definitions, hypotheses, quantifiers, conclusion, correspondence), budget (max_attempts 1–5, expires_at within 30 days), consent research-obligation-2026-10-16"}},"required":["id","obligation"]}},
@@ -75,7 +85,12 @@ fn tools() -> Value {
             "description": "Give a leased task back without submitting.",
             "inputSchema": { "type": "object", "properties": { "task_id": string("Task id") }, "required": ["task_id"] }
         }
-    ])
+    ]);
+    common
+        .as_array_mut()
+        .unwrap()
+        .extend(binding_tools.as_array().unwrap().iter().cloned());
+    common
 }
 
 fn call(client: &Client, name: &str, args: &Value) -> Result<Value, String> {
@@ -98,6 +113,14 @@ fn call(client: &Client, name: &str, args: &Value) -> Result<Value, String> {
         "paper" => client.paper(required("record")?),
         "review" => client.review(required("id")?),
         "knowledge-capabilities" => client.knowledge_capabilities(),
+        "binding-profile" => client.binding_profile(required("person")?,args["before"].as_str()),
+        "bindings" => client.bindings(args["before"].as_str()),
+        "private-bindings" => client.private_bindings(required("id")?),
+        "binding" => client.binding(required("id")?,required("key")?),
+        "publish-binding" => client.publish_binding(required("id")?,&args["summary"]),
+        "revoke-binding" => client.revoke_binding(required("id")?,required("key")?,required("reason")?),
+        "contribute-binding" => client.contribute_binding(required("id")?,required("key")?,&args["contribution"]),
+        "challenge-binding" => client.challenge_binding(required("id")?,required("key")?,&args["challenge"]),
         "research" => client.research(required("id")?),
         "adopt-research" => client.adopt_research(required("id")?, &args["obligation"]),
         "stop-research" => client.stop_research(required("id")?, required("key")?, required("reason")?),

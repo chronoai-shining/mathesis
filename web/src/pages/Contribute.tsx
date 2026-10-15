@@ -69,7 +69,8 @@ export function ContributePage() {
           </p>
           <p>
             <Link to={{ kind: 'conjectures' }}>Find a conjecture</Link> ·{' '}
-            <Link to={{ kind: 'leaderboard' }}>Leaderboard</Link>
+            <Link to={{ kind: 'leaderboard' }}>Leaderboard</Link> ·{' '}
+            <Link to={{ kind: 'bindings' }}>Binding discussions</Link>
           </p>
         </div>
       </header>

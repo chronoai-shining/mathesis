@@ -150,6 +150,7 @@ pub enum JobKind {
     Referee,
     LeanStatement,
     ResearchTarget,
+    BindingAudit,
     VerifyResearch,
     OpenProblems,
     VerifyAttempt,
@@ -271,6 +272,21 @@ pub trait JudgementStore: Send + Sync {
 
 #[async_trait]
 pub trait RefereeStore: Send + Sync {
+    /// Atomic, idempotent admission shared across all binding discussions: five
+    /// contribution/challenge requests per person in a rolling 24-hour window.
+    async fn admit_binding_submission(
+        &self,
+        person: &PersonId,
+        request: &str,
+        at: DateTime<Utc>,
+    ) -> CoreResult<()>;
+    /// Small directory of histories with binding boards, including revoked boards
+    /// for cleanup. The application rechecks current authorization on every read.
+    async fn binding_sources(
+        &self,
+        limit: u32,
+        before: Option<String>,
+    ) -> CoreResult<Listing<SubmissionId>>;
     async fn get(&self, submission: &SubmissionId) -> CoreResult<Option<RefereeFile>>;
     async fn insert(&self, file: &RefereeFile) -> CoreResult<()>;
     async fn replace(&self, file: &RefereeFile, expected: u64) -> CoreResult<()>;

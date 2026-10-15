@@ -30,6 +30,7 @@ pub enum CmaStepKind {
     ProblemAudit,
     TargetFaithfulness,
     ErrorReportAudit,
+    BindingAudit,
     VenueAttempt,
     #[default]
     LegacyUnknown,
@@ -112,6 +113,10 @@ impl CmaStepIdentity {
             ["research", _, generation, "pass0" | "pass1", "faithfulness"] => Self {
                 kind: CmaStepKind::ResearchFaithfulness,
                 target_generation: generation.strip_prefix('a').and_then(|g| g.parse().ok()),
+                ..Self::default()
+            },
+            ["binding", _, _] => Self {
+                kind: CmaStepKind::BindingAudit,
                 ..Self::default()
             },
             ["error-report", _] => Self {

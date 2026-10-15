@@ -21,6 +21,7 @@ pub struct ReviewReport {
     pub claims: Vec<Claim>,
     pub review: RefereeView,
     pub research: ResearchView,
+    pub binding_discussions: PrivateBindingView,
     pub knowledge_capabilities: KnowledgeCapabilities,
 }
 impl App {
@@ -51,6 +52,7 @@ impl App {
             schema_version: 3,
             knowledge_capabilities: self.knowledge_capabilities(),
             research: self.research_obligations(caller, id).await?,
+            binding_discussions: self.private_bindings(caller, id).await?,
             evidence_by_version: submission
                 .versions
                 .iter()
@@ -103,6 +105,25 @@ impl ReviewReport {
                     out,
                     "- {} · {} bytes · SHA-256 {} — {}",
                     file.descriptor.path, file.bytes, file.sha256, file.descriptor.description
+                );
+            }
+        }
+        for board in &self.binding_discussions.boards {
+            let _ = writeln!(
+                out,
+                "\n## Binding discussion {}\n\nSource version {} · Statement {}\n\nPublic sharing revoked: {}\n\n{}\n\n{}\n",
+                board.id,
+                board.target.subject.version,
+                board.target.subject.claim,
+                board.revoked(),
+                board.target.statement,
+                board.context
+            );
+            for event in &board.events {
+                let _ = writeln!(
+                    out,
+                    "\n```json\n{}\n```\n",
+                    serde_json::to_string_pretty(event).unwrap_or_default()
                 );
             }
         }

@@ -202,10 +202,25 @@ impl Formalizer for FakeFormalizer {
 impl Advisor for FakeAdvisor {
     async fn inspect_with_store(
         &self,
-        _: &AdvisorInput,
-        _: &str,
+        input: &AdvisorInput,
+        question: &str,
         _: &dyn mathesis_review::cma::RunStore,
     ) -> ReviewResult<mathesis_review::advisor::InspectionOut> {
+        if question.starts_with("Independently inspect this proposed joint binding") {
+            self.knowledge_inputs
+                .lock()
+                .await
+                .push(input.knowledge.clone());
+            return Ok(mathesis_review::advisor::InspectionOut {
+                verdict: "supported".into(),
+                reason: "PRIVATE fixture audit".into(),
+                evidence:
+                    "Engineering fixture with source transport, not a live mathematical judgment"
+                        .into(),
+                basis: "opened_source".into(),
+                ..Default::default()
+            });
+        }
         Ok(mathesis_review::advisor::InspectionOut {
             verdict: "faithful".into(),
             reason: "Definitions and quantifiers agree.".into(),
@@ -5018,4 +5033,220 @@ async fn private_research_target_needs_no_public_acceptance_and_revocation_fence
     assert!(!store.active().await.unwrap());
     w.worker.research_target_job(&job).await.unwrap();
     assert_eq!(w.formalizer.calls.load(Ordering::SeqCst), 1);
+}
+
+#[tokio::test]
+async fn binding_worker_requires_complete_saved_sources_and_revocation_cancels_live_agent() {
+    use mathesis_core::{
+        model::*,
+        ports::{BlobStore, RefereeStore, ReviewQueue, SubmissionStore},
+    };
+    use mathesis_review::{
+        cma::RunStore,
+        knowledge::{
+            DeclarationIdentity, PublishedDeclaration,
+            index::{SourceHit, SourceQueryResult},
+            sha256,
+        },
+    };
+    for truncated in [false, true] {
+        let mut w = World::new(vec![], true).await;
+        w.worker
+            .app
+            .begin_referee_round(&w.worker.referee_account, &w.paper.id)
+            .await
+            .unwrap();
+        w.paper.status = SubmissionStatus::Accepted {
+            record: "WP-2026-0001".into(),
+        };
+        w.paper.analysis_visibility = Visibility::Public;
+        w.paper.open_to_contributors = true;
+        SubmissionStore::replace(w.stores.as_ref(), &w.paper, w.paper.revision)
+            .await
+            .unwrap();
+        let subject = CoverageSubject {
+            submission: w.paper.id.clone(),
+            version: 1,
+            claims_revision: w.paper.claims_revision,
+            round: 1,
+            claim: w.paper.claims[0].id.clone(),
+            source_digest: format!(
+                "sha256:{}",
+                w.paper.current_version().unwrap().archive.sha256
+            ),
+            claim_digest: sha256(&serde_json::to_vec(&w.paper.claims[0]).unwrap()),
+        };
+        let premise = KnowledgeDeclarationRef {
+            snapshot: sha256(b"snapshot"),
+            module_path: "Fixture.lean".into(),
+            declaration_name_key: "premise".into(),
+            statement_id: sha256(b"premise"),
+            type_digest: sha256(b"type"),
+        };
+        let source = "theorem premise : True := True.intro\n";
+        let output = SourceQueryResult {
+            ranking_protocol: None,
+            snapshot: premise.snapshot.clone(),
+            index_revision: sha256(b"index"),
+            searched_modules: 1,
+            omitted_modules: 0,
+            hits: vec![SourceHit {
+                module_path: premise.module_path.clone(),
+                source_sha256: sha256(source.as_bytes()),
+                source_excerpt: source.into(),
+                excerpt_truncated: truncated,
+                declarations_truncated: false,
+                declarations: vec![PublishedDeclaration {
+                    identity: DeclarationIdentity {
+                        snapshot: premise.snapshot.clone(),
+                        module_path: premise.module_path.clone(),
+                        name_key: premise.declaration_name_key.clone(),
+                        statement_id: premise.statement_id.clone(),
+                        type_sha256: premise.type_digest.clone(),
+                    },
+                    name: "premise".into(),
+                    kind: "theorem".into(),
+                    frozen_node_id: "fixture-node".into(),
+                    freeze_status: "not_frozen".into(),
+                    source_sha256: sha256(source.as_bytes()),
+                    axioms: vec![],
+                    module_imports: vec![],
+                    prerequisite_frozen_node_ids: vec![],
+                }],
+            }],
+            matching_modules: 1,
+            result_truncated: false,
+            limits: vec![],
+        };
+        let response = BlobStore::put(
+            w.stores.as_ref(),
+            &serde_json::to_vec(&output).unwrap(),
+            "application/json",
+        )
+        .await
+        .unwrap();
+        let mut receipt = KnowledgeQueryReceipt {
+            id: "binding-query".into(),
+            protocol: KNOWLEDGE_QUERY_PROTOCOL.into(),
+            subject: subject.clone(),
+            snapshot: Some(premise.snapshot.clone()),
+            index_revision: Some(output.index_revision),
+            request_digest: String::new(),
+            query: "PRIVATE query".into(),
+            scopes: vec!["fixture-source".into()],
+            state: KnowledgeQueryState::Complete,
+            response: Some(response),
+            returned: vec![premise.clone()],
+            limits: vec![],
+            retryable: false,
+            started_at: chrono::Utc::now(),
+            completed_at: chrono::Utc::now(),
+        };
+        receipt.request_digest = KnowledgeQueryReceipt::request_digest(
+            &receipt.subject,
+            &receipt.snapshot,
+            &receipt.index_revision,
+            &receipt.query,
+            &receipt.scopes,
+        );
+        let mut file = RefereeStore::get(w.stores.as_ref(), &w.paper.id)
+            .await
+            .unwrap()
+            .unwrap();
+        let rev = file.revision;
+        file.knowledge_events
+            .push(KnowledgeEvent::QueryCompleted { receipt });
+        file.binding_boards.push(BindingBoard {
+            id: "fixture-board".into(),
+            target: BindingTarget {
+                subject,
+                statement: w.paper.claims[0].statement.clone(),
+                sources: vec![premise.clone()],
+            },
+            context: "Author-approved fixture context".into(),
+            license: BINDING_LICENSE.into(),
+            consent: BINDING_SHARING_CONSENT.into(),
+            authorized_by: w.author.person.clone(),
+            authorized_at: chrono::Utc::now(),
+            receipt_ids: vec!["binding-query".into()],
+            events: vec![],
+        });
+        RefereeStore::replace(w.stores.as_ref(), &file, rev)
+            .await
+            .unwrap();
+        let contributor = Caller {
+            person: "external-fixture".into(),
+            roles: Default::default(),
+        };
+        w.worker
+            .app
+            .contribute_binding(
+                &contributor,
+                &w.paper.id,
+                "fixture-board",
+                NewBindingContribution {
+                    binding: KnowledgeBinding {
+                        premises: vec![premise],
+                        relation: BindingRelation::Implies,
+                        parameters: vec![],
+                        hypotheses: vec![],
+                        argument: "Synthetic joint argument".into(),
+                        unresolved: vec![],
+                        source_lineage: vec![],
+                    },
+                    license: BINDING_LICENSE.into(),
+                    consent: BINDING_CONTRIBUTION_CONSENT.into(),
+                },
+            )
+            .await
+            .unwrap();
+        w.stores
+            .enqueue(&w.paper.id, JobKind::BindingAudit)
+            .await
+            .unwrap();
+        let job = loop {
+            let j = w.jobs.claim().await.unwrap().unwrap();
+            if j.kind == JobKind::BindingAudit {
+                break j;
+            }
+            w.jobs.complete(&j).await.unwrap();
+        };
+        w.worker.binding_audit_job(&job).await.unwrap();
+        let public = w
+            .worker
+            .app
+            .public_binding_board(&w.paper.id, "fixture-board")
+            .await
+            .unwrap();
+        assert_eq!(
+            public.audits[0].verdict,
+            if truncated {
+                BindingVerdict::Unclear
+            } else {
+                BindingVerdict::Supported
+            }
+        );
+        assert_eq!(public.credits.len(), usize::from(!truncated));
+        assert!(!serde_json::to_string(&public).unwrap().contains("PRIVATE"));
+        assert_eq!(
+            w.advisor.knowledge_inputs.lock().await.len(),
+            usize::from(!truncated)
+        );
+        let store = w
+            .worker
+            .agent_store(&job, &w.paper, "binding:fixture-board:request");
+        assert!(store.active().await.unwrap());
+        w.worker
+            .app
+            .revoke_binding_board(
+                &w.author,
+                &w.paper.id,
+                "fixture-board",
+                "Stop the synthetic discussion".into(),
+            )
+            .await
+            .unwrap();
+        assert!(!store.active().await.unwrap());
+        w.worker.binding_audit_job(&job).await.unwrap();
+    }
 }
