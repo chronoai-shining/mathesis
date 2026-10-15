@@ -421,3 +421,49 @@ pub(super) async fn with_comparisons(
     }
     audit
 }
+
+#[tokio::test]
+async fn a_claimed_certificate_cannot_replace_an_independent_source_audit_in_admission() {
+    let w = World::new().await;
+    let author = w.person("author", &[]).await;
+    let reviewer = w.person("reviewer", &[Role::Reviewer]).await;
+    let paper = w.submit(&author, "t", false).await;
+    let paper = w.review_paper(&author, &paper).await;
+    w.app
+        .begin_referee_round(&reviewer, &paper.id)
+        .await
+        .unwrap();
+    let mut audit = with_comparisons(
+        &w,
+        &reviewer,
+        &paper,
+        audit_for(
+            &paper,
+            Recommendation::Reject,
+            Correctness::Gap,
+            ProofShape::Undetermined,
+            None,
+        ),
+    )
+    .await;
+    let (file, _) = w.app.referee_file(&paper.id).await.unwrap();
+    let round = file.current().unwrap();
+    assert!(
+        crate::app::knowledge::knowledge_admission(&file, round, &audit.claims[0]).sufficient()
+    );
+    for protocol in [
+        "ordinary Lean verifier",
+        "stratalint.truth-export.v2",
+        "unrecognized.coverage.v1",
+    ] {
+        audit.claims[0].coverage.as_mut().unwrap().qualification =
+            CoverageQualification::CertificateClaim {
+                protocol: protocol.into(),
+                artifact_digest: format!("sha256:{}", "a".repeat(64)),
+            };
+        let admission = crate::app::knowledge::knowledge_admission(&file, round, &audit.claims[0]);
+        assert!(admission.complete, "the real query receipt remains intact");
+        assert!(!admission.sufficient());
+        assert_eq!(admission.audited_relation, None);
+    }
+}

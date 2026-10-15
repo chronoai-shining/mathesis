@@ -1010,3 +1010,23 @@ async fn private_review_reports_are_downloadable_only_by_author_and_responses_ar
         StatusCode::CONFLICT
     );
 }
+
+#[tokio::test]
+async fn knowledge_capability_boundary_is_public_and_never_claims_an_unavailable_checker() {
+    let (status, body, _) = call(&router(), "GET", "/knowledge/capabilities", None, None).await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(body["source_query_protocol"], "mathesis.artifact-query.v1");
+    assert_eq!(body["coverage_certificates"]["supported"], false);
+    assert_eq!(
+        body["coverage_certificates"]["recognized_protocols"],
+        serde_json::json!([])
+    );
+    assert_eq!(
+        body["coverage_certificates"]["ordinary_lean_establishes_coverage"],
+        false
+    );
+    assert_eq!(
+        body["coverage_certificates"]["reason_code"],
+        "no_admitted_coverage_checker"
+    );
+}

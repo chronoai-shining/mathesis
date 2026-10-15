@@ -84,3 +84,8 @@ The submitting author confirms the inspected exact target in the browser.
 Private attempts are checked by the same independent verifier and receive no
 public solving/formalization credit. See
 [RESEARCH_OBLIGATIONS.md](RESEARCH_OBLIGATIONS.md) for complete examples.
+
+`mathesis-contribute knowledge-capabilities` (also an MCP tool) reports the
+consumer's actual certificate support before preparing certificate proposals.
+The current build admits no coverage-certificate checker; ordinary Lean proof
+verification remains a separate path.

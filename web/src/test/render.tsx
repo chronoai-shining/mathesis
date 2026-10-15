@@ -54,6 +54,7 @@ export function fakeApi(overrides: Partial<ApiClient> = {}, person?: Person): Ap
     setVisibility: vi.fn(notFound),
     getAnalysis: vi.fn(notFound),
     previewDecision: vi.fn(notFound),
+    knowledgeCapabilities: vi.fn(notFound),
     research: vi.fn(async () => ({ candidates: [], obligations: [] })),
     adoptResearch: vi.fn(),
     stopResearch: vi.fn(),

@@ -110,6 +110,11 @@ hypotheses remain obligations. A changed conclusion, quantifier, necessary
 hypothesis or target digest invalidates automatic reuse. A canonical type match
 does not alone prove faithfulness to the author's natural-language claim.
 
+The public `/api/v1/knowledge/capabilities` endpoint and private review dossier
+expose the consumer's current supported protocols. See
+`COVERAGE_CERTIFICATE_CAPABILITY_2026-10-16.md` for the inspected source contracts
+and exact remaining gap.
+
 No upstream binding-certificate protocol has yet been established for this
 integration. Until a recognized protocol and verification authority are
 available, evidence remains at its actual level. Kernel success and a tactic

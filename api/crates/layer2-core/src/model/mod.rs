@@ -63,3 +63,6 @@ pub use computation::*;
 
 mod research;
 pub use research::*;
+
+mod knowledge_capabilities;
+pub use knowledge_capabilities::*;

@@ -13,6 +13,7 @@ const PROTOCOL_VERSION: &str = "2025-06-18";
 fn tools() -> Value {
     let string = |description: &str| json!({ "type": "string", "description": description });
     json!([
+        {"name":"knowledge-capabilities","description":"Read the downstream consumer's admitted source-query/ranking protocols and exact coverage-certificate support. Unsupported protocols cannot be promoted by ordinary Lean proof receipts.","inputSchema":{"type":"object","properties":{}}},
         {"name":"research", "description":"Read private audited research candidates, author-authorized goals, targets and independent verification receipts.","inputSchema":{"type":"object","properties":{"id":string("Submission id")},"required":["id"]}},
         {"name":"adopt-research", "description":"Authorize a precise private research goal and bounded attempts/deadline. Requires the submitting author's explicit research consent. Confirmation of the resulting exact Lean target is browser-session only.","inputSchema":{"type":"object","properties":{"id":string("Submission id"),"obligation":{"type":"object","description":"NewResearchObligation: exact round, claim, gap, candidate_digest, complete goal (definitions, hypotheses, quantifiers, conclusion, correspondence), budget (max_attempts 1–5, expires_at within 30 days), consent research-obligation-2026-10-16"}},"required":["id","obligation"]}},
         {"name":"stop-research", "description":"Revoke new and live work on one private research obligation; retains its history.","inputSchema":{"type":"object","properties":{"id":string("Submission id"),"key":string("Obligation id"),"reason":string("Reason")},"required":["id","key","reason"]}},
@@ -96,6 +97,7 @@ fn call(client: &Client, name: &str, args: &Value) -> Result<Value, String> {
         "papers" => client.papers(args),
         "paper" => client.paper(required("record")?),
         "review" => client.review(required("id")?),
+        "knowledge-capabilities" => client.knowledge_capabilities(),
         "research" => client.research(required("id")?),
         "adopt-research" => client.adopt_research(required("id")?, &args["obligation"]),
         "stop-research" => client.stop_research(required("id")?, required("key")?, required("reason")?),

@@ -999,3 +999,11 @@ hypothesis/bridge. The submitting author controls target confirmation,
 attempt sources at `/{key}/attempts/{attempt}`. Research does not require public
 acceptance and never grants automatic credit, coverage or publication. See
 [RESEARCH_OBLIGATIONS.md](RESEARCH_OBLIGATIONS.md) for bodies, bounds and receipts.
+
+### Knowledge consumer capabilities
+
+`GET /knowledge/capabilities` returns the admitted query/ranking protocols and
+coverage-certificate support. It is public application metadata without private
+submission data. `coverage_certificates.supported` is false and
+`recognized_protocols` is empty in this build. Review JSON/Markdown also carries
+the current capability boundary; it is not a historical verification receipt.

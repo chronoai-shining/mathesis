@@ -1701,6 +1701,24 @@
           }
         }
       }
+    },
+    "/knowledge/capabilities": {
+      "get": {
+        "summary": "Read the downstream consumer capability boundary",
+        "description": "Current application support; not a claim about all upstream services or a historical proof receipt. There is no admitted coverage-certificate checker.",
+        "responses": {
+          "200": {
+            "description": "Supported protocols and exact unsupported capability",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KnowledgeCapabilities"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -2610,6 +2628,9 @@
           },
           "research": {
             "$ref": "#/components/schemas/ResearchView"
+          },
+          "knowledge_capabilities": {
+            "$ref": "#/components/schemas/KnowledgeCapabilities"
           }
         },
         "required": [
@@ -2620,7 +2641,8 @@
           "claims_revision",
           "source_sha256",
           "review",
-          "research"
+          "research",
+          "knowledge_capabilities"
         ]
       },
       "FormalizationOpportunity": {
@@ -3601,6 +3623,61 @@
             "items": {
               "type": "object",
               "description": "Immutable authorization and append-only events, projected state, target and attempt receipts."
+            }
+          }
+        }
+      },
+      "KnowledgeCapabilities": {
+        "type": "object",
+        "required": [
+          "source_query_protocol",
+          "default_source_ranker",
+          "coverage_certificates"
+        ],
+        "properties": {
+          "source_query_protocol": {
+            "type": "string"
+          },
+          "default_source_ranker": {
+            "type": "string"
+          },
+          "coverage_certificates": {
+            "type": "object",
+            "required": [
+              "supported",
+              "recognized_protocols",
+              "reason_code",
+              "reason",
+              "required_bindings",
+              "ordinary_lean_establishes_coverage"
+            ],
+            "properties": {
+              "supported": {
+                "type": "boolean",
+                "const": false
+              },
+              "recognized_protocols": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 0
+              },
+              "reason_code": {
+                "const": "no_admitted_coverage_checker"
+              },
+              "reason": {
+                "type": "string"
+              },
+              "required_bindings": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "ordinary_lean_establishes_coverage": {
+                "const": false
+              }
             }
           }
         }
