@@ -9,6 +9,7 @@ mod donations;
 mod error_reports;
 mod finding_responses;
 mod formalization;
+mod knowledge;
 mod lean_statements;
 mod papers;
 mod people;

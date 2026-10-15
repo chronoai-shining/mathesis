@@ -8,6 +8,7 @@ mod composition;
 mod config;
 mod donations;
 mod health;
+mod knowledge;
 mod latex;
 mod review;
 mod store;
@@ -36,6 +37,32 @@ async fn main() -> anyhow::Result<()> {
     let arguments: Vec<_> = std::env::args().skip(1).collect();
     if matches!(
         arguments.first().map(String::as_str),
+        Some("--knowledge-import" | "--knowledge-query")
+    ) {
+        let config::Storage::Mongo { uri, database } = &config.storage else {
+            anyhow::bail!("knowledge operations require MongoDB");
+        };
+        let store = store::MongoStore::connect(uri, database).await?;
+        let result: anyhow::Result<serde_json::Value> = async {
+            match arguments[0].as_str() {
+                "--knowledge-import" if arguments.len() == 5 => {
+                    let snapshot = knowledge::import(&store, arguments[1].clone().into(), arguments[2].clone().into(), arguments[3].clone().into(), arguments[4].clone().into()).await?;
+                    Ok(serde_json::to_value(snapshot)?)
+                }
+                "--knowledge-query" if arguments.len() == 3 => {
+                    let knowledge = knowledge::Knowledge::new(store.clone(), arguments[1].clone());
+                    let index = knowledge.index(&knowledge.configured_revision).await?;
+                    Ok(serde_json::json!({"diagnostic_only":true,"result":index.search(&arguments[2], None, 10)?}))
+                }
+                _ => anyhow::bail!("use --knowledge-import PROJECTION REPORT SOURCES ADMISSION.json or --knowledge-query INDEX_REVISION QUERY"),
+            }
+        }.await;
+        store.shutdown().await;
+        println!("{}", serde_json::to_string_pretty(&result?)?);
+        return Ok(());
+    }
+    if matches!(
+        arguments.first().map(String::as_str),
         Some("--storage-audit" | "--storage-gc")
     ) {
         let config::Storage::Mongo { uri, database } = &config.storage else {
@@ -58,7 +85,7 @@ async fn main() -> anyhow::Result<()> {
     }
     anyhow::ensure!(
         arguments.is_empty() || arguments.as_slice() == ["--check"],
-        "unknown command; use --check, --storage-audit or --storage-gc --offline"
+        "unknown command; use --check, --storage-audit, --storage-gc --offline, --knowledge-import or --knowledge-query"
     );
     tracing::info!(bind = %config.bind, public_url = %config.public_url, auth = ?config.auth, "starting Mathesis");
     let composition = Composition::build(&config).await?;

@@ -17,6 +17,7 @@
 
 pub mod advisor;
 pub mod cma;
+pub mod knowledge;
 pub mod lean;
 pub mod openai_compat;
 pub mod oracle;
