@@ -1,0 +1,141 @@
+C1: known true; conditional proof escape is bind-onlyC1 is the cardinal form of the pigeonhole principle, not an open question or a new observation-specific assertion. The opened cardinal-order documentation covers arbitrary same-universe sets, without a finiteness hypothesis; the opened function documentation supplies the standard equivalence between noninjectivity and a pair of distinct inputs with equal outputs. Lean Community+1Scope limitation: No PDF was available through the conversation-file search. This report therefore evaluates the complete supplied statement of C1 and the supplied diagnostic excerpts, not an unseen manuscript or its pagination.Well-posednessUnder the ordinary classical interpretation, the statement is well-posed. Its quantifier order is
+$$\forall X,Y\text{ in a common universe},\qquad
+|Y|<|X|
+\ \Longrightarrow\
+\forall h:X\to Y,\ 
+\exists x_0,x_1\in X,\
+x_0\ne x_1\ \land\ h(x_0)=h(x_1).$$
+The collision pair may depend on  $h$ . “Observation map” introduces no additional defined structure in the supplied text: it denotes an ordinary total function. Cardinality must mean set cardinality, with its usual injection-induced order, rather than a finite counting function applied to possibly infinite sets. Lean CommunityThe empty cases do not require repairs. When  $X=\varnothing$ , the strict cardinal inequality cannot hold. When  $Y=\varnothing$  and the inequality holds, there is no function  $X\to Y$ , so the universal quantification over such functions is vacuous. The assertion does not claim that a map exists for every eligible pair of sets.Literature comparison and conditional escapeThe decisive comparison is with the arbitrary-cardinality baseline, not merely its familiar finite version. The university lecture source opened for corroboration explicitly assumes finite sets in its pigeonhole statement; that source alone would not justify C1’s full scope. NUS ComputingRelative to the two decisive documented prerequisites, the necessary changes are parameter substitution, removal of the descriptive label “observation,” and ordinary logical normalization. The function documentation explicitly records the collision formulation, so no new collision construction, estimate, or strengthened bound is required by C1. This supports bind_only for the stated conditional obligation—not because every mathematical consequence is binding, but because an inspected existing baseline already covers the entire assertion. Lean Community+1The supplied diagnostic candidates were also compared at the level of their excerpts. The finite classifier and refinement results concern additional structures and restricted settings. The budget-cover candidate includes an implication from an already supplied collision to noninjectivity, which does not itself furnish C1’s collision-existence assertion. The remaining candidates concern other mathematical subjects. These retrieval mismatches are not evidence of openness.Separate assessmentsCorrectness: not_checked, because no proof was submitted. That is compatible with the literature-status judgment known_true.Utility: Supported as an established general theorem expressing a cardinal obstruction to injective observation. This is inherited mathematical utility, not evidence of a new contribution. The statement supplies neither an algorithm for locating a collision nor a computational resource bound.Information gain: Unassessed; the requested structured field is null. A function called an observation map does not, by itself, provide the additional task, correspondence, and evidence needed for that analysis.The presentation should be revised to identify C1 as a known principle, clarify its conventions, and distinguish collision existence from stronger algorithmic or quantitative assertions. This is feedback on the presentation, not a publication decision.JSON{
+  "recommendation": "revise",
+  "summary": "C1 is well-posed under standard classical set-theoretic conventions and has status known_true: it is the cardinal pigeonhole principle. Its stated obligation is bind_only relative to the inspected cardinal-order and noninjectivity baselines. No submitted proof was checked. General-theorem utility is supported as inherited utility, not new mathematical progress. No PDF was available, so the review concerns the supplied confirmed text.",
+  "strengths": [
+    "The supplied statement has a definite mathematical interpretation and preserves arbitrary, potentially infinite sets.",
+    "The universal quantification over functions handles an empty codomain through vacuity, without an additional nonemptiness assumption.",
+    "The assertion expresses an established general obstruction to injective observation."
+  ],
+  "concerns": [
+    "Presenting C1 as open would misstate its known mathematical status.",
+    "The label observation map adds no mathematical structure or stronger conclusion.",
+    "The missing PDF prevents comparison with any additional manuscript definitions, claims, or locations.",
+    "No algorithm, quantitative information measure, new application, or new proof method is supplied."
+  ],
+  "claims": [
+    {
+      "claim": "C1",
+      "correctness": "not_checked",
+      "shape": null,
+      "witnesses": [],
+      "note": "Status and proof verification are separate: the assertion is known_true from the opened baseline comparison, while correctness remains not_checked because no proof was submitted. Conditional escape is bind_only because the entire stated obligation is covered by existing results after substitution and normalization. General-theorem utility is supported only as inherited mathematical utility. Information gain is not assessed. No named open-problem settlement is claimed.",
+      "known": [
+        "Order on cardinal numbers [opened: https://leanprover-community.github.io/mathlib4_docs/Mathlib/SetTheory/Cardinal/Order.html]",
+        "Miscellaneous function constructions and lemmas [opened: https://leanprover-community.github.io/mathlib4_docs/Mathlib/Logic/Function/Basic.html]",
+        "Lecture 9: Cardinality [opened: https://www.comp.nus.edu.sg/~cs1231s/lect/26s1/Lecture09_Cardinality_full.pdf]"
+      ],
+      "conjecture": {
+        "well_posed": true,
+        "well_posed_reason": "Under ordinary classical conventions, X and Y are arbitrary sets in a common size universe, cardinality is set cardinality, and an observation map is a total function h:X→Y. The quantifiers are: for all such X,Y satisfying |Y|<|X|, for every h:X→Y, there exist distinct x0,x1 in X with equal images. The pair may depend on h. No finiteness, surjectivity, topology, probability law, or computability condition is assumed. X empty cannot satisfy the inequality; Y empty makes the function quantifier vacuous whenever the inequality holds. Clarifying universe and observation terminology would improve presentation but does not reveal a mathematical defect in the standard reading.",
+        "status": "known_true",
+        "status_reason": "The arbitrary-cardinality injection inequality and the documented collision characterization of noninjectivity cover C1 in its full scope. It is the cardinal pigeonhole principle, rather than merely a finite special case. The lecture source corroborates the conventional finite terminology but is not used to extend that finite statement to arbitrary sets.",
+        "named_works": [
+          "Order on cardinal numbers [opened: https://leanprover-community.github.io/mathlib4_docs/Mathlib/SetTheory/Cardinal/Order.html]",
+          "Miscellaneous function constructions and lemmas [opened: https://leanprover-community.github.io/mathlib4_docs/Mathlib/Logic/Function/Basic.html]",
+          "Lecture 9: Cardinality [opened: https://www.comp.nus.edu.sg/~cs1231s/lect/26s1/Lecture09_Cardinality_full.pdf]"
+        ],
+        "escape": "bind_only",
+        "escape_reason": "The opened baseline covers the complete statement. Renaming a function as an observation map, substituting the supplied sets and function, and normalizing the noninjectivity conclusion introduce no additional mathematical obligation. This classification rests on positive source matching, not on the absence of a submitted proof.",
+        "suggestions": [
+          "Relabel C1 as a known theorem or background principle and cite a source covering arbitrary cardinalities.",
+          "Specify the ordinary cardinal-order convention, explain that observation map means a total function, and display the quantifier order explicitly.",
+          "Keep collision existence distinct from locating a collision, bounding its computational cost, or quantifying information loss. Any stronger assertion should be separately stated and independently compared with existing results."
+        ]
+      },
+      "methodology": {
+        "baseline": [
+          {
+            "statement": "X and Y are sets in the same universe with |Y|<|X|, and h:X→Y ranges over all total functions. No additional observation structure or finiteness hypothesis is supplied.",
+            "location": "CONFIRMED STATEMENTS, C1.statement, sentences 1–2; repeated in SOURCE CONTEXT. These are supplied-text locations, not verified PDF locations.",
+            "source": null
+          },
+          {
+            "statement": "For arbitrary same-universe carriers A,B, |A|≤|B| is equivalent to existence of an injection A→B. In particular, an injective f:A→B satisfies |A|≤|B|.",
+            "location": "Order on cardinals; Cardinal.le_def and Cardinal.mk_le_of_injective.",
+            "source": "Order on cardinal numbers [opened: https://leanprover-community.github.io/mathlib4_docs/Mathlib/SetTheory/Cardinal/Order.html]"
+          },
+          {
+            "statement": "For an arbitrary function f:A→B, not Injective(f) is equivalent to existence of a,b in A such that f(a)=f(b) and a≠b.",
+            "location": "Function.not_injective_iff.",
+            "source": "Miscellaneous function constructions and lemmas [opened: https://leanprover-community.github.io/mathlib4_docs/Mathlib/Logic/Function/Basic.html]"
+          }
+        ],
+        "searched": [
+          "Conversation-file semantic search for the supplied title and the assertion about same-universe sets, |Y|<|X|, and observation maps. The tool reported that no files were present in the current conversation.",
+          "Web search queries: site.leanprover-community.github.io mathlib Cardinal exists_ne_map_eq_of_mk_lt; site.leanprover-community.github.io mathlib Cardinal pigeonhole noninjective cardinal.",
+          "Web search queries: \"Cardinal\" \"exists_ne_map_eq\"; \"cardinal\" \"pigeonhole\" \"not_injective\".",
+          "Web search queries: pigeonhole principle cardinality arbitrary sets injective university; \"exists_ne_map_eq_of_mk_lt\" mathlib.",
+          "Opened and inspected the relevant cardinal-order and function declarations recorded in baseline. Additional official cardinal-documentation pages were consulted as navigational and hypothesis checks; they are not additional prerequisites.",
+          "Opened Lecture 9: Cardinality [opened: https://www.comp.nus.edu.sg/~cs1231s/lect/26s1/Lecture09_Cardinality_full.pdf]. Inspected page images 1, 6, and 12. Page 6 explicitly restricts its pigeonhole statement to finite sets.",
+          "Compared all six supplied diagnostic candidate excerpts. Candidates 1 and 3 concern finite classifier or refinement structures; candidate 4 includes a collision-to-noninjectivity implication that assumes the collision. Candidates 2, 5, and 6 do not supply the required arbitrary-cardinality assertion. This was excerpt comparison, not independent validation of the reported frozen materials.",
+          "Search scope was a bounded general-web and official-documentation check, supplemented by the supplied excerpts. No exhaustive literature or repository search is claimed."
+        ],
+        "literature": "supported",
+        "binding_analysis": "Inline observation map as ordinary total function. Match A with X, B with Y, and f with h. The strict-cardinal-order hypothesis matches the noninjectivity consequence of the injection inequality; Function.not_injective_iff supplies the existential collision formulation. Only assumption substitution, classical logical normalization, and conjunction reordering are needed. No additional projection or mathematical recombination supplies new content. The comparison stops at these established prerequisites, not their foundational proofs. Its output is collision existence, not an algorithm or resource estimate.",
+        "delta": "No additional proposition, construction, bound, or constraint remains beyond the inspected baseline for C1 as stated. The conditional obligation is exactly: for every eligible X,Y and every h:X→Y, there exist distinct inputs with equal images. That obligation is already covered by binding. No unsubmitted proof method is being assessed.",
+        "escape": "bind_only",
+        "witnesses": [],
+        "utility": {
+          "kind": "general_theorem",
+          "status": "supported",
+          "rationale": "The assertion has established general-theorem utility as a cardinal obstruction to injective observation. Pure mathematics does not require an artificial downstream consumer. Here that utility is inherited from the known principle; the submission establishes no new theorem-level progress, computational improvement, or independent application.",
+          "problem": "Can a total function from an arbitrary set X to a strictly smaller-cardinality set Y distinguish every pair of inputs?",
+          "progress": "The negative answer is already covered by the inspected existing baseline. C1 restates that answer without additional mathematical structure.",
+          "prerequisites": "Classical logic, ordinary set cardinality and its injection-induced order, same-universe sets X,Y with |Y|<|X|, and a total function h:X→Y.",
+          "discharge": "The compatibility of the supplied hypotheses with the opened baseline was checked at statement level. These are universally quantified premises, not numerical premises or facts about a concrete system requiring an instance certificate. No submitted proof or computational application was verified."
+        },
+        "settlement": null,
+        "information_gain": null,
+        "limits": [
+          "not_checkable: the missing PDF and any definitions or claims appearing only in it. Manuscript-local locations above refer solely to the supplied text.",
+          "The assessment uses standard classical conventions; alternative constructive meanings of cardinal comparison or collision existence were not investigated.",
+          "Diagnostic snapshot identities, hashes, freeze status, and compilation claims were not independently checked and are not used as verification evidence.",
+          "Conditional escape concerns the obligation in C1, not the originality of a hypothetical future proof. There are no live proof witnesses because no proof was submitted."
+        ]
+      }
+    }
+  ],
+  "limits": [
+    "The supplied C1 text was reviewed, but no attached PDF was available. Completeness of a separate manuscript review is therefore not claimed.",
+    "Known mathematical status is distinct from submitted-proof correctness: correctness is not_checked, proof shape is null, and witness lists are empty.",
+    "The literature comparison supports this exact classical statement within the recorded bounded search scope; it is not an exhaustive novelty survey.",
+    "All opened-source records are model-reported, not venue-verified references. Unopened or unvalidated diagnostic metadata supplies no formal evidence.",
+    "Utility is supported only as the inherited utility of a known general theorem. No new computation, application, or mathematical progress is credited.",
+    "No information-gain measurement, combined score, escape percentage, compiled Trureturing registration, Lean verification, or AURIC/FIB measurement was performed.",
+    "The recommendation is presentation feedback and does not decide publication."
+  ],
+  "text": "Revise the presentation to identify C1 as the known cardinal pigeonhole principle rather than an open question. Its standard reading is well-posed, including empty cases, and its full stated obligation is covered by the inspected existing baseline. The missing PDF is an evidence limitation; the known-status finding is a separate positive mathematical comparison.",
+  "knowledge_queries": [
+    {
+      "claim": "C1",
+      "definitions": [
+        "|X| and |Y| denote set cardinalities.",
+        "h:X→Y is a total function labelled an observation map; no additional observation structure is defined."
+      ],
+      "hypotheses": [
+        "X and Y are sets in the same universe.",
+        "|Y|<|X|."
+      ],
+      "quantifiers": "For every same-universe pair X,Y satisfying |Y|<|X|, for every total function h:X→Y, there exist x0,x1 in X. The pair may depend on h. No finiteness or nonemptiness assumption is imposed; if no such function exists, the quantification over h is vacuous.",
+      "conclusion": "x0≠x1 and h(x0)=h(x1), equivalently h is not injective under the standard classical interpretation.",
+      "search_terms": [
+        "cardinal pigeonhole principle",
+        "Dirichlet box principle",
+        "injective function cardinal inequality",
+        "cardinality monotonicity under injections",
+        "noninjectivity collision equivalence",
+        "Cardinal.le_def",
+        "Cardinal.mk_le_of_injective",
+        "Function.not_injective_iff"
+      ],
+      "reason": "Retrieve an arbitrary-cardinality baseline or combination of existing results matching the full statement, rather than only a finite-set theorem or a particular collision example. Preserve the inequality direction, universal function quantifier, and empty-codomain case. This is one proposed semantic query for later execution, not a claim that the proposed query has already run."
+    }
+  ]
+}

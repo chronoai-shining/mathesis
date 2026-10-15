@@ -1,0 +1,34 @@
+{
+  "proposal": [
+    {
+      "claim": "C1",
+      "definitions": [
+        "Sample s=(X,R), with X:A->Y and R_a:A\\{a}->Y; g_s(a,a)=X(a), g_s(a,b)=R_a(b) for b!=a.",
+        "w(s)=product_b q(b,X(b)) times product_a product_{b!=a} q(b,R_a(b)); weights are column-indexed.",
+        "C(s)=#{a in A: for every b in A, g_s(a,b)=f(X(b))}.",
+        "T_k=sum_{s:C(s)>=k}w(s); B_k=sum_s binom(C(s),k)w(s)."
+      ],
+      "hypotheses": [
+        "A and Y are finite.",
+        "q:A×Y->R and q(a,y)>=0 for all a,y.",
+        "f:Y->Y is arbitrary."
+      ],
+      "quantifiers": "For every finite A,Y, every nonnegative q and every f:Y->Y. C1 does not explicitly type k; retrieve the intended k in the nonnegative integers, retaining k=0, k>|A| and empty sets.",
+      "conclusion": "B_k-k B_{k+1}<=T_k<=B_k. Under intended counting conventions binom(c,0)=1 and binom(c,k)=0 for k>c. No normalization or capture-event independence is assumed.",
+      "search_terms": [
+        "Bonferroni tail inequalities",
+        "binomial moments",
+        "factorial moment bounds",
+        "at least k events",
+        "generalized inclusion-exclusion",
+        "finite nonnegative measure",
+        "arbitrary event dependence",
+        "first lower and upper Bonferroni truncations"
+      ],
+      "reason": "Retrieve the arbitrary-threshold bound with coefficient k, not the exactly-k coefficient, including finite-mass normalization and boundary conventions. Supplied diagnostic hits emphasize model definitions and normalized capture or escape formulas. This is one proposed query for the subsequent source audit, not an already-executed diagnostic query."
+    }
+  ],
+  "query": "Bonferroni tail inequalities; binomial moments; factorial moment bounds; at least k events; generalized inclusion-exclusion; finite nonnegative measure; arbitrary event dependence; first lower and upper Bonferroni truncations",
+  "index_revision": "sha256:2838a557bfddda5a1f9410e0dcf596a67112c0ec0f163c4cf1a787abcce15d2b",
+  "answer_sha256": "0d0226d3aaa87d222cbe3a01dc448dd0723df05e760220251f84916f97c6df53"
+}

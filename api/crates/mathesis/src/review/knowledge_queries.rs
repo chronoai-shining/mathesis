@@ -1,10 +1,10 @@
 //! Bounded semantic query proposals become durable system work, never receipts.
 use super::worker::{Failure, Worker};
 use mathesis_core::{ids::ClaimId, model::*, ports::LeasedJob};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 struct Proposal {
     claim: ClaimId,
     definitions: Vec<String>,
@@ -149,7 +149,10 @@ impl Worker {
             if round.knowledge_contract >= 3 {
                 use sha2::{Digest, Sha256};
                 scopes.push(KNOWLEDGE_RANKER_SCOPE.into());
-                scopes.push(format!("Standard search terms from mathematical reformulation sha256:{:x}; full definitions, hypotheses, quantifiers and conclusion retained in the originating model response.", Sha256::digest(full_query.as_bytes())));
+                let structured = serde_json::to_vec(&proposal).map_err(|_| {
+                    Failure::Permanent("cannot encode mathematical reformulation".into())
+                })?;
+                scopes.push(format!("Standard search terms from mathematical reformulation sha256:{:x}; full definitions, hypotheses, quantifiers and conclusion retained in the originating model response.", Sha256::digest(structured)));
             }
             if used {
                 if !intents.iter().any(|i| {

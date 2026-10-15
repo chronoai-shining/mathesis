@@ -1,0 +1,386 @@
+{
+  "schema": "mathesis.ranking-run.v1",
+  "split": "development",
+  "started_at_utc": "2026-10-15T21:31:27.122977+00:00",
+  "freeze_sha256": "4cbc93154e116f57923b3cf475904638640856a92e929573670b6a60c8bf884b",
+  "implementation_revision": "c2216af6b55af721d584b0e93f3bfcc6d33b86ef",
+  "binary_sha256": "d4481c1045173f2ef891edcee3912008656f355ef06b1639cf79fdb558a2ac81",
+  "artifact_sha256": "98439d3418286a2cb81857eecde1f78a232b934d56c2090f5611b8ed3757b438",
+  "index_revision": "sha256:2838a557bfddda5a1f9410e0dcf596a67112c0ec0f163c4cf1a787abcce15d2b",
+  "snapshot": "sha256:6c92665f572be41df6f8fad0d246f4e141e9cf036196608239792f787121ec26",
+  "queries_sha256": "b646b37b6db46084b2adaef112074d06cd939b99a8ef9ae5b878dafed63f0567",
+  "oracle_inputs": {
+    "pigeonhole-renamed": {
+      "answer_sha256": "bc33af6296c46f053ee7f57e32a6f42e21941ce8c60b53089b018fb082ce185d",
+      "proposal": {
+        "claim": "C1",
+        "definitions": [
+          "|X| and |Y| denote set cardinalities.",
+          "h:X→Y is a total function labelled an observation map; no additional observation structure is defined."
+        ],
+        "hypotheses": [
+          "X and Y are sets in the same universe.",
+          "|Y|<|X|."
+        ],
+        "quantifiers": "For every same-universe pair X,Y satisfying |Y|<|X|, for every total function h:X→Y, there exist x0,x1 in X. The pair may depend on h. No finiteness or nonemptiness assumption is imposed; if no such function exists, the quantification over h is vacuous.",
+        "conclusion": "x0≠x1 and h(x0)=h(x1), equivalently h is not injective under the standard classical interpretation.",
+        "search_terms": [
+          "cardinal pigeonhole principle",
+          "Dirichlet box principle",
+          "injective function cardinal inequality",
+          "cardinality monotonicity under injections",
+          "noninjectivity collision equivalence",
+          "Cardinal.le_def",
+          "Cardinal.mk_le_of_injective",
+          "Function.not_injective_iff"
+        ],
+        "reason": "Retrieve an arbitrary-cardinality baseline or combination of existing results matching the full statement, rather than only a finite-set theorem or a particular collision example. Preserve the inequality direction, universal function quantifier, and empty-codomain case. This is one proposed semantic query for later execution, not a claim that the proposed query has already run."
+      }
+    },
+    "pigeonhole-composed": {
+      "answer_sha256": "bd89a5277a9613ca147db3889aee094a81bc82c02672fd7f3a5e11945d6f75b0",
+      "proposal": {
+        "claim": "C1",
+        "definitions": [
+          "|X| is the number of elements of a finite set X.",
+          "The composition g∘f sends a∈A to g(f(a))∈C."
+        ],
+        "hypotheses": [
+          "A,B,C are finite sets.",
+          "|C|≤|B|.",
+          "|B|<|A|.",
+          "f:A→B is a total function.",
+          "g:B→C is a total function."
+        ],
+        "quantifiers": "For every finite A,B,C satisfying the cardinality inequalities, for every f:A→B and every g:B→C, there exist a,a′∈A. The pair may depend on the maps. No nonemptiness assumption is added; nonexistent function choices give vacuous cases.",
+        "conclusion": "There exist a,a′∈A such that a≠a′ and g(f(a))=g(f(a′)).",
+        "search_terms": [
+          "finite pigeonhole principle",
+          "Dirichlet box principle",
+          "collision in a function to a smaller finite set",
+          "finite cardinality obstruction to injectivity",
+          "postcomposition preserves equal images",
+          "injectivity of a composite implies injectivity of the first map",
+          "Fintype.exists_ne_map_eq_of_card_lt",
+          "Fintype.card_le_of_injective"
+        ],
+        "reason": "Retrieve a generic collision or injectivity-cardinality statement with matching total-function hypotheses and degenerate cases, rather than unrelated domain-specific keyword hits. This is one proposed semantic query for later source auditing; it is not a completed query or a verification claim."
+      }
+    },
+    "pigeonhole-non_strict": {
+      "answer_sha256": "a2847a1f95754f792e38685513ff426512974972704a9a15a46b4c63f14c4fed",
+      "proposal": {
+        "claim": "C1",
+        "definitions": [
+          "X and Y are sets; |X| and |Y| denote their finite cardinalities.",
+          "h:X→Y is a total function.",
+          "A collision consists of x,x' in X with x≠x' and h(x)=h(x')."
+        ],
+        "hypotheses": [
+          "X is finite and nonempty.",
+          "Y is finite and nonempty.",
+          "|Y|≤|X|, including equality."
+        ],
+        "quantifiers": "For every pair X,Y satisfying the hypotheses, for every total function h:X→Y, there exist x,x' in X. The pair may depend on X,Y,h. Singleton sets and equal cardinalities are included.",
+        "conclusion": "There exist x,x' in X such that x≠x' and h(x)=h(x').",
+        "search_terms": [
+          "pigeonhole principle",
+          "Dirichlet box principle",
+          "finite-set collision theorem",
+          "Fintype.exists_ne_map_eq_of_card_lt",
+          "injective functions between finite sets",
+          "equal cardinality and bijections",
+          "Fintype.card_eq",
+          "Fintype.equivOfCardEq",
+          "strict versus non-strict cardinal inequality",
+          "singleton equality boundary"
+        ],
+        "reason": "Retrieve exact source statements addressing the non-strict hypothesis, comparing strict pigeonhole results with equal-cardinality bijection results without changing C1. Preserve singleton and equality cases. This is one proposed semantic query for subsequent execution, not a completed knowledge-index search or a claim of formal entailment."
+      }
+    },
+    "cassini-renamed": {
+      "answer_sha256": "6d82879504a067e3489314bc543a2596a47e099e72446f9e589c080c1209b021",
+      "proposal": {
+        "claim": "C1",
+        "definitions": [
+          "u_j=a*p^j+b*q^j for every nonnegative integer j; powers are natural powers."
+        ],
+        "hypotheses": [
+          "R is a commutative ring, with the identity implicitly used by the constants 1 and -1.",
+          "a,b,p,q are elements of R; a and b have this intended implicit domain.",
+          "p^2=p+1.",
+          "q^2=q+1.",
+          "p+q=1.",
+          "p*q=-1."
+        ],
+        "quantifiers": "For every commutative ring R under the stated identity convention, every p,q in R satisfying the four equations, every a,b in R, and every m in the nonnegative integers, with u_j defined for all nonnegative integers j.",
+        "conclusion": "u_(m+1)^2-u_(m+1)*u_m-u_m^2=-5*a*b*(-1)^m, with all constants and operations interpreted in R.",
+        "search_terms": [
+          "generalized Cassini identity",
+          "Cassini-Simson identity",
+          "Horadam sequence",
+          "second-order linear recurrence",
+          "arbitrary initial values",
+          "discrete Wronskian",
+          "Casoratian identity",
+          "companion matrix determinant",
+          "two-exponential sequence",
+          "commutative-ring polynomial identity"
+        ],
+        "reason": "Retrieve a matching arbitrary-amplitude adjacent-term identity, preferably with explicit commutative-ring hypotheses, rather than a Lucas doubling or unrelated quadratic-form result. Check the exact sign, m=0, arbitrary characteristic, zero divisors, and admissible coincident-root cases; do not introduce division by p-q or nonzero-amplitude assumptions. This is one proposed semantic query for the subsequent audit, not an already-executed search or an entailment certificate."
+      }
+    },
+    "cassini-specialized": {
+      "answer_sha256": "17273365a6df9a05ab2f21a442cb283d2c4a27b0c584825196fc9b6df21083b2",
+      "proposal": {
+        "claim": "C1",
+        "definitions": [
+          "v_j=p^j-q^j for every nonnegative integer j; zeroth powers are 1_R."
+        ],
+        "hypotheses": [
+          "R is a commutative ring, with identity implicit in the statement.",
+          "p,q are elements of R.",
+          "p^2=p+1_R.",
+          "q^2=q+1_R.",
+          "p+q=1_R.",
+          "pq=-1_R.",
+          "m is a nonnegative integer."
+        ],
+        "quantifiers": "For every such R, every p,q in R satisfying the four equations, and every m in Z_{≥0}, with v defined for all j in Z_{≥0}. Retain arbitrary characteristic, zero divisors, coincident roots, and m=0.",
+        "conclusion": "Equality in R: v_{m+1}^2-v_{m+1}v_m-v_m^2=5_R(-1_R)^m, with integer constants interpreted in R.",
+        "search_terms": [
+          "Cassini identity",
+          "Simson identity",
+          "Fibonacci polynomial Cassini identity",
+          "unnormalized Binet formula",
+          "Fibonacci recurrence quadratic invariant",
+          "Lucas sequences U_n(P,Q)",
+          "Casoratian identity",
+          "two-element generalized Vandermonde identity",
+          "commutative rings arbitrary characteristic"
+        ],
+        "reason": "Retrieve a source-level match preserving the complete ring domain and index boundary. Check the adjacent-index expression, discriminant factor 5, and parity sign against an explicitly applicable general theorem. This proposal targets the semantic gap in the supplied diagnostic candidates and awaits system execution."
+      }
+    },
+    "cassini-roots_dropped": {
+      "answer_sha256": "d24f46a111b9fc2d641491e9be8f4fac76c70ae8fea5fbb65a1b14bd1244fae8",
+      "proposal": {
+        "claim": "C1",
+        "definitions": [
+          "u_j=a*p^j+b*q^j; nonnegative integer sequence indexing is the conventional reading, with the exponent-zero convention to be stated explicitly."
+        ],
+        "hypotheses": [
+          "p,q,a,b are arbitrary integers.",
+          "m>=0, interpreted as a nonnegative integer sequence index."
+        ],
+        "quantifiers": "For every p,q,a,b in Z and every m in Z_{>=0}, with u defined by the displayed formula. There are no distinctness, nonzero, characteristic-root, or recurrence hypotheses; zero bases, zero coefficients and p=q remain included.",
+        "conclusion": "u_{m+1}^2-u_{m+1}*u_m-u_m^2=-5*a*b*(-1)^m.",
+        "search_terms": [
+          "Cassini identity",
+          "Simson identity",
+          "generalized Fibonacci quadratic invariant",
+          "Horadam sequence Cassini identity",
+          "second-order linear recurrence",
+          "two-exponential sequence",
+          "characteristic roots versus recurrence coefficients",
+          "Casoratian determinant identity",
+          "Fibonacci characteristic polynomial t^2-t-1",
+          "coincident roots and zero-base cases"
+        ],
+        "reason": "Retrieve an exact hypothesis-level comparison for arbitrary exponential bases, rather than golden Lucas doubling. Distinguish fixed Fibonacci characteristic roots from unrestricted integer bases, and preserve m=0, coincident bases and zero parameters. This is a proposed search, not an assertion of entailment, novelty or verification."
+      }
+    },
+    "projection_amgm-original": {
+      "answer_sha256": "9c822c87244e93a7f6559713216fa7cc5fb44ea3ce6d709a30577034c1663765",
+      "proposal": {
+        "claim": "C1",
+        "definitions": [
+          "P_i are real orthogonal projections: P_i^T=P_i and P_i^2=P_i.",
+          "M=(1/n) sum_{i=1}^n P_i.",
+          "S=(1/n!) sum_{sigma in Sym(n)} P_sigma(1)...P_sigma(n), counting label permutations even when matrices repeat.",
+          "M^n-S is positive semidefinite iff x^T(M^n-S)x>=0 for every x in R^N."
+        ],
+        "hypotheses": [
+          "n is an integer with n>=1.",
+          "N is a finite matrix dimension.",
+          "Every P_i is a real N-by-N symmetric idempotent matrix."
+        ],
+        "quantifiers": "For every integer n>=1 and every finite matrix dimension N, for every tuple (P_1,...,P_n) satisfying the hypotheses, the conclusion holds. No commutativity, distinctness, rank restriction, or relation between n and N is assumed. N=0 is vacuous if zero-dimensional matrices are allowed.",
+        "conclusion": "S<=M^n in Loewner order, equivalently M^n-S is positive semidefinite.",
+        "search_terms": [
+          "orthogonal projection matrix AM-GM conjecture",
+          "Sun Luo Ye Conjecture 3.1 equation 37",
+          "symmetrized noncommutative product",
+          "Loewner order arithmetic-geometric mean",
+          "sampling with and without replacement",
+          "weak projection AM-GM inequality",
+          "noncommutative polynomial positivity with idempotent constraints"
+        ],
+        "reason": "Retrieve a theorem, exact prior formulation, or matching refutation for the projection-specific matrix-order assertion. Distinguish it from general PSD norm inequalities, averages of product norms, and the weaker S<=M bound. This is a proposed search, not evidence of entailment or settlement."
+      }
+    },
+    "projection_amgm-renamed": {
+      "answer_sha256": "4537c0688aa5d37c88943358a33f41c888e554615d1ec6e6b8f139e117e340b7",
+      "proposal": {
+        "claim": "C1",
+        "definitions": [
+          "An orthogonal projection on Euclidean R^3 is a real 3x3 matrix P with P^T=P and P^2=P.",
+          "A symmetric matrix D is positive semidefinite when x^T D x>=0 for every x in R^3.",
+          "Products and powers are ordinary matrix multiplication; the six displayed products average all permutations of the three labeled factors."
+        ],
+        "hypotheses": [
+          "E,F,G are orthogonal projections on R^3.",
+          "There are no rank, distinctness, commutativity, mutual-orthogonality or sum-to-identity restrictions."
+        ],
+        "quantifiers": "For every E,F,G in M_3(R) satisfying the projection equations, the conclusion holds for every x in R^3. Include ranks 0 through 3, zero and identity projections, and repeated projections.",
+        "conclusion": "((E+F+G)/3)^3-(EFG+EGF+FEG+FGE+GEF+GFE)/6 is positive semidefinite.",
+        "search_terms": [
+          "matrix AM-GM inequality for projection matrices",
+          "Sun Luo Ye Conjecture 3.1",
+          "three real orthogonal projections",
+          "Loewner order",
+          "symmetrized triple product",
+          "symmetric idempotent matrices",
+          "noncommutative cubic matrix inequality",
+          "weak matrix arithmetic-geometric mean inequality",
+          "Recht Re norm inequality versus semidefinite order"
+        ],
+        "reason": "Seek an exact theorem or matching published refutation for the n=N=3 projection case. Existing diagnostic hits do not match. Distinguish the required cubic order bound from the mean upper bound, norm inequalities, and counterexamples using nonidempotent matrices. This is a proposed search, not evidence of settlement or novelty."
+      }
+    },
+    "projection_amgm-two_factors": {
+      "answer_sha256": "038437be099dc7eb2f3487494779f3b6e5df8d0be588fa16a353c431e6d0bd15",
+      "proposal": {
+        "claim": "C1",
+        "definitions": [
+          "M=(1/n) sum_{i=1}^n P_i.",
+          "S=(1/n!) sum_{sigma in Sym(n)} P_{sigma(1)}...P_{sigma(n)}, counting labeled permutations.",
+          "At n=2, M=(P_1+P_2)/2 and S=(P_1P_2+P_2P_1)/2.",
+          "For symmetric D, D is PSD iff x^T D x>=0 for every x in R^N."
+        ],
+        "hypotheses": [
+          "n=2.",
+          "P_1,P_2 are real N-by-N matrices.",
+          "P_i^T=P_i and P_i^2=P_i for i=1,2; no commutation, rank, invertibility or distinctness assumption."
+        ],
+        "quantifiers": "For the implicit finite dimension N, existence of P_1,P_2 satisfying the hypotheses and a nonzero x in R^N with x^T(M^2-S)x<0. N is not explicitly quantified: distinguish fixed-N and dimension-existential readings. Conventionally N>=1; N=0, if allowed, has no such x.",
+        "conclusion": "M^2-S is not PSD for some admissible pair. C1 also asserts that an unidentified cited n=3 counterexample establishes this n=2 conclusion.",
+        "search_terms": [
+          "orthogonal projections",
+          "symmetrized product",
+          "Jordan product",
+          "Loewner order",
+          "two-matrix noncommutative AM-GM",
+          "Hermitian square positivity",
+          "matrix Young inequality",
+          "counterexample factor-count transfer"
+        ],
+        "reason": "Retrieve a hypothesis-matched two-factor Loewner-order result or its negation and assess the asserted three-to-two-factor transfer. A norm inequality or an unrelated projection theorem is not a match. The supplied diagnostic hits did not address this assertion."
+      }
+    },
+    "bonferroni-upper": {
+      "answer_sha256": "9a66b358cc936721ab95d3ead8c3ddeeb33a8c8b7b27aa6aea7adf308ecb86b8",
+      "proposal": {
+        "claim": "C1",
+        "definitions": [
+          "Sample space: s=(X,R), X:A->Y, R_a:{b in A:b!=a}->Y.",
+          "Listing g_s(a,b)=X(a) if b=a, otherwise R_a(b).",
+          "Weight w(s)=(product_b q(b,X(b)))(product_a product_{b!=a} q(b,R_a(b))).",
+          "Twisted diagonal d_s(b)=f(g_s(b,b)).",
+          "C(s)=#{a in A: for every b in A, g_s(a,b)=d_s(b)}.",
+          "T_k=sum_{s:C(s)>=k} w(s); B_k=sum_s binom(C(s),k)w(s)."
+        ],
+        "hypotheses": [
+          "A and Y are finite, possibly empty.",
+          "q:A×Y->R and q(a,y)>=0 for every a,y.",
+          "f:Y->Y is arbitrary."
+        ],
+        "quantifiers": "For every finite A,Y, every q and f of the stated types with q nonnegative everywhere, and every k in N={0,1,...}. Sums range over all source samples.",
+        "conclusion": "T_k<=B_k for every natural k, including k=0, k>|A|, and empty sample spaces, with standard binomial and empty-index conventions.",
+        "search_terms": [
+          "nonnegative weighted binomial-moment tail bound",
+          "factorial moment upper bound",
+          "Markov inequality for finite measures",
+          "indicator majorization",
+          "finite weighted sum monotonicity",
+          "binomial coefficient positivity",
+          "k-out-of-n event upper bound",
+          "generalized Boole inequality",
+          "Bonferroni upper bound",
+          "FiniteBonferroni"
+        ],
+        "reason": "The diagnostic top-six excerpts do not exhibit the exact arbitrary-k weighted comparison. Seek an exact or more general supplier without adding normalized marginals, independent capture indicators, nonempty spaces, or k>0."
+      }
+    },
+    "bonferroni-bracket": {
+      "answer_sha256": "0d0226d3aaa87d222cbe3a01dc448dd0723df05e760220251f84916f97c6df53",
+      "proposal": {
+        "claim": "C1",
+        "definitions": [
+          "Sample s=(X,R), with X:A->Y and R_a:A\\{a}->Y; g_s(a,a)=X(a), g_s(a,b)=R_a(b) for b!=a.",
+          "w(s)=product_b q(b,X(b)) times product_a product_{b!=a} q(b,R_a(b)); weights are column-indexed.",
+          "C(s)=#{a in A: for every b in A, g_s(a,b)=f(X(b))}.",
+          "T_k=sum_{s:C(s)>=k}w(s); B_k=sum_s binom(C(s),k)w(s)."
+        ],
+        "hypotheses": [
+          "A and Y are finite.",
+          "q:A×Y->R and q(a,y)>=0 for all a,y.",
+          "f:Y->Y is arbitrary."
+        ],
+        "quantifiers": "For every finite A,Y, every nonnegative q and every f:Y->Y. C1 does not explicitly type k; retrieve the intended k in the nonnegative integers, retaining k=0, k>|A| and empty sets.",
+        "conclusion": "B_k-k B_{k+1}<=T_k<=B_k. Under intended counting conventions binom(c,0)=1 and binom(c,k)=0 for k>c. No normalization or capture-event independence is assumed.",
+        "search_terms": [
+          "Bonferroni tail inequalities",
+          "binomial moments",
+          "factorial moment bounds",
+          "at least k events",
+          "generalized inclusion-exclusion",
+          "finite nonnegative measure",
+          "arbitrary event dependence",
+          "first lower and upper Bonferroni truncations"
+        ],
+        "reason": "Retrieve the arbitrary-threshold bound with coefficient k, not the exactly-k coefficient, including finite-mass normalization and boundary conventions. Supplied diagnostic hits emphasize model definitions and normalized capture or escape formulas. This is one proposed query for the subsequent source audit, not an already-executed diagnostic query."
+      }
+    },
+    "bonferroni-signed_weights": {
+      "answer_sha256": "d61c887d57bedf56648d9f395df8cf510b0f35b87cf683cdd2818f8861eee3e9",
+      "proposal": {
+        "claim": "C1",
+        "definitions": [
+          "Listings are all g:A×A→Y, equivalently the source diagonal/off-row Sample coordinates.",
+          "w_q(g)=∏_{a∈A}∏_{b∈A}q(b,g(a,b)); weights depend on column b.",
+          "d_f,g(b)=f(g(b,b)); C_f(g)=#{a∈A:∀b∈A,g(a,b)=d_f,g(b)}.",
+          "T_k=∑_{g:C_f(g)≥k}w_q(g); B_k=∑_g binom(C_f(g),k)w_q(g), k∈N."
+        ],
+        "hypotheses": [
+          "A and Y are finite, including empty cases.",
+          "q:A×Y→R is arbitrary and may have either sign.",
+          "f:Y→Y is arbitrary."
+        ],
+        "quantifiers": "For every finite A,Y, every q:A×Y→R, and every f:Y→Y, form the full listing space and the defined finite sums. No nonnegativity or column-normalization hypothesis is stated. Use standard empty-sum/product and binomial conventions.",
+        "conclusion": "T_1≤B_1.",
+        "search_terms": [
+          "first-order Bonferroni inequality",
+          "Boole union bound",
+          "finite signed product measure",
+          "column-weighted finite array",
+          "twisted diagonal capture",
+          "event multiplicity",
+          "binomial moments",
+          "weighted tail bound",
+          "positivity of integration",
+          "normalization versus nonnegativity",
+          "signed-weight union-bound counterexample"
+        ],
+        "reason": "Retrieve an exact theorem or documented refutation preserving the shared column weights and twisted-diagonal events. Distinguish arbitrary signed, normalized signed, and nonnegative domains; a generic signed-measure example or a probability-space theorem alone does not settle this constrained assertion."
+      }
+    }
+  },
+  "missing_proposals": [],
+  "limits": [
+    "Development only; provisional labels, no human adjudication.",
+    "Exact predeclared source-set recall, not usefulness of other results.",
+    "No source audit, model-quality comparison or production receipt.",
+    "Local index load and warm query times exclude Mongo and network."
+  ]
+}

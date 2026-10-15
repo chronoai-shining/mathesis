@@ -1,0 +1,37 @@
+{
+  "proposal": [
+    {
+      "claim": "C1",
+      "definitions": [
+        "Listings are all g:A×A→Y, equivalently the source diagonal/off-row Sample coordinates.",
+        "w_q(g)=∏_{a∈A}∏_{b∈A}q(b,g(a,b)); weights depend on column b.",
+        "d_f,g(b)=f(g(b,b)); C_f(g)=#{a∈A:∀b∈A,g(a,b)=d_f,g(b)}.",
+        "T_k=∑_{g:C_f(g)≥k}w_q(g); B_k=∑_g binom(C_f(g),k)w_q(g), k∈N."
+      ],
+      "hypotheses": [
+        "A and Y are finite, including empty cases.",
+        "q:A×Y→R is arbitrary and may have either sign.",
+        "f:Y→Y is arbitrary."
+      ],
+      "quantifiers": "For every finite A,Y, every q:A×Y→R, and every f:Y→Y, form the full listing space and the defined finite sums. No nonnegativity or column-normalization hypothesis is stated. Use standard empty-sum/product and binomial conventions.",
+      "conclusion": "T_1≤B_1.",
+      "search_terms": [
+        "first-order Bonferroni inequality",
+        "Boole union bound",
+        "finite signed product measure",
+        "column-weighted finite array",
+        "twisted diagonal capture",
+        "event multiplicity",
+        "binomial moments",
+        "weighted tail bound",
+        "positivity of integration",
+        "normalization versus nonnegativity",
+        "signed-weight union-bound counterexample"
+      ],
+      "reason": "Retrieve an exact theorem or documented refutation preserving the shared column weights and twisted-diagonal events. Distinguish arbitrary signed, normalized signed, and nonnegative domains; a generic signed-measure example or a probability-space theorem alone does not settle this constrained assertion."
+    }
+  ],
+  "query": "first-order Bonferroni inequality; Boole union bound; finite signed product measure; column-weighted finite array; twisted diagonal capture; event multiplicity; binomial moments; weighted tail bound; positivity of integration; normalization versus nonnegativity; signed-weight union-bound counterexample",
+  "index_revision": "sha256:2838a557bfddda5a1f9410e0dcf596a67112c0ec0f163c4cf1a787abcce15d2b",
+  "answer_sha256": "d61c887d57bedf56648d9f395df8cf510b0f35b87cf683cdd2818f8861eee3e9"
+}

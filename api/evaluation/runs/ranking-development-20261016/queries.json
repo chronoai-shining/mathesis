@@ -1,0 +1,146 @@
+[
+  {
+    "id": "pigeonhole-renamed:raw",
+    "query": "Question\nLet X and Y be sets of the same universe with |Y| < |X|. Any observation map h:X→Y takes the same value on two distinct inputs."
+  },
+  {
+    "id": "pigeonhole-renamed:semantic",
+    "query": "Definitions: |X| and |Y| denote set cardinalities.; h:X→Y is a total function labelled an observation map; no additional observation structure is defined.\nHypotheses: X and Y are sets in the same universe.; |Y|<|X|.\nQuantifiers: For every same-universe pair X,Y satisfying |Y|<|X|, for every total function h:X→Y, there exist x0,x1 in X. The pair may depend on h. No finiteness or nonemptiness assumption is imposed; if no such function exists, the quantification over h is vacuous.\nConclusion: x0≠x1 and h(x0)=h(x1), equivalently h is not injective under the standard classical interpretation.\nRelated mathematical terms: cardinal pigeonhole principle; Dirichlet box principle; injective function cardinal inequality; cardinality monotonicity under injections; noninjectivity collision equivalence; Cardinal.le_def; Cardinal.mk_le_of_injective; Function.not_injective_iff"
+  },
+  {
+    "id": "pigeonhole-renamed:terms",
+    "query": "cardinal pigeonhole principle; Dirichlet box principle; injective function cardinal inequality; cardinality monotonicity under injections; noninjectivity collision equivalence; Cardinal.le_def; Cardinal.mk_le_of_injective; Function.not_injective_iff"
+  },
+  {
+    "id": "pigeonhole-composed:raw",
+    "query": "Question\nLet finite sets A,B,C satisfy |C|≤|B|<|A|. For maps f:A→B and g:B→C, distinct a,a′ satisfy g(f(a))=g(f(a′))."
+  },
+  {
+    "id": "pigeonhole-composed:semantic",
+    "query": "Definitions: |X| is the number of elements of a finite set X.; The composition g∘f sends a∈A to g(f(a))∈C.\nHypotheses: A,B,C are finite sets.; |C|≤|B|.; |B|<|A|.; f:A→B is a total function.; g:B→C is a total function.\nQuantifiers: For every finite A,B,C satisfying the cardinality inequalities, for every f:A→B and every g:B→C, there exist a,a′∈A. The pair may depend on the maps. No nonemptiness assumption is added; nonexistent function choices give vacuous cases.\nConclusion: There exist a,a′∈A such that a≠a′ and g(f(a))=g(f(a′)).\nRelated mathematical terms: finite pigeonhole principle; Dirichlet box principle; collision in a function to a smaller finite set; finite cardinality obstruction to injectivity; postcomposition preserves equal images; injectivity of a composite implies injectivity of the first map; Fintype.exists_ne_map_eq_of_card_lt; Fintype.card_le_of_injective"
+  },
+  {
+    "id": "pigeonhole-composed:terms",
+    "query": "finite pigeonhole principle; Dirichlet box principle; collision in a function to a smaller finite set; finite cardinality obstruction to injectivity; postcomposition preserves equal images; injectivity of a composite implies injectivity of the first map; Fintype.exists_ne_map_eq_of_card_lt; Fintype.card_le_of_injective"
+  },
+  {
+    "id": "pigeonhole-non_strict:raw",
+    "query": "Question\nLet nonempty finite sets X,Y satisfy |Y|≤|X|. Every h:X→Y takes equal values at two distinct inputs."
+  },
+  {
+    "id": "pigeonhole-non_strict:semantic",
+    "query": "Definitions: X and Y are sets; |X| and |Y| denote their finite cardinalities.; h:X→Y is a total function.; A collision consists of x,x' in X with x≠x' and h(x)=h(x').\nHypotheses: X is finite and nonempty.; Y is finite and nonempty.; |Y|≤|X|, including equality.\nQuantifiers: For every pair X,Y satisfying the hypotheses, for every total function h:X→Y, there exist x,x' in X. The pair may depend on X,Y,h. Singleton sets and equal cardinalities are included.\nConclusion: There exist x,x' in X such that x≠x' and h(x)=h(x').\nRelated mathematical terms: pigeonhole principle; Dirichlet box principle; finite-set collision theorem; Fintype.exists_ne_map_eq_of_card_lt; injective functions between finite sets; equal cardinality and bijections; Fintype.card_eq; Fintype.equivOfCardEq; strict versus non-strict cardinal inequality; singleton equality boundary"
+  },
+  {
+    "id": "pigeonhole-non_strict:terms",
+    "query": "pigeonhole principle; Dirichlet box principle; finite-set collision theorem; Fintype.exists_ne_map_eq_of_card_lt; injective functions between finite sets; equal cardinality and bijections; Fintype.card_eq; Fintype.equivOfCardEq; strict versus non-strict cardinal inequality; singleton equality boundary"
+  },
+  {
+    "id": "cassini-renamed:raw",
+    "query": "Question\nIn a commutative ring R let p²=p+1, q²=q+1, p+q=1 and pq=−1; let m be a nonnegative integer. For u_j=a p^j+b q^j, u_(m+1)²−u_(m+1)u_m−u_m²=−5ab(−1)^m."
+  },
+  {
+    "id": "cassini-renamed:semantic",
+    "query": "Definitions: u_j=a*p^j+b*q^j for every nonnegative integer j; powers are natural powers.\nHypotheses: R is a commutative ring, with the identity implicitly used by the constants 1 and -1.; a,b,p,q are elements of R; a and b have this intended implicit domain.; p^2=p+1.; q^2=q+1.; p+q=1.; p*q=-1.\nQuantifiers: For every commutative ring R under the stated identity convention, every p,q in R satisfying the four equations, every a,b in R, and every m in the nonnegative integers, with u_j defined for all nonnegative integers j.\nConclusion: u_(m+1)^2-u_(m+1)*u_m-u_m^2=-5*a*b*(-1)^m, with all constants and operations interpreted in R.\nRelated mathematical terms: generalized Cassini identity; Cassini-Simson identity; Horadam sequence; second-order linear recurrence; arbitrary initial values; discrete Wronskian; Casoratian identity; companion matrix determinant; two-exponential sequence; commutative-ring polynomial identity"
+  },
+  {
+    "id": "cassini-renamed:terms",
+    "query": "generalized Cassini identity; Cassini-Simson identity; Horadam sequence; second-order linear recurrence; arbitrary initial values; discrete Wronskian; Casoratian identity; companion matrix determinant; two-exponential sequence; commutative-ring polynomial identity"
+  },
+  {
+    "id": "cassini-specialized:raw",
+    "query": "Question\nIn a commutative ring R let p²=p+1, q²=q+1, p+q=1 and pq=−1; let m be a nonnegative integer. For v_j=p^j−q^j, v_(m+1)²−v_(m+1)v_m−v_m²=5(−1)^m."
+  },
+  {
+    "id": "cassini-specialized:semantic",
+    "query": "Definitions: v_j=p^j-q^j for every nonnegative integer j; zeroth powers are 1_R.\nHypotheses: R is a commutative ring, with identity implicit in the statement.; p,q are elements of R.; p^2=p+1_R.; q^2=q+1_R.; p+q=1_R.; pq=-1_R.; m is a nonnegative integer.\nQuantifiers: For every such R, every p,q in R satisfying the four equations, and every m in Z_{≥0}, with v defined for all j in Z_{≥0}. Retain arbitrary characteristic, zero divisors, coincident roots, and m=0.\nConclusion: Equality in R: v_{m+1}^2-v_{m+1}v_m-v_m^2=5_R(-1_R)^m, with integer constants interpreted in R.\nRelated mathematical terms: Cassini identity; Simson identity; Fibonacci polynomial Cassini identity; unnormalized Binet formula; Fibonacci recurrence quadratic invariant; Lucas sequences U_n(P,Q); Casoratian identity; two-element generalized Vandermonde identity; commutative rings arbitrary characteristic"
+  },
+  {
+    "id": "cassini-specialized:terms",
+    "query": "Cassini identity; Simson identity; Fibonacci polynomial Cassini identity; unnormalized Binet formula; Fibonacci recurrence quadratic invariant; Lucas sequences U_n(P,Q); Casoratian identity; two-element generalized Vandermonde identity; commutative rings arbitrary characteristic"
+  },
+  {
+    "id": "cassini-roots_dropped:raw",
+    "query": "Question\nFor any integers p,q,a,b and m≥0, u_j=a p^j+b q^j satisfies u_(m+1)²−u_(m+1)u_m−u_m²=−5ab(−1)^m."
+  },
+  {
+    "id": "cassini-roots_dropped:semantic",
+    "query": "Definitions: u_j=a*p^j+b*q^j; nonnegative integer sequence indexing is the conventional reading, with the exponent-zero convention to be stated explicitly.\nHypotheses: p,q,a,b are arbitrary integers.; m>=0, interpreted as a nonnegative integer sequence index.\nQuantifiers: For every p,q,a,b in Z and every m in Z_{>=0}, with u defined by the displayed formula. There are no distinctness, nonzero, characteristic-root, or recurrence hypotheses; zero bases, zero coefficients and p=q remain included.\nConclusion: u_{m+1}^2-u_{m+1}*u_m-u_m^2=-5*a*b*(-1)^m.\nRelated mathematical terms: Cassini identity; Simson identity; generalized Fibonacci quadratic invariant; Horadam sequence Cassini identity; second-order linear recurrence; two-exponential sequence; characteristic roots versus recurrence coefficients; Casoratian determinant identity; Fibonacci characteristic polynomial t^2-t-1; coincident roots and zero-base cases"
+  },
+  {
+    "id": "cassini-roots_dropped:terms",
+    "query": "Cassini identity; Simson identity; generalized Fibonacci quadratic invariant; Horadam sequence Cassini identity; second-order linear recurrence; two-exponential sequence; characteristic roots versus recurrence coefficients; Casoratian determinant identity; Fibonacci characteristic polynomial t^2-t-1; coincident roots and zero-base cases"
+  },
+  {
+    "id": "projection_amgm-original:raw",
+    "query": "Question\nFor real symmetric idempotent N×N matrices P_1,…,P_n, let M be their mean and S the average of all n! ordered products. For every n≥1,N, M^n−S is positive semidefinite."
+  },
+  {
+    "id": "projection_amgm-original:semantic",
+    "query": "Definitions: P_i are real orthogonal projections: P_i^T=P_i and P_i^2=P_i.; M=(1/n) sum_{i=1}^n P_i.; S=(1/n!) sum_{sigma in Sym(n)} P_sigma(1)...P_sigma(n), counting label permutations even when matrices repeat.; M^n-S is positive semidefinite iff x^T(M^n-S)x>=0 for every x in R^N.\nHypotheses: n is an integer with n>=1.; N is a finite matrix dimension.; Every P_i is a real N-by-N symmetric idempotent matrix.\nQuantifiers: For every integer n>=1 and every finite matrix dimension N, for every tuple (P_1,...,P_n) satisfying the hypotheses, the conclusion holds. No commutativity, distinctness, rank restriction, or relation between n and N is assumed. N=0 is vacuous if zero-dimensional matrices are allowed.\nConclusion: S<=M^n in Loewner order, equivalently M^n-S is positive semidefinite.\nRelated mathematical terms: orthogonal projection matrix AM-GM conjecture; Sun Luo Ye Conjecture 3.1 equation 37; symmetrized noncommutative product; Loewner order arithmetic-geometric mean; sampling with and without replacement; weak projection AM-GM inequality; noncommutative polynomial positivity with idempotent constraints"
+  },
+  {
+    "id": "projection_amgm-original:terms",
+    "query": "orthogonal projection matrix AM-GM conjecture; Sun Luo Ye Conjecture 3.1 equation 37; symmetrized noncommutative product; Loewner order arithmetic-geometric mean; sampling with and without replacement; weak projection AM-GM inequality; noncommutative polynomial positivity with idempotent constraints"
+  },
+  {
+    "id": "projection_amgm-renamed:raw",
+    "query": "Question\nFor any three orthogonal projections E,F,G on R³, ((E+F+G)/3)^3−(EFG+EGF+FEG+FGE+GEF+GFE)/6 is positive semidefinite."
+  },
+  {
+    "id": "projection_amgm-renamed:semantic",
+    "query": "Definitions: An orthogonal projection on Euclidean R^3 is a real 3x3 matrix P with P^T=P and P^2=P.; A symmetric matrix D is positive semidefinite when x^T D x>=0 for every x in R^3.; Products and powers are ordinary matrix multiplication; the six displayed products average all permutations of the three labeled factors.\nHypotheses: E,F,G are orthogonal projections on R^3.; There are no rank, distinctness, commutativity, mutual-orthogonality or sum-to-identity restrictions.\nQuantifiers: For every E,F,G in M_3(R) satisfying the projection equations, the conclusion holds for every x in R^3. Include ranks 0 through 3, zero and identity projections, and repeated projections.\nConclusion: ((E+F+G)/3)^3-(EFG+EGF+FEG+FGE+GEF+GFE)/6 is positive semidefinite.\nRelated mathematical terms: matrix AM-GM inequality for projection matrices; Sun Luo Ye Conjecture 3.1; three real orthogonal projections; Loewner order; symmetrized triple product; symmetric idempotent matrices; noncommutative cubic matrix inequality; weak matrix arithmetic-geometric mean inequality; Recht Re norm inequality versus semidefinite order"
+  },
+  {
+    "id": "projection_amgm-renamed:terms",
+    "query": "matrix AM-GM inequality for projection matrices; Sun Luo Ye Conjecture 3.1; three real orthogonal projections; Loewner order; symmetrized triple product; symmetric idempotent matrices; noncommutative cubic matrix inequality; weak matrix arithmetic-geometric mean inequality; Recht Re norm inequality versus semidefinite order"
+  },
+  {
+    "id": "projection_amgm-two_factors:raw",
+    "query": "Question\nFor real symmetric idempotent N×N matrices P_1,…,P_n, let M be their mean and S the average of all n! ordered products. Restrict to n=2. The cited n=3 counterexample proves that M²−S fails to be positive semidefinite for some P_1,P_2."
+  },
+  {
+    "id": "projection_amgm-two_factors:semantic",
+    "query": "Definitions: M=(1/n) sum_{i=1}^n P_i.; S=(1/n!) sum_{sigma in Sym(n)} P_{sigma(1)}...P_{sigma(n)}, counting labeled permutations.; At n=2, M=(P_1+P_2)/2 and S=(P_1P_2+P_2P_1)/2.; For symmetric D, D is PSD iff x^T D x>=0 for every x in R^N.\nHypotheses: n=2.; P_1,P_2 are real N-by-N matrices.; P_i^T=P_i and P_i^2=P_i for i=1,2; no commutation, rank, invertibility or distinctness assumption.\nQuantifiers: For the implicit finite dimension N, existence of P_1,P_2 satisfying the hypotheses and a nonzero x in R^N with x^T(M^2-S)x<0. N is not explicitly quantified: distinguish fixed-N and dimension-existential readings. Conventionally N>=1; N=0, if allowed, has no such x.\nConclusion: M^2-S is not PSD for some admissible pair. C1 also asserts that an unidentified cited n=3 counterexample establishes this n=2 conclusion.\nRelated mathematical terms: orthogonal projections; symmetrized product; Jordan product; Loewner order; two-matrix noncommutative AM-GM; Hermitian square positivity; matrix Young inequality; counterexample factor-count transfer"
+  },
+  {
+    "id": "projection_amgm-two_factors:terms",
+    "query": "orthogonal projections; symmetrized product; Jordan product; Loewner order; two-matrix noncommutative AM-GM; Hermitian square positivity; matrix Young inequality; counterexample factor-count transfer"
+  },
+  {
+    "id": "bonferroni-upper:raw",
+    "query": "Question\nUse the source finite independent listing model: A,Y finite, q:A×Y→R cell weights, f:Y→Y, w(s) the product of all |A|² cell weights, C(s) the number of rows equal to the f-twisted diagonal. Define T_k=Σ_{C(s)≥k}w(s) and B_k=Σ_s binom(C(s),k)w(s). If all q(a,y)≥0, then T_k≤B_k for every natural k."
+  },
+  {
+    "id": "bonferroni-upper:semantic",
+    "query": "Definitions: Sample space: s=(X,R), X:A->Y, R_a:{b in A:b!=a}->Y.; Listing g_s(a,b)=X(a) if b=a, otherwise R_a(b).; Weight w(s)=(product_b q(b,X(b)))(product_a product_{b!=a} q(b,R_a(b))).; Twisted diagonal d_s(b)=f(g_s(b,b)).; C(s)=#{a in A: for every b in A, g_s(a,b)=d_s(b)}.; T_k=sum_{s:C(s)>=k} w(s); B_k=sum_s binom(C(s),k)w(s).\nHypotheses: A and Y are finite, possibly empty.; q:A×Y->R and q(a,y)>=0 for every a,y.; f:Y->Y is arbitrary.\nQuantifiers: For every finite A,Y, every q and f of the stated types with q nonnegative everywhere, and every k in N={0,1,...}. Sums range over all source samples.\nConclusion: T_k<=B_k for every natural k, including k=0, k>|A|, and empty sample spaces, with standard binomial and empty-index conventions.\nRelated mathematical terms: nonnegative weighted binomial-moment tail bound; factorial moment upper bound; Markov inequality for finite measures; indicator majorization; finite weighted sum monotonicity; binomial coefficient positivity; k-out-of-n event upper bound; generalized Boole inequality; Bonferroni upper bound; FiniteBonferroni"
+  },
+  {
+    "id": "bonferroni-upper:terms",
+    "query": "nonnegative weighted binomial-moment tail bound; factorial moment upper bound; Markov inequality for finite measures; indicator majorization; finite weighted sum monotonicity; binomial coefficient positivity; k-out-of-n event upper bound; generalized Boole inequality; Bonferroni upper bound; FiniteBonferroni"
+  },
+  {
+    "id": "bonferroni-bracket:raw",
+    "query": "Question\nUse the source finite independent listing model: A,Y finite, q:A×Y→R cell weights, f:Y→Y, w(s) the product of all |A|² cell weights, C(s) the number of rows equal to the f-twisted diagonal. Define T_k=Σ_{C(s)≥k}w(s) and B_k=Σ_s binom(C(s),k)w(s). If all q(a,y)≥0, then B_k−k B_(k+1)≤T_k≤B_k."
+  },
+  {
+    "id": "bonferroni-bracket:semantic",
+    "query": "Definitions: Sample s=(X,R), with X:A->Y and R_a:A\\{a}->Y; g_s(a,a)=X(a), g_s(a,b)=R_a(b) for b!=a.; w(s)=product_b q(b,X(b)) times product_a product_{b!=a} q(b,R_a(b)); weights are column-indexed.; C(s)=#{a in A: for every b in A, g_s(a,b)=f(X(b))}.; T_k=sum_{s:C(s)>=k}w(s); B_k=sum_s binom(C(s),k)w(s).\nHypotheses: A and Y are finite.; q:A×Y->R and q(a,y)>=0 for all a,y.; f:Y->Y is arbitrary.\nQuantifiers: For every finite A,Y, every nonnegative q and every f:Y->Y. C1 does not explicitly type k; retrieve the intended k in the nonnegative integers, retaining k=0, k>|A| and empty sets.\nConclusion: B_k-k B_{k+1}<=T_k<=B_k. Under intended counting conventions binom(c,0)=1 and binom(c,k)=0 for k>c. No normalization or capture-event independence is assumed.\nRelated mathematical terms: Bonferroni tail inequalities; binomial moments; factorial moment bounds; at least k events; generalized inclusion-exclusion; finite nonnegative measure; arbitrary event dependence; first lower and upper Bonferroni truncations"
+  },
+  {
+    "id": "bonferroni-bracket:terms",
+    "query": "Bonferroni tail inequalities; binomial moments; factorial moment bounds; at least k events; generalized inclusion-exclusion; finite nonnegative measure; arbitrary event dependence; first lower and upper Bonferroni truncations"
+  },
+  {
+    "id": "bonferroni-signed_weights:raw",
+    "query": "Question\nUse the source finite independent listing model: A,Y finite, q:A×Y→R cell weights, f:Y→Y, w(s) the product of all |A|² cell weights, C(s) the number of rows equal to the f-twisted diagonal. Define T_k=Σ_{C(s)≥k}w(s) and B_k=Σ_s binom(C(s),k)w(s). With arbitrary signed real q, T_1≤B_1."
+  },
+  {
+    "id": "bonferroni-signed_weights:semantic",
+    "query": "Definitions: Listings are all g:A×A→Y, equivalently the source diagonal/off-row Sample coordinates.; w_q(g)=∏_{a∈A}∏_{b∈A}q(b,g(a,b)); weights depend on column b.; d_f,g(b)=f(g(b,b)); C_f(g)=#{a∈A:∀b∈A,g(a,b)=d_f,g(b)}.; T_k=∑_{g:C_f(g)≥k}w_q(g); B_k=∑_g binom(C_f(g),k)w_q(g), k∈N.\nHypotheses: A and Y are finite, including empty cases.; q:A×Y→R is arbitrary and may have either sign.; f:Y→Y is arbitrary.\nQuantifiers: For every finite A,Y, every q:A×Y→R, and every f:Y→Y, form the full listing space and the defined finite sums. No nonnegativity or column-normalization hypothesis is stated. Use standard empty-sum/product and binomial conventions.\nConclusion: T_1≤B_1.\nRelated mathematical terms: first-order Bonferroni inequality; Boole union bound; finite signed product measure; column-weighted finite array; twisted diagonal capture; event multiplicity; binomial moments; weighted tail bound; positivity of integration; normalization versus nonnegativity; signed-weight union-bound counterexample"
+  },
+  {
+    "id": "bonferroni-signed_weights:terms",
+    "query": "first-order Bonferroni inequality; Boole union bound; finite signed product measure; column-weighted finite array; twisted diagonal capture; event multiplicity; binomial moments; weighted tail bound; positivity of integration; normalization versus nonnegativity; signed-weight union-bound counterexample"
+  }
+]

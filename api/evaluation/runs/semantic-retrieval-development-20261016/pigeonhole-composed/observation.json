@@ -1,0 +1,8 @@
+{
+  "id": "pigeonhole-composed",
+  "state": "complete",
+  "request_sha256": "a480ca90a0d19b2d1373697fb9e97c209e7cd55e6a5460fcbc3704681dd0e044",
+  "exit_code": 0,
+  "latency_ms": 10494,
+  "response_sha256": "31aaaaf815628de81ae39d62948e8bc461fe9154bb86eec1084f6db45d679102"
+}

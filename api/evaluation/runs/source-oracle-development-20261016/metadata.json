@@ -1,0 +1,12 @@
+{
+  "freeze_sha256": "4cbc93154e116f57923b3cf475904638640856a92e929573670b6a60c8bf884b",
+  "implementation_revision": "919a6b3",
+  "scope": "contract 3 statement-only Oracle with actual source evidence and knowledge contract 2 proposals; no CMA audit or publication",
+  "retrieval_manifest_sha256": "f38e91b6b00cc8ff4854c83ab7ca39c9042dc7d910b398a642d24f02d42c55d2",
+  "retrieval_index_revision": "sha256:2838a557bfddda5a1f9410e0dcf596a67112c0ec0f163c4cf1a787abcce15d2b",
+  "started_at_utc": "2026-10-15T20:42:56.040567+00:00",
+  "prompt_exporter_sha256": "8452c324be8ace54e3006a763e1cebf0ba8b89d46a42602f884d4b4af9cd2ce0",
+  "parallel_requests": 2,
+  "cost_usd": null,
+  "diagnostic_only": true
+}

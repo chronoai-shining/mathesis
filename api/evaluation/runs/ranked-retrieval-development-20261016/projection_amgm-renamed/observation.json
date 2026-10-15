@@ -1,0 +1,8 @@
+{
+  "id": "projection_amgm-renamed",
+  "state": "complete",
+  "request_sha256": "999b242e981dea5c3e5453074a595d42b56632afa0d696d844aea2e4355658b2",
+  "exit_code": 0,
+  "latency_ms": 12016,
+  "response_sha256": "dd654117f6f6f2750b54f7891c155a46d17443d4ea19edf1d79760707a07ea90"
+}

@@ -1,0 +1,8 @@
+{
+  "id": "bonferroni-bracket",
+  "state": "complete",
+  "request_sha256": "2a1269c6d9617a1eec4bf87c1ac3775fe4bc411de04d551e04ce72c26709f44d",
+  "exit_code": 0,
+  "latency_ms": 11649,
+  "response_sha256": "01cbfa09e90ff471de4d3ccb18d64ad25550325cb2db2a33c68acf19172f3787"
+}

@@ -1,0 +1,197 @@
+AssessmentC1 is well posed in the supplied source model and should be classified as special_case_of_known, not as an open conjecture. It is a finite, nonnegative-weight instance of the standard Markov/binomial-moment upper-tail comparison. The opened sources supply both the measure-theoretic bound without probability normalization and the relevant binomial-coefficient facts. Lean Community+1No PDF is available in this conversation: the file search returned no conversation files. This report therefore evaluates the confirmed statement and the supplied source excerpts, without asserting agreement with an unseen PDF.Definitions and scopeIn the supplied model, a sample comprises diagonal coordinates  $X:A\to Y$  and off-diagonal coordinates  $R_a:\{b\in A:b\ne a\}\to Y$ . Writing  $g_s$  for the source’s reconstructed listing, the relevant definitions are
+$$w(s)=
+\left(\prod_{b\in A}q(b,X(b))\right)
+\left(\prod_{a\in A}\prod_{\substack{b\in A\\b\ne a}}q(b,R_a(b))\right),$$
+
+$$C(s)=\#\left\{a\in A:
+  \forall b\in A,\ g_s(a,b)=f(g_s(b,b))
+\right\}.$$
+Thus  $C(s)$  counts row addresses, not distinct row functions. The weight uses the column index as the first argument of  $q$ .The quantifiers cover every finite  $A,Y$ , every nonnegative real-valued  $q$ , every endomap  $f$ , and every  $k\in\mathbb N$ , including  $0$ . No marginal normalization, nonemptiness assumption, or special property of  $f$  is required. In particular, the general comparison needs neither a product distribution nor independence of the capture events; nonnegative sample weights suffice. Nonnegativity of the displayed product is covered by the ordinary finite-product positivity theorem. Lean Community+1The display should specify  $\binom nk=0$  for  $k>n$ ,  $\binom n0=1$ , empty sums equal to  $0$ , and empty products equal to  $1$ . These conventions retain the intended boundary cases:  $T_0=B_0$  is total mass, not necessarily  $1$ , and  $T_k=B_k=0$  for  $k>|A|$ . Lean CommunityKnown status and proof escapeThe decisive external baseline is the nonnegative-measure form of Markov’s inequality, together with standard binomial-coefficient positivity and support. Its correspondence with C1 uses the source’s sample weights, count  $C$ , and binomial readout. This is a source comparison, not an attempted proof.Conditional proof escape is bind_only relative to the inspected baseline. Unfolding the supplied aliases, substituting the count and weights, and using established order-preserving multiplication and finite-sum comparison introduce no additional model-specific estimate or construction. This judgment rests on positive baseline evidence, not on the diagnostic retrieval’s failure to return an exact declaration. It classifies the obligation expressed by C1; it does not claim that every conceivable future proof must use the same method. Lean Community+2The supplied one-row capture and normalization theorems have additional normalized-marginal hypotheses and do not themselves state the arbitrary- $k$  comparison. Their exact capture formulas are not needed here. The unrelated causal-transport and zeta excerpts do not supply evidence about C1.Correctness, utility, and presentationProof correctness remains not_checked: no proof was submitted. The known-status assessment is separate and is supported by the opened baseline.General-theorem utility is supported at the level of a reusable elementary bound, independently of novelty. However, C1 supplies no evaluation of  $B_k$ , stronger model-specific estimate, computational improvement, or named open-problem settlement. None should be credited to it. No information-gain model or measurement was supplied, so that dimension remains null.I recommend revising the presentation into a cited standard corollary, rather than displaying it as an open question. Make the sample space, column weighting, row-address count, and boundary conventions explicit. Any proposed stronger result should be stated separately and compared with the existing baseline; its value is not established by C1.All opened-source identifiers below are model-reported, not venue-verified. The search was bounded, and the supplied frozen-publication metadata was not independently authenticated. The recommendation is feedback, not a publication decision.JSON{
+  "recommendation": "revise",
+  "summary": "C1 is well posed in the supplied finite listing model and is special_case_of_known: a finite nonnegative-weight instance of the standard Markov/binomial-moment upper-tail comparison. Relative to the inspected baseline, its conditional obligation is bind_only. No proof was submitted, so proof correctness remains not_checked. No attached PDF was available.",
+  "strengths": [
+    "The nonnegativity hypothesis is explicit and sufficient; normalization of the cell weights is unnecessary.",
+    "The assertion is uniform over finite A and Y, arbitrary twists f, and every natural k, including degenerate cases.",
+    "The comparison has legitimate elementary general-theorem utility, independently of novelty."
+  ],
+  "concerns": [
+    "Displaying C1 as an open conjecture would misrepresent a statement covered by an inspected standard baseline.",
+    "The statement should explicitly define the sample space, column-indexed product weight, and capture count by row addresses.",
+    "No PDF was available, so PDF wording, manuscript pagination, and correspondence with the supplied excerpts are not_checkable.",
+    "The diagnostic retrieval metadata does not establish an exact frozen supplier, formal verification, or novelty."
+  ],
+  "claims": [
+    {
+      "claim": "C1",
+      "correctness": "not_checked",
+      "shape": null,
+      "witnesses": [],
+      "note": "Known status and proof correctness are separate: the statement matches an inspected standard baseline, but no submitted proof is available to audit. Conditional escape is bind_only because only model substitution and standard order/binomial operations remain. Utility is supported only as an elementary reusable theorem, not as a new main result or computational improvement. Information gain was not measured. No named settlement is claimed.",
+      "conjecture": {
+        "well_posed": true,
+        "well_posed_reason": "The supplied source excerpts define samples s=(X,R), where X:A->Y and R_a:{b in A:b!=a}->Y, and define the reconstructed listing g_s. The weight is the product of q(b,g_s(a,b)) over all row-column cells, with b the column index. C(s) counts addresses a for which g_s(a,b)=f(g_s(b,b)) for every b. Both sums are finite real sums, with natural binomial coefficients interpreted in R. The quantifiers are universal over finite A,Y, arbitrary f:Y->Y, all q:A×Y->R satisfying q>=0 everywhere, and all k in N including zero. Standard empty-sum, empty-product, and binomial conventions are required. No nonemptiness, marginal normalization, or independence of capture events is assumed.",
+        "status": "special_case_of_known",
+        "status_reason": "The inspected nonnegative-measure Markov comparison and binomial-coefficient facts cover this finite weighted tail bound. The listing structure supplies a particular nonnegative weight and natural-valued count; it adds no necessary hypothesis to the general comparison. This is not evidence of an unresolved conjecture.",
+        "named_works": [
+          "Mathlib.MeasureTheory.Integral.Lebesgue.Markov [opened: https://leanprover-community.github.io/mathlib4_docs/Mathlib/MeasureTheory/Integral/Lebesgue/Markov.html]",
+          "Mathlib.Data.Nat.Choose.Basic [opened: https://leanprover-community.github.io/mathlib4_docs/Mathlib/Data/Nat/Choose/Basic.html]",
+          "Mathlib.Algebra.Order.BigOperators.GroupWithZero.Finset [opened: https://leanprover-community.github.io/mathlib4_docs/Mathlib/Algebra/Order/BigOperators/GroupWithZero/Finset.html]",
+          "Mathlib.Algebra.Order.BigOperators.Group.Finset [opened: https://leanprover-community.github.io/mathlib4_docs/Mathlib/Algebra/Order/BigOperators/Group/Finset.html]",
+          "Mathlib.Algebra.Order.Ring.Defs [opened: https://leanprover-community.github.io/mathlib4_docs/Mathlib/Algebra/Order/Ring/Defs.html]",
+          "On upper and lower bounds for probabilities of combinations of events [opened: arXiv:2008.03588]"
+        ],
+        "known": [
+          {
+            "work": "Mathlib.MeasureTheory.Integral.Lebesgue.Markov [opened: https://leanprover-community.github.io/mathlib4_docs/Mathlib/MeasureTheory/Integral/Lebesgue/Markov.html]",
+            "relation": "Decisive general comparison for nonnegative measures; probability normalization is not required."
+          },
+          {
+            "work": "Mathlib.Data.Nat.Choose.Basic [opened: https://leanprover-community.github.io/mathlib4_docs/Mathlib/Data/Nat/Choose/Basic.html]",
+            "relation": "Supplies positivity, zero-support, and zero-index facts for natural binomial coefficients."
+          },
+          {
+            "work": "Mathlib.Algebra.Order.BigOperators.GroupWithZero.Finset [opened: https://leanprover-community.github.io/mathlib4_docs/Mathlib/Algebra/Order/BigOperators/GroupWithZero/Finset.html]",
+            "relation": "Supplies nonnegativity of finite products."
+          },
+          {
+            "work": "Mathlib.Algebra.Order.BigOperators.Group.Finset [opened: https://leanprover-community.github.io/mathlib4_docs/Mathlib/Algebra/Order/BigOperators/Group/Finset.html]",
+            "relation": "Supplies finite-sum monotonicity and comparison under extension by nonnegative summands."
+          },
+          {
+            "work": "Mathlib.Algebra.Order.Ring.Defs [opened: https://leanprover-community.github.io/mathlib4_docs/Mathlib/Algebra/Order/Ring/Defs.html]",
+            "relation": "Supplies order preservation under multiplication by a nonnegative real number."
+          },
+          {
+            "work": "On upper and lower bounds for probabilities of combinations of events [opened: arXiv:2008.03588]",
+            "relation": "Background only: the inspected introduction formulates occurrence-count tails and binomial-type moment bounds. No exact C1 theorem or historical-priority claim is attributed to this paper."
+          }
+        ],
+        "escape": "bind_only",
+        "escape_reason": "Relative to the inspected general comparison and elementary binomial/order prerequisites, the conditional obligation consists of instantiation, hypothesis substitution, and normalization of the supplied definitions. No additional listing-specific estimate is required. This is a statement-level classification, not a finding about an unseen proof.",
+        "suggestions": [
+          "Present C1 as a cited standard corollary rather than an open question.",
+          "Specify the sample space, column-indexed weight, row-address interpretation of C, and conventions for k=0, k>|A|, empty sums, and empty products.",
+          "Explain that nonnegative sample weights suffice and that normalized marginals and independent capture indicators are unnecessary; state any stronger proposed result separately."
+        ]
+      },
+      "methodology": {
+        "baseline": [
+          {
+            "statement": "A,Y are finite; q:A×Y->R is nonnegative at every cell; f:Y->Y is arbitrary. Samples are s=(X,R) with X:A->Y and R_a:{b in A:b!=a}->Y. The listing is g_s(a,b)=X(a) when b=a and R_a(b) otherwise. Its weight is (product_b q(b,X(b))) times (product_a product_{b!=a} q(b,R_a(b))).",
+            "location": "Confirmed statement C1; supplied D5/S0/Asymptotics/WeightedProbability/FiniteProductCapture.lean excerpt, definitions OffRow, Sample, listing, sampleWeight",
+            "source": null
+          },
+          {
+            "statement": "The twisted diagonal is b |-> f(g_s(b,b)); C(s) is the cardinality of the set of row addresses whose rows equal that function. T_k=sum_{s:C(s)>=k} w(s) and B_k=sum_s binom(C(s),k)w(s), for every k in N.",
+            "location": "Confirmed statement C1; supplied FiniteProductCapture.lean excerpt, definition Captured; supplied D5/S0/Diagonal/EscapeCount.lean excerpt, definition diagonal",
+            "source": null
+          },
+          {
+            "statement": "For any finite index set I and real factors p_i, if p_i>=0 for every i in I, then product_{i in I} p_i>=0, including the empty product.",
+            "location": "Finset.prod_nonneg",
+            "source": "Mathlib.Algebra.Order.BigOperators.GroupWithZero.Finset [opened: https://leanprover-community.github.io/mathlib4_docs/Mathlib/Algebra/Order/BigOperators/GroupWithZero/Finset.html]"
+          },
+          {
+            "statement": "For n,k in N, binom(n,k) is natural-valued; k<=n implies binom(n,k)>0; n<k implies binom(n,k)=0; binom(n,0)=1.",
+            "location": "Nat.choose; Nat.choose_pos; Nat.choose_eq_zero_of_lt; Nat.choose_zero_right",
+            "source": "Mathlib.Data.Nat.Choose.Basic [opened: https://leanprover-community.github.io/mathlib4_docs/Mathlib/Data/Nat/Choose/Basic.html]"
+          },
+          {
+            "statement": "For real x,y,z, x<=y and z>=0 imply x*z<=y*z.",
+            "location": "IsOrderedRing, monotonicity of multiplication by a nonnegative number",
+            "source": "Mathlib.Algebra.Order.Ring.Defs [opened: https://leanprover-community.github.io/mathlib4_docs/Mathlib/Algebra/Order/Ring/Defs.html]"
+          },
+          {
+            "statement": "For a finite I and real-valued u,v, u_i<=v_i for all i in I implies sum_I u_i<=sum_I v_i. For finite I subset J, extending a sum by terms nonnegative on J minus I cannot decrease it.",
+            "location": "Finset.sum_le_sum; Finset.sum_le_sum_of_subset_of_nonneg",
+            "source": "Mathlib.Algebra.Order.BigOperators.Group.Finset [opened: https://leanprover-community.github.io/mathlib4_docs/Mathlib/Algebra/Order/BigOperators/Group/Finset.html]"
+          },
+          {
+            "statement": "For a measure mu, a nonnegative extended-real-valued mu-a.e.-measurable function h, and a set E such that h(x)>=1 for every x in E, mu(E)<=integral h dmu. Total mass one is not a hypothesis.",
+            "location": "MeasureTheory.meas_le_lintegral₀",
+            "source": "Mathlib.MeasureTheory.Integral.Lebesgue.Markov [opened: https://leanprover-community.github.io/mathlib4_docs/Mathlib/MeasureTheory/Integral/Lebesgue/Markov.html]"
+          }
+        ],
+        "searched": [
+          "Conversation-file semantic search: 'bonferroni-upper finite independent listing model T_k B_k binomial capture count nonnegative weights'. The tool reported no files in the current conversation.",
+          "General-web query: 'binomial moment bound P(X >= k) E binom X k Markov inequality'.",
+          "General-web query: 'generalized Bonferroni inequality probability at least r events binomial moments upper bound'.",
+          "General-web query: 'site.leanprover-community.github.io mathlib4_docs choose_pos meas_ge_le_lintegral_div'.",
+          "General-web queries: 'site.leanprover-community.github.io/mathlib4_docs \"Finset.prod_nonneg\"' and 'site.leanprover-community.github.io/mathlib4_docs \"mul_le_mul_of_nonneg_right\"'.",
+          "Directly opened the official Mathlib documentation listed in baseline and inspected the relevant declarations. An initial search within the ordered-ring finite-big-operator page did not locate prod_nonneg; its declaration was subsequently opened in the GroupWithZero page.",
+          "Opened the introduction and initial framework of On upper and lower bounds for probabilities of combinations of events [opened: arXiv:2008.03588], for background terminology only.",
+          "Compared the supplied diagnostic source excerpts. The capture and normalization suppliers have additional normalized-marginal hypotheses and do not themselves state C1; unrelated retrieved modules were not used as suppliers.",
+          "Scope: general web search, official Mathlib documentation, arXiv HTML, and supplied excerpts. No exhaustive literature database search or production registry query was performed."
+        ],
+        "literature": "supported",
+        "binding_analysis": "Inline Sample, listing, sampleWeight, Captured, C, T_k, and B_k as recorded above. The finite-product prerequisite supplies the required sign condition from the stated cellwise hypothesis. The binomial prerequisites supply the standard threshold/readout correspondence. Instantiation of the general measure comparison, or recombination of the inspected finite-order comparison prerequisites, already covers the assertion. Natural-to-real coercions, finite weighted-measure notation, and empty-index conventions are normalization rather than a new model-specific construction. The normalized one-row capture formulas are not consumed. No new helper, tactic expansion, or proof body for C1 was submitted.",
+        "delta": "The conditional obligation is exactly the all-k comparison T_k<=B_k under the stated finite-domain and cellwise-nonnegativity hypotheses. Relative to the inspected baseline, there is no additional mathematical proposition or sharper bound required beyond specialization and conventional normalization. PDF correspondence and exact frozen-source identity remain unverified evidence obligations, not new mathematical content.",
+        "escape": "bind_only",
+        "witnesses": [],
+        "utility": {
+          "kind": "general_theorem",
+          "status": "supported",
+          "rationale": "The assertion has ordinary reusable value as a tail-to-binomial-moment bound, without needing an artificial downstream application. That utility is inherited from the known comparison; it is not evidence of novelty, a stronger main result, a checker, or computational savings.",
+          "problem": "Bound the total nonnegative weight of samples having at least k captured row addresses using the corresponding binomial moment.",
+          "progress": "The requested upper bound is covered by the inspected standard baseline. C1 does not additionally evaluate B_k or improve that baseline.",
+          "prerequisites": "Finite A,Y; the supplied product-weight and row-count definitions; q(a,y)>=0 for every a,y; arbitrary f:Y->Y; k in N with standard binomial and empty-index conventions.",
+          "discharge": "The finite-domain, sign, and function hypotheses are explicitly present in the supplied statement. The remaining mathematical requirements match the inspected general prerequisites at statement level. No submitted proof, compiled instance, numerical premise, or formal certificate was checked."
+        },
+        "settlement": null,
+        "information_gain": null,
+        "limits": [
+          "Statement-only assessment: correctness is not_checked, proof shape is null, and there are no live proof witnesses.",
+          "No attached PDF was available; manuscript page references and PDF-to-statement correspondence are not_checkable.",
+          "Supplied source bodies were read as untrusted mathematical text. Advertised hashes, frozen status, axiom lists, and registration identities were not authenticated.",
+          "The opened Mathlib documentation is an external reference, not verification of the repository's pinned environment.",
+          "Literature support concerns the explicit baseline comparison, not exhaustive search or historical priority.",
+          "Utility is supported only at the known elementary-theorem level. No new computational utility or information-gain measurement is established.",
+          "No open-problem settlement was claimed, so settlement is null.",
+          "The conditional escape assessment does not characterize every conceivable future proof."
+        ]
+      }
+    }
+  ],
+  "knowledge_queries": [
+    {
+      "claim": "C1",
+      "definitions": [
+        "Sample space: s=(X,R), X:A->Y, R_a:{b in A:b!=a}->Y.",
+        "Listing g_s(a,b)=X(a) if b=a, otherwise R_a(b).",
+        "Weight w(s)=(product_b q(b,X(b)))(product_a product_{b!=a} q(b,R_a(b))).",
+        "Twisted diagonal d_s(b)=f(g_s(b,b)).",
+        "C(s)=#{a in A: for every b in A, g_s(a,b)=d_s(b)}.",
+        "T_k=sum_{s:C(s)>=k} w(s); B_k=sum_s binom(C(s),k)w(s)."
+      ],
+      "hypotheses": [
+        "A and Y are finite, possibly empty.",
+        "q:A×Y->R and q(a,y)>=0 for every a,y.",
+        "f:Y->Y is arbitrary."
+      ],
+      "quantifiers": "For every finite A,Y, every q and f of the stated types with q nonnegative everywhere, and every k in N={0,1,...}. Sums range over all source samples.",
+      "conclusion": "T_k<=B_k for every natural k, including k=0, k>|A|, and empty sample spaces, with standard binomial and empty-index conventions.",
+      "search_terms": [
+        "nonnegative weighted binomial-moment tail bound",
+        "factorial moment upper bound",
+        "Markov inequality for finite measures",
+        "indicator majorization",
+        "finite weighted sum monotonicity",
+        "binomial coefficient positivity",
+        "k-out-of-n event upper bound",
+        "generalized Boole inequality",
+        "Bonferroni upper bound",
+        "FiniteBonferroni"
+      ],
+      "reason": "The diagnostic top-six excerpts do not exhibit the exact arbitrary-k weighted comparison. Seek an exact or more general supplier without adding normalized marginals, independent capture indicators, nonempty spaces, or k>0."
+    }
+  ],
+  "limits": [
+    "The report concerns C1 and the supplied source model only; no PDF was accessible.",
+    "Known status is supported by inspected sources, while proof correctness remains not_checked because no proof was submitted.",
+    "No Lean execution, compiled Trureturing registration, frozen-publication authentication, or AURIC/FIB measurement is claimed.",
+    "The single knowledge_queries entry is a proposed semantic retrieval request, not an already-completed search or source-audit result.",
+    "The search is bounded and does not establish exhaustive literature coverage or historical priority.",
+    "The recommendation is presentation feedback and does not decide publication."
+  ],
+  "text": "Revise the display to identify C1 as a standard finite weighted binomial-moment corollary, with explicit sample, weight, count, and boundary conventions. The negative finding is the mismatch with an open-conjecture presentation; the missing PDF and unauthenticated frozen metadata are separate evidence limitations."
+}

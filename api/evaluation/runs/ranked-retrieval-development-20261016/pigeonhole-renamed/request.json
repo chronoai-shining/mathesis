@@ -1,0 +1,31 @@
+{
+  "proposal": [
+    {
+      "claim": "C1",
+      "definitions": [
+        "|X| and |Y| denote set cardinalities.",
+        "h:X→Y is a total function labelled an observation map; no additional observation structure is defined."
+      ],
+      "hypotheses": [
+        "X and Y are sets in the same universe.",
+        "|Y|<|X|."
+      ],
+      "quantifiers": "For every same-universe pair X,Y satisfying |Y|<|X|, for every total function h:X→Y, there exist x0,x1 in X. The pair may depend on h. No finiteness or nonemptiness assumption is imposed; if no such function exists, the quantification over h is vacuous.",
+      "conclusion": "x0≠x1 and h(x0)=h(x1), equivalently h is not injective under the standard classical interpretation.",
+      "search_terms": [
+        "cardinal pigeonhole principle",
+        "Dirichlet box principle",
+        "injective function cardinal inequality",
+        "cardinality monotonicity under injections",
+        "noninjectivity collision equivalence",
+        "Cardinal.le_def",
+        "Cardinal.mk_le_of_injective",
+        "Function.not_injective_iff"
+      ],
+      "reason": "Retrieve an arbitrary-cardinality baseline or combination of existing results matching the full statement, rather than only a finite-set theorem or a particular collision example. Preserve the inequality direction, universal function quantifier, and empty-codomain case. This is one proposed semantic query for later execution, not a claim that the proposed query has already run."
+    }
+  ],
+  "query": "cardinal pigeonhole principle; Dirichlet box principle; injective function cardinal inequality; cardinality monotonicity under injections; noninjectivity collision equivalence; Cardinal.le_def; Cardinal.mk_le_of_injective; Function.not_injective_iff",
+  "index_revision": "sha256:2838a557bfddda5a1f9410e0dcf596a67112c0ec0f163c4cf1a787abcce15d2b",
+  "answer_sha256": "bc33af6296c46f053ee7f57e32a6f42e21941ce8c60b53089b018fb082ce185d"
+}

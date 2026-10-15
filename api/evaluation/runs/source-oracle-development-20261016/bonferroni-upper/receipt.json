@@ -1,0 +1,19 @@
+{
+  "case_id": "bonferroni-upper",
+  "exit_code": 0,
+  "stream_done": true,
+  "errors": [],
+  "oracle": {
+    "task_id": "7b641a9b-e0ee-47bd-91fc-7942891941e4",
+    "conversation_id": null,
+    "pool": "chrono-chatgpt-pro-pool",
+    "model_label": "chatgpt-6-pro",
+    "observed_model_switcher": "gpt_6",
+    "observed_model_effort": "pro",
+    "chatgpt_url": "https://chatgpt.com/c/6ad142bd-8a74-83ec-8565-1d53b98bf52e",
+    "usage_estimated": true
+  },
+  "elapsed_ms": 395206,
+  "request_sha256": "bd1d982febd03cf0eb7f6bfff78eadbe0c7217087b32b85096fc745184f93ea5",
+  "response_sha256": "7dc4b9edbbc9ff5b6404e14c0fcb2a4e1faa06b974f1f69b0903e1d4d10c6193"
+}

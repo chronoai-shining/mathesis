@@ -1,0 +1,35 @@
+{
+  "proposal": [
+    {
+      "claim": "C1",
+      "definitions": [
+        "X and Y are sets; |X| and |Y| denote their finite cardinalities.",
+        "h:X→Y is a total function.",
+        "A collision consists of x,x' in X with x≠x' and h(x)=h(x')."
+      ],
+      "hypotheses": [
+        "X is finite and nonempty.",
+        "Y is finite and nonempty.",
+        "|Y|≤|X|, including equality."
+      ],
+      "quantifiers": "For every pair X,Y satisfying the hypotheses, for every total function h:X→Y, there exist x,x' in X. The pair may depend on X,Y,h. Singleton sets and equal cardinalities are included.",
+      "conclusion": "There exist x,x' in X such that x≠x' and h(x)=h(x').",
+      "search_terms": [
+        "pigeonhole principle",
+        "Dirichlet box principle",
+        "finite-set collision theorem",
+        "Fintype.exists_ne_map_eq_of_card_lt",
+        "injective functions between finite sets",
+        "equal cardinality and bijections",
+        "Fintype.card_eq",
+        "Fintype.equivOfCardEq",
+        "strict versus non-strict cardinal inequality",
+        "singleton equality boundary"
+      ],
+      "reason": "Retrieve exact source statements addressing the non-strict hypothesis, comparing strict pigeonhole results with equal-cardinality bijection results without changing C1. Preserve singleton and equality cases. This is one proposed semantic query for subsequent execution, not a completed knowledge-index search or a claim of formal entailment."
+    }
+  ],
+  "query": "Definitions: X and Y are sets; |X| and |Y| denote their finite cardinalities.; h:X→Y is a total function.; A collision consists of x,x' in X with x≠x' and h(x)=h(x').\nHypotheses: X is finite and nonempty.; Y is finite and nonempty.; |Y|≤|X|, including equality.\nQuantifiers: For every pair X,Y satisfying the hypotheses, for every total function h:X→Y, there exist x,x' in X. The pair may depend on X,Y,h. Singleton sets and equal cardinalities are included.\nConclusion: There exist x,x' in X such that x≠x' and h(x)=h(x').\nRelated mathematical terms: pigeonhole principle; Dirichlet box principle; finite-set collision theorem; Fintype.exists_ne_map_eq_of_card_lt; injective functions between finite sets; equal cardinality and bijections; Fintype.card_eq; Fintype.equivOfCardEq; strict versus non-strict cardinal inequality; singleton equality boundary",
+  "index_revision": "sha256:2838a557bfddda5a1f9410e0dcf596a67112c0ec0f163c4cf1a787abcce15d2b",
+  "answer_sha256": "a2847a1f95754f792e38685513ff426512974972704a9a15a46b4c63f14c4fed"
+}

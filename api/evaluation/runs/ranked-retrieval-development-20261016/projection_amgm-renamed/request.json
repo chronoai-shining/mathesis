@@ -1,0 +1,33 @@
+{
+  "proposal": [
+    {
+      "claim": "C1",
+      "definitions": [
+        "An orthogonal projection on Euclidean R^3 is a real 3x3 matrix P with P^T=P and P^2=P.",
+        "A symmetric matrix D is positive semidefinite when x^T D x>=0 for every x in R^3.",
+        "Products and powers are ordinary matrix multiplication; the six displayed products average all permutations of the three labeled factors."
+      ],
+      "hypotheses": [
+        "E,F,G are orthogonal projections on R^3.",
+        "There are no rank, distinctness, commutativity, mutual-orthogonality or sum-to-identity restrictions."
+      ],
+      "quantifiers": "For every E,F,G in M_3(R) satisfying the projection equations, the conclusion holds for every x in R^3. Include ranks 0 through 3, zero and identity projections, and repeated projections.",
+      "conclusion": "((E+F+G)/3)^3-(EFG+EGF+FEG+FGE+GEF+GFE)/6 is positive semidefinite.",
+      "search_terms": [
+        "matrix AM-GM inequality for projection matrices",
+        "Sun Luo Ye Conjecture 3.1",
+        "three real orthogonal projections",
+        "Loewner order",
+        "symmetrized triple product",
+        "symmetric idempotent matrices",
+        "noncommutative cubic matrix inequality",
+        "weak matrix arithmetic-geometric mean inequality",
+        "Recht Re norm inequality versus semidefinite order"
+      ],
+      "reason": "Seek an exact theorem or matching published refutation for the n=N=3 projection case. Existing diagnostic hits do not match. Distinguish the required cubic order bound from the mean upper bound, norm inequalities, and counterexamples using nonidempotent matrices. This is a proposed search, not evidence of settlement or novelty."
+    }
+  ],
+  "query": "matrix AM-GM inequality for projection matrices; Sun Luo Ye Conjecture 3.1; three real orthogonal projections; Loewner order; symmetrized triple product; symmetric idempotent matrices; noncommutative cubic matrix inequality; weak matrix arithmetic-geometric mean inequality; Recht Re norm inequality versus semidefinite order",
+  "index_revision": "sha256:2838a557bfddda5a1f9410e0dcf596a67112c0ec0f163c4cf1a787abcce15d2b",
+  "answer_sha256": "4537c0688aa5d37c88943358a33f41c888e554615d1ec6e6b8f139e117e340b7"
+}

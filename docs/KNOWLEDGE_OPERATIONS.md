@@ -145,3 +145,8 @@ hash-checked artifact. `api/evaluation/ranking_eval.py` prepares development-onl
 raw/full-reformulation/terms ablations, stores exact compressed outputs, and
 recomputes source-set recall with original identities. It performs no model or
 upstream execution. Its warm-query timing excludes Mongo/GridFS and network.
+
+For actual Mongo/GridFS diagnostics, the existing command accepts an optional
+explicit ranker: `--knowledge-query INDEX_REVISION QUERY mathesis.source-ranker.identifier-paths.v1`.
+Omitting the argument retains the legacy diagnostic. Both return at most ten
+modules; the worker uses six. Unsupported ranker arguments are refused.

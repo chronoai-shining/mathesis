@@ -1,0 +1,38 @@
+{
+  "proposal": [
+    {
+      "claim": "C1",
+      "definitions": [
+        "Sample space: s=(X,R), X:A->Y, R_a:{b in A:b!=a}->Y.",
+        "Listing g_s(a,b)=X(a) if b=a, otherwise R_a(b).",
+        "Weight w(s)=(product_b q(b,X(b)))(product_a product_{b!=a} q(b,R_a(b))).",
+        "Twisted diagonal d_s(b)=f(g_s(b,b)).",
+        "C(s)=#{a in A: for every b in A, g_s(a,b)=d_s(b)}.",
+        "T_k=sum_{s:C(s)>=k} w(s); B_k=sum_s binom(C(s),k)w(s)."
+      ],
+      "hypotheses": [
+        "A and Y are finite, possibly empty.",
+        "q:A×Y->R and q(a,y)>=0 for every a,y.",
+        "f:Y->Y is arbitrary."
+      ],
+      "quantifiers": "For every finite A,Y, every q and f of the stated types with q nonnegative everywhere, and every k in N={0,1,...}. Sums range over all source samples.",
+      "conclusion": "T_k<=B_k for every natural k, including k=0, k>|A|, and empty sample spaces, with standard binomial and empty-index conventions.",
+      "search_terms": [
+        "nonnegative weighted binomial-moment tail bound",
+        "factorial moment upper bound",
+        "Markov inequality for finite measures",
+        "indicator majorization",
+        "finite weighted sum monotonicity",
+        "binomial coefficient positivity",
+        "k-out-of-n event upper bound",
+        "generalized Boole inequality",
+        "Bonferroni upper bound",
+        "FiniteBonferroni"
+      ],
+      "reason": "The diagnostic top-six excerpts do not exhibit the exact arbitrary-k weighted comparison. Seek an exact or more general supplier without adding normalized marginals, independent capture indicators, nonempty spaces, or k>0."
+    }
+  ],
+  "query": "nonnegative weighted binomial-moment tail bound; factorial moment upper bound; Markov inequality for finite measures; indicator majorization; finite weighted sum monotonicity; binomial coefficient positivity; k-out-of-n event upper bound; generalized Boole inequality; Bonferroni upper bound; FiniteBonferroni",
+  "index_revision": "sha256:2838a557bfddda5a1f9410e0dcf596a67112c0ec0f163c4cf1a787abcce15d2b",
+  "answer_sha256": "9a66b358cc936721ab95d3ead8c3ddeeb33a8c8b7b27aa6aea7adf308ecb86b8"
+}

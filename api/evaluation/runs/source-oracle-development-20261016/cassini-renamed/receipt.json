@@ -1,0 +1,19 @@
+{
+  "case_id": "cassini-renamed",
+  "exit_code": 0,
+  "stream_done": true,
+  "errors": [],
+  "oracle": {
+    "task_id": "aa0077c0-d2d0-46c5-8941-e123e698c586",
+    "conversation_id": null,
+    "pool": "chrono-chatgpt-pro-pool",
+    "model_label": "chatgpt-6-pro",
+    "observed_model_switcher": "gpt_6",
+    "observed_model_effort": "pro",
+    "chatgpt_url": "https://chatgpt.com/c/6ad13c5c-9c64-83ec-a532-6ebaf01d8f3d",
+    "usage_estimated": true
+  },
+  "elapsed_ms": 646226,
+  "request_sha256": "00e5acda6a54c630c6177dbdd43205033f565eef0aa4087fa8335df768205817",
+  "response_sha256": "f30ea9943a0366343961f5535d2a858eed5c5d3d1baea909616c5df3ad13f474"
+}

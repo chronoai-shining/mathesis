@@ -1,0 +1,19 @@
+{
+  "case_id": "bonferroni-signed_weights",
+  "exit_code": 0,
+  "stream_done": true,
+  "errors": [],
+  "oracle": {
+    "task_id": "793fa0e2-1c79-43bc-87de-72a431ef4efe",
+    "conversation_id": null,
+    "pool": "chrono-chatgpt-pro-pool",
+    "model_label": "chatgpt-6-pro",
+    "observed_model_switcher": "gpt_6",
+    "observed_model_effort": "pro",
+    "chatgpt_url": "https://chatgpt.com/c/6ad14495-35fc-83ec-98c8-4bdf1009d138",
+    "usage_estimated": true
+  },
+  "elapsed_ms": 379643,
+  "request_sha256": "41da8d342fde4fd0cc1afd4d4c9e588cb9639bd7fe27cd37b3e8a15157834508",
+  "response_sha256": "57317d9db4ceec6c822b4b0e3564c91a79eda7a30ebc34421c9d4c363ba42ad5"
+}
