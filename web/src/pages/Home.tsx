@@ -37,10 +37,10 @@ export function HomePage() {
           <Link to={{ kind: 'submit' }} className="button">
             Submit a paper or conjecture <Arrow />
           </Link>
-          <Link to={{ kind: 'papers' }} className="button">
+          <Link to={{ kind: 'papers' }} className="button button-quiet">
             Browse papers <Arrow />
           </Link>
-          <Link to={{ kind: 'formalizations' }} className="button button-quiet">
+          <Link to={{ kind: 'submit', intake: 'lean' }} className="button button-quiet">
             Contribute a formalization <Arrow />
           </Link>
         </div>
@@ -49,20 +49,6 @@ export function HomePage() {
             Request a private review without publication <Arrow />
           </Link>
         </p>
-        <div className="submission-paths" aria-label="Ways to submit">
-          <Link to={{ kind: 'submit' }} className="submission-path">
-            <strong>Paper or short note</strong>
-            <span>Upload your source, confirm the extracted statements, and start review.</span>
-          </Link>
-          <Link to={{ kind: 'submit' }} className="submission-path">
-            <strong>Conjecture</strong>
-            <span>Type a precise question or upload its LaTeX source, even without a proof.</span>
-          </Link>
-          <Link to={{ kind: 'submit', intake: 'lean' }} className="submission-path">
-            <strong>Lean formalization</strong>
-            <span>Send existing Lean sources for independent verification against a target.</span>
-          </Link>
-        </div>
       </section>
 
       <div className="archive-layout">
@@ -144,28 +130,6 @@ export function HomePage() {
           <p>Bring a new result, an open question, or a formal proof of someone else’s work.</p>
           <Link to={{ kind: 'formalizations' }} className="text-link">
             Find a statement to formalize <Arrow />
-          </Link>
-          <dl className="submission-guide">
-            <div>
-              <dt>Papers & short notes</dt>
-              <dd>Present your mathematical results, proofs, and supporting arguments.</dd>
-            </div>
-            <div>
-              <dt>Conjectures</dt>
-              <dd>
-                Publish a precise mathematical question, with context, even before you have a proof.
-              </dd>
-            </div>
-            <div>
-              <dt>Lean formalizations</dt>
-              <dd>
-                Submit existing Lean sources with attribution, then request independent
-                verification.
-              </dd>
-            </div>
-          </dl>
-          <Link to={{ kind: 'submit' }} className="text-link">
-            Start a submission <Arrow />
           </Link>
           <div className="archive-review-note">
             <h3>Before publication</h3>
