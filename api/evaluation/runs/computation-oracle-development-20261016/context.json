@@ -1,0 +1,21 @@
+{
+  "diagnostic_only": true,
+  "receipts": [
+    {
+      "diagnostic_receipt_id": "evaluation:sha256:b1ddd94df82eae2727526b6d187f3e203f585a86b9aa5851acde953a4ee2fe28",
+      "attachment_sha256": "901c20a2b39b7b96d5baab5a52eb00f48ac6f5847008d5e229f1e8e2b57ee6f3",
+      "declared_claims": [
+        "C1"
+      ],
+      "result": {
+        "protocol": "mathesis.rational-projection-amgm.v1",
+        "state": "counterexample",
+        "dimension": 3,
+        "numerator": "-8",
+        "denominator": "243",
+        "explanation": "Exact xᵀDx for rank-one orthogonal projections Pᵢ=vᵢvᵢᵀ/(vᵢᵀvᵢ), D=((P₁+P₂+P₃)/3)³−Σσ Pσ(1)Pσ(2)Pσ(3)/6. All six permutations retain multiplication order. A negative value refutes positive semidefiniteness of this D; a nonnegative value proves no universal inequality. Matching this assertion to a manuscript requires a separate source audit."
+      }
+    }
+  ],
+  "scope": "Independent exact finite arithmetic on the saved attachment bytes. This is not Lean verification, formal coverage, or proof of manuscript faithfulness. Declared claim references are author-provided. Audit whether the specific calculated assertion applies to each confirmed claim; a nonnegative witness proves no universal inequality."
+}

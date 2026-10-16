@@ -160,8 +160,11 @@ verifier image and validates its Kubernetes manifests alongside API/web/worker.
   NyxID usage receipt that the current transport does not provide.
 - Deposited Lean projects are preserved and can target existing confirmed
   public statements. Arbitrary project execution is outside the verifier.
-- Computational attachments are evidence delivered to reviewers. They are
-  not independently executed or certified by uploading them.
+- Computational attachments are evidence delivered to reviewers. An explicit
+  `mathesis.rational-projection-amgm.v1` declaration requests the bounded exact
+  arithmetic replay described in [COMPUTATION_REPLAY.md](COMPUTATION_REPLAY.md).
+  Other attachments are not executed; no upload alone establishes manuscript
+  correspondence, formal coverage or a Lean verification receipt.
 - Confirmed public error reports are highlighted; a complete editorial
   correction/retraction lifecycle and mathematical quality benchmark remain
   future product work. Private postpublication audits do not silently rewrite

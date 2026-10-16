@@ -1,0 +1,19 @@
+{
+  "case_id": "projection_amgm-original",
+  "exact_value": "-8/243",
+  "before": {
+    "status": "open",
+    "escape": "content",
+    "observed_model": "gpt_6",
+    "observed_effort": "pro",
+    "elapsed_ms": 712383
+  },
+  "with_replay": {
+    "status": "known_false",
+    "escape": "undetermined",
+    "observed_model": "gpt_6",
+    "observed_effort": "pro",
+    "elapsed_ms": 497415
+  },
+  "qualification": "One selected development Oracle reading; no independent CMA audit"
+}
