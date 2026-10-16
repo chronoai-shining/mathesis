@@ -1,0 +1,8 @@
+{
+  "started_at_utc": "2026-10-15T23:57:45.735718+00:00",
+  "request_sha256": "faa522950b076bb3a735e2e6d15671ddaaff7d6c8aa45a415163e8be04a796a8",
+  "model": "oracle/chrono-chatgpt-pro-pool",
+  "stream": true,
+  "endpoint": "api/v1/oracle/openai/v1/chat/completions",
+  "call_count": 1
+}

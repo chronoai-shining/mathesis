@@ -1,0 +1,170 @@
+Referee findingC1 is well posed under the usual finite-dimensional conventions, but its status is known_false, not open. The supplied diagnostic applies to the assertion exactly as quoted: three real symmetric idempotent matrices in dimension three, the arithmetic mean cubed, and the average of all six ordered products. Replaying that supplied instance with exact rational arithmetic reproduces a negative quadratic form.Here, known_false records an available, matching refutation. It does not assert that I located the first published occurrence of this particular projection counterexample.Document limitation: the conversation-file listing returned no uploaded files. I therefore could not read the requested PDF or establish correspondence with an original manuscript page. This report concerns the supplied C1 text and displayed diagnostic data.C1: mathematical meaning and well-posednessThe intended definitions should be written explicitly as
+$$M=\frac1n\sum_{i=1}^{n}P_i,\qquad
+S=\frac1{n!}\sum_{\sigma\in\mathfrak S_n}
+P_{\sigma(1)}\cdots P_{\sigma(n)}.$$
+The hypotheses are
+$$P_i\in\mathbb R^{N\times N},\qquad
+P_i^{T}=P_i,\qquad P_i^{2}=P_i.$$
+These describe orthogonal projection matrices; they do not require the projections to be mutually orthogonal or to commute.Although an individual ordered product need not be symmetric,  $S$  is symmetric: transposition reverses each product, and reversal permutes the summands. Consequently, the claimed positive semidefiniteness has its ordinary meaning:
+$$x^{T}(M^{n}-S)x\geq0
+\quad\text{for every }x\in\mathbb R^{N}.$$
+The statement should specify that  $n$  and  $N$  are integers and whether  $N=0$  is allowed. Allowing the zero-dimensional case merely adds a vacuous case; it does not affect the negative finding. The condition  $n\geq1$  makes both averages defined. Repeated projections, zero projections, and projections of every rank are permitted by the stated hypotheses.Audit of the supplied diagnosticI audited the existing supplied instance, rather than searching for or constructing another example. Its data are
+$$v_1=(1,-1,-1)^T,\quad
+v_2=(-1,1,-1)^T,\quad
+v_3=(-1,-1,1)^T,\quad
+x=(1,1,1)^T,$$
+with  $P_i=v_iv_i^T/(v_i^Tv_i)$ .An exact-rational replay from these displayed values confirmed:Audit itemResultNumber of matrices and common dimension $n=N=3$ Squared lengths  $v_i^Tv_i$  $3$  for every  $i$ Real symmetry and idempotenceConfirmed for every  $P_i$ Products included in  $S$ All six permutations, retaining multiplication order $x^TM^3x$  $1/243$  $x^TSx$  $1/27$  $x^T(M^3-S)x$  $-8/243<0$ Thus the diagnostic is not about arbitrary non-idempotent positive matrices, a different normalization, a single product order, a trace, or an operator norm. It matches C1’s hypotheses and conclusion. Its negative value supplies a negative answer to the quoted universal question.This replay does not authenticate the supplied hashes, recover the original attachment bytes, or establish correspondence with the unavailable PDF.Opened literature and binding analysisThe source identifiers below are model-reported and appear in full in the JSON.The two-matrix case is already supplied by the identity
+$$\left(\frac{A+B}{2}\right)^2-\frac{AB+BA}{2}
+=\frac{(A-B)^2}{4}\succeq0$$
+for symmetric positive semidefinite  $A,B$ . Substituting projections gives C1 only for  $n=2$ . Proceedings of Machine Learning ResearchThe commuting restriction is also obtained from simultaneous diagonalization and scalar arithmetic–geometric mean inequalities. It is a known special case, not the unrestricted assertion. Proceedings of Machine Learning ResearchThe related literature must be distinguished carefully from C1. An opened paper explicitly notes that replacing its norm comparison by the corresponding direct Löwner-order comparison fails already for three general positive semidefinite matrices. That observation alone would not establish failure within the projection subclass; the supplied diagnostic provides that missing correspondence here. Proceedings of Machine Learning ResearchThe same paper’s Theorem 2 bounds the average of ordered distinct-index triple products between  $-I$  and  $I$ , assuming the positive semidefinite matrices sum to at most  $nI$ . This is not the upper bound by the cube of their actual mean requested in C1. Proceedings of Machine Learning ResearchAnother opened triple-product theorem puts a unitarily invariant norm inside each summand. Such an inequality does not assert the matrix-order conclusion in C1. arXivThe six supplied repository excerpts concern other mathematical assertions. Their displayed conclusions do not supply this universal projection-product comparison. I did not validate their reported frozen status or execute their reported searches, and their retrieval is not evidence of novelty.Separate methodological judgmentsCorrectness: not_checked refers to proof checking: no proof was submitted. Separately, the assertion’s truth status is known_false because the supplied diagnostic matches and its exact arithmetic was reproduced.Proof escape: undetermined. There is no submitted proof to classify and no live proof witness. The unrestricted directionwise comparison is not supplied by the inspected special cases or norm statements, but that does not establish valuable new content: the proposed affirmative conclusion is false. Missing proof evidence is not a reason to assign bind_only.Utility: the affirmative general-theorem claim is unsupported. The supplied diagnostic has supported counterexample utility, limited to answering C1 negatively. That is not credit for a new theorem, publication priority, or a manuscript proof.Information gain and settlement: no specified information model or measurement supports an information-gain assessment, so it remains null. No named settlement is claimed in the confirmed metadata, so settlement also remains null.The appropriate feedback is to revise the display status, make the definitions explicit, and distinguish any replacement question from C1. Adding commutativity would produce a known restriction; changing to a norm or trace comparison would produce a different question requiring its own assessment. This feedback does not decide publication.JSON{
+  "recommendation": "revise",
+  "summary": "C1 is well posed under conventional finite-dimensional matrix conventions but is false as stated. The supplied n=N=3 rank-one projection diagnostic matches the quoted assertion, and an exact rational replay from the displayed data reproduces x^T(M^3-S)x=-8/243. No PDF was available, so manuscript-level correspondence and diagnostic provenance remain unchecked.",
+  "strengths": [
+    "The question concerns a precise finite-dimensional matrix-order comparison once its averages and dimension domains are written explicitly.",
+    "The supplied diagnostic contains enough explicit rational data to audit its correspondence with C1 without searching for a new example."
+  ],
+  "concerns": [
+    "The unrestricted assertion cannot be displayed accurately as an open conjecture: the supplied matching instance has a strictly negative quadratic form.",
+    "Norm comparisons, averages of norms, and bounds by a scalar multiple of the identity do not supply the stated comparison with M^n.",
+    "No PDF was attached, and the displayed diagnostic hashes and repository metadata were not authenticated.",
+    "No proof, novelty claim, or publication priority for the diagnostic has been established."
+  ],
+  "claims": [
+    {
+      "claim": "C1",
+      "correctness": "not_checked",
+      "proof_shape": null,
+      "witnesses": [],
+      "note": "Correctness denotes submitted-proof checking and remains not_checked because C1 is a conjecture with no proof. Its separate truth status is known_false, based on the matching supplied diagnostic and exact rational replay. Escape remains undetermined, with no live proof witnesses. Utility support is limited to the diagnostic's negative answer to C1, not the affirmative assertion or its originality. Information gain and named settlement are null. Baseline entries record comparison facts and diagnostic premises, not alleged manuscript proof dependencies.",
+      "known": [
+        "Toward a Noncommutative Arithmetic-geometric Mean Inequality: Conjectures, Case-studies, and Consequences [opened: https://proceedings.mlr.press/v23/recht12/recht12.pdf]",
+        "Recht–Ré Noncommutative Arithmetic-Geometric Mean Conjecture is False [opened: https://proceedings.mlr.press/v119/lai20a/lai20a.pdf]",
+        "An arithmetic-geometric mean inequality for products of three matrices [opened: arXiv:1411.0333]"
+      ],
+      "conjecture": {
+        "well_posed": true,
+        "well_posed_reason": "For positive integer n and a common finite matrix dimension N, real symmetric idempotents are orthogonal projection matrices. Define M=(1/n)sum_i P_i and S=(1/n!)sum_sigma P_sigma(1)...P_sigma(n), summing over all permutations of labels and retaining product order. Reversal of permutations makes S symmetric, so positive semidefiniteness is unambiguous. The dimension domain should be stated explicitly; admitting N=0 only adds a vacuous case. No commutativity, mutual orthogonality, distinctness, or rank restriction is assumed.",
+        "status": "known_false",
+        "status_reason": "The supplied vectors v1=(1,-1,-1), v2=(-1,1,-1), v3=(-1,-1,1) define real symmetric idempotents P_i=v_i v_i^T/3 in dimension three. For the supplied x=(1,1,1), an exact rational replay using all six ordered products gives x^T M^3 x=1/243 and x^T S x=1/27, hence x^T(M^3-S)x=-8/243<0. This refutes precisely the quoted universal assertion. The classification does not claim that the first published occurrence of this example was identified.",
+        "named_works": [
+          "Toward a Noncommutative Arithmetic-geometric Mean Inequality: Conjectures, Case-studies, and Consequences [opened: https://proceedings.mlr.press/v23/recht12/recht12.pdf]",
+          "Recht–Ré Noncommutative Arithmetic-Geometric Mean Conjecture is False [opened: https://proceedings.mlr.press/v119/lai20a/lai20a.pdf]",
+          "An arithmetic-geometric mean inequality for products of three matrices [opened: arXiv:1411.0333]"
+        ],
+        "escape": "undetermined",
+        "escape_reason": "No proof was submitted. The unrestricted matrix-order obligation is not supplied by the inspected special cases or norm inequalities, but this does not certify content: the supplied diagnostic contradicts the affirmative conclusion. The diagnostic is not a live witness in a proof of C1, and absence of a proof does not justify bind_only.",
+        "suggestions": [
+          "Replace the open-conjecture label by a negative answer to the stated question, accompanied by the supplied diagnostic and a clear statement of its verification scope.",
+          "Specify n and N as integer domains, define both averages explicitly, and distinguish orthogonal projections from mutually orthogonal projections.",
+          "Treat any added restriction or replacement by a norm or trace comparison as a different statement requiring a fresh status check; the commuting restriction is already a known special case."
+        ]
+      },
+      "methodology": {
+        "baseline": [
+          {
+            "statement": "For every integer n>=1 and common finite dimension N, P_1,...,P_n are real N-by-N matrices satisfying P_i^T=P_i and P_i^2=P_i. M is their arithmetic mean and S is the average of all n! permutation products. No further restrictions are stated.",
+            "location": "User input: CONFIRMED STATEMENTS[0].statement, corroborated by SOURCE CONTEXT, sole paragraph. No PDF location is available.",
+            "source": null
+          },
+          {
+            "statement": "For same-size real symmetric positive semidefinite A,B, ((A+B)/2)^2-(AB+BA)/2=(A-B)^2/4 is positive semidefinite. Pairwise commuting real symmetric positive semidefinite matrices admit simultaneous orthogonal diagonalization and the coordinatewise scalar AM-GM comparison.",
+            "location": "Section 3.1, printed page 11.6; Section 3.2, printed page 11.7; Appendix A, printed page 11.15.",
+            "source": "Toward a Noncommutative Arithmetic-geometric Mean Inequality: Conjectures, Case-studies, and Consequences [opened: https://proceedings.mlr.press/v23/recht12/recht12.pdf]"
+          },
+          {
+            "statement": "For n>=3, same-size symmetric positive semidefinite A_1,...,A_n with sum_i A_i <= nI satisfy -I <= ((n-3)!/n!)sum_{i,j,k distinct} A_i A_j A_k <= I.",
+            "location": "Section 2, Theorem 2, equation (4), PDF page 4. The direct norm-to-Loewner replacement is distinguished immediately before Conjecture 1A on PDF page 3.",
+            "source": "Recht–Ré Noncommutative Arithmetic-Geometric Mean Conjecture is False [opened: https://proceedings.mlr.press/v119/lai20a/lai20a.pdf]"
+          },
+          {
+            "statement": "For n>=3, same-size positive semidefinite A_1,...,A_n and any unitarily invariant norm, n^(-3)sum_{i,j,k} |||A_i A_j A_k||| >= ((n-3)!/n!)sum_{i,j,k distinct} |||A_i A_j A_k|||. The norms are inside the sums.",
+            "location": "Version 4, Section 1, Theorem 1.4, equation (2).",
+            "source": "An arithmetic-geometric mean inequality for products of three matrices [opened: arXiv:1411.0333]"
+          },
+          {
+            "statement": "The supplied diagnostic specifies v1=(1,-1,-1), v2=(-1,1,-1), v3=(-1,-1,1), x=(1,1,1), and P_i=v_i v_i^T/(v_i^T v_i). Its reported quantity is x^T[((P_1+P_2+P_3)/3)^3-(1/6)sum_sigma P_sigma(1)P_sigma(2)P_sigma(3)]x=-8/243.",
+            "location": "User input: Diagnostic declared computation attachment, fields vectors and witness; SYSTEM-REPLAYED FINITE COMPUTATIONS.receipts[0].result. These are displayed diagnostic data, not an authenticated manuscript proof.",
+            "source": null
+          }
+        ],
+        "searched": [
+          "Conversation Files metadata: files.list(surface=conversation) returned no files and zero uploaded files. No manuscript PDF could be inspected.",
+          "Public web query: noncommutative arithmetic geometric mean orthogonal projections Loewner order symmetrized products counterexample.",
+          "Public web query: \"projections\" \"arithmetic-geometric mean\" \"conjecture\".",
+          "Public web query: \"projections\" \"mean\" \"all\" \"n!\" \"inequality\".",
+          "Public web query: \"projection\" \"AMGM\".",
+          "Public web query: \"orthogonal projections\" \"Loewner\" \"arithmetic\".",
+          "Public web query: projection matrices arithmetic geometric mean symmetrized product positive semidefinite counterexample three.",
+          "Public web query: site:mathoverflow.net \"projections\" \"arithmetic-geometric\".",
+          "Public web query: \"projections\" \"Recht\" \"counterexample\".",
+          "Public web query: \"symmetric idempotent\" \"mean\" \"products\".",
+          "Opened primary-source texts hosted by PMLR and arXiv: the three works identified in baseline. Inspected the relevant definitions, statements and comparison passages; rendered relevant PMLR PDF pages as screenshots.",
+          "Read the six candidate excerpts supplied in the prompt for statement relevance only. Did not independently execute the reported repository-index queries or validate canonical declarations, hashes, frozen status, or compilation.",
+          "The bounded literature comparison supports the distinctions and special cases reported here, not an exhaustive novelty or publication-priority finding. The root knowledge_queries entry is a future search proposal, not an additional completed search."
+        ],
+        "literature": "supported",
+        "binding_analysis": "Unfolding M and S fixes the normalization and product order. Permutation reversal supplies symmetry, not positivity. Idempotence does not permit commuting factors. Instantiation yields the n=2 case; diagonalization and scalar comparison yield the commuting restriction; n=1 is definitional. Substitution into the normalized triple-product bound yields an identity bound, not S<=M^3. An average of norms does not order matrices. None of these substitutions, projections, recombinations or normalizations supplies the missing unrestricted directionwise comparison. The supplied repository excerpts have no directly matching conclusion. Once the diagnostic's hypotheses and negative value are checked, the definition of positive semidefiniteness answers C1 negatively.",
+        "delta": "The conditional affirmative obligation would be: for every integer n>=1, every common finite dimension N, every real symmetric idempotent tuple P_1,...,P_n, and every x in R^N, x^T((sum_i P_i)/n)^n x >= (1/n!)sum_sigma x^T P_sigma(1)...P_sigma(n)x, without adding commutativity or changing the comparison. The inspected baselines do not provide this obligation, and the supplied n=N=3 diagnostic contradicts it. An amended statement would require a separate audit.",
+        "escape": "undetermined",
+        "witnesses": [],
+        "utility": {
+          "kind": "counterexample",
+          "status": "supported",
+          "rationale": "Support is limited to the supplied diagnostic's direct negative answer to C1. The named assertion, its hypotheses and an actual matching negative quadratic form are available. This is not utility credit for the false affirmative theorem, evidence of originality, or certification of a submitted proof.",
+          "problem": "C1 asks whether M^n-S is positive semidefinite for every finite tuple of real symmetric idempotent matrices.",
+          "progress": "The supplied instance with n=N=3 has x^T(M^3-S)x=-8/243, giving a negative answer to C1.",
+          "prerequisites": "Use v1=(1,-1,-1), v2=(-1,1,-1), v3=(-1,-1,1), P_i=v_i v_i^T/(v_i^T v_i), and x=(1,1,1). Each P_i must be real, symmetric and idempotent; M must have weight 1/3; S must contain all six ordered permutation products with weight 1/6; the tested expression must be M^3-S.",
+          "discharge": "A Python Fraction replay from the displayed values confirmed squared vector lengths 3, symmetry and idempotence of every projection, all six distinct permutation orders, x^T M^3 x=1/243 and x^T S x=1/27. Their exact difference is -8/243. No floating-point inference was used. Original attachment bytes, hashes and PDF correspondence were not verified."
+        },
+        "settlement": null,
+        "information_gain": null,
+        "limits": [
+          "No manuscript PDF was available; local locations refer only to explicitly identified fields of the supplied input.",
+          "The literature comparison is bounded to inspected passages in three primary sources. It does not establish publication priority for the projection counterexample or exhaust equivalent formulations.",
+          "The displayed diagnostic was replayed, but its claimed provenance and original-byte hashes remain not_checkable from the available files.",
+          "No submitted proof was checked. No live proof witnesses, compiled Trureturing registration, Lean verification, formal coverage, or AURIC/FIB measurement are claimed.",
+          "Supported counterexample utility is separate from escape and from any novelty or publication assessment."
+        ]
+      }
+    }
+  ],
+  "knowledge_queries": [
+    {
+      "claim": "C1",
+      "definitions": [
+        "M=(1/n) sum_i P_i is the arithmetic mean.",
+        "Sym(n) is the permutation group of the labels 1,...,n.",
+        "S=(1/n!) sum_{sigma in Sym(n)} P_{sigma(1)}...P_{sigma(n)}; multiplication order is retained.",
+        "D is positive semidefinite when D is symmetric and x^T D x>=0 for every x in R^N."
+      ],
+      "hypotheses": [
+        "n is an integer with n>=1; N is a finite matrix dimension, with its lower bound not explicitly stated.",
+        "P_i is a real N-by-N matrix with P_i^T=P_i and P_i^2=P_i for every i=1,...,n."
+      ],
+      "quantifiers": "For every integer n>=1, every common matrix dimension N, and every indexed tuple (P_1,...,P_n) satisfying the hypotheses, the conclusion holds for every x in R^N. Repetitions and all projection ranks are allowed; no pairwise commutativity or orthogonality is assumed. N=0, if admitted, is vacuous.",
+      "conclusion": "M^n-S is positive semidefinite, equivalently x^T M^n x >= (1/n!) sum_{sigma in Sym(n)} x^T P_{sigma(1)}...P_{sigma(n)} x for every real vector x.",
+      "search_terms": [
+        "orthogonal projection matrices",
+        "symmetric idempotents",
+        "Loewner order",
+        "noncommutative AM-GM inequality",
+        "fully symmetrized matrix products",
+        "sampling without replacement",
+        "sampling with replacement",
+        "Recht-Re conjecture",
+        "rank-one projection counterexample",
+        "operator norm versus matrix order"
+      ],
+      "reason": "Retrieve an exact projection-restricted Loewner-order statement or refutation, distinguishing norm or trace results and commuting-only cases. The supplied six candidate excerpts do not address this comparison. This is a proposed query, not an executed source search or novelty finding."
+    }
+  ],
+  "limits": [
+    "Only C1 and the displayed diagnostic were assessable; no uploaded PDF was present.",
+    "All opened-source identifiers are model-reported, not venue-verified references.",
+    "The literature search was bounded and does not establish the first publication or novelty of the supplied counterexample.",
+    "Diagnostic and repository metadata were treated as untrusted; no production receipts or canonical source identities were authenticated.",
+    "Proof correctness remains not_checked, with null proof shape and no live proof witnesses. The negative status finding is a separate diagnostic assessment.",
+    "This initial referee feedback is not the subsequent independent source-audit certificate and does not decide publication."
+  ],
+  "text": "Revise the display status and presentation of C1. The quoted universal assertion has a matching negative diagnostic; missing manuscript access limits document-level correspondence, not the exact negative finding for the supplied statement."
+}

@@ -1,0 +1,25 @@
+{
+  "schema": "mathesis.computation-oracle-diagnostic.v1",
+  "case_id": "projection_amgm-original",
+  "split": "development",
+  "freeze_sha256": "4cbc93154e116f57923b3cf475904638640856a92e929573670b6a60c8bf884b",
+  "implementation_revision": "af066bb598667a1064467978babf6b8f8e8bcf3f",
+  "baseline_request_sha256": "b21bf153779df350ba1f7207785081f3e83377f34d75988a9cbe790eeb369734",
+  "baseline_receipt_sha256": "38f2d70fbb06e760849b67e9acf1625bd1ecf237764053628ae5174a66f930c1",
+  "request_sha256": "faa522950b076bb3a735e2e6d15671ddaaff7d6c8aa45a415163e8be04a796a8",
+  "attachment_sha256": "901c20a2b39b7b96d5baab5a52eb00f48ac6f5847008d5e229f1e8e2b57ee6f3",
+  "replay_sha256": "b1ddd94df82eae2727526b6d187f3e203f585a86b9aa5851acde953a4ee2fe28",
+  "checker_executable_sha256": "37508b34fc796e91f26c50df8f1aa0333e32257fca2d02bba35484c5dd330189",
+  "checker_source_sha256": "9c9db265f4e68a1c6a17685c3b3781541a595bbd2e9363957abc0f27ef4c4746",
+  "prepared_at_utc": "2026-10-15T23:57:34.841245+00:00",
+  "hypothesis": "Providing the actually replayed finite negative quadratic form changes the previous open/content reading to known_false when the reviewer establishes correspondence to this universal assertion.",
+  "method": "One fresh Oracle call using the saved source-informed request plus exact replay input and output, inserted before unchanged knowledge context. No other baseline prompt changes.",
+  "cost_usd": null,
+  "limits": [
+    "Selected known development failure; not a random sample, blinded trial or broad quality estimate.",
+    "One stochastic sample per prompt; cannot isolate causation or measure repeatability.",
+    "Original source-informed baseline and scorer output remain unchanged.",
+    "No full manuscript, CMA source audit, production review receipt or policy decision.",
+    "No holdout inputs queried."
+  ]
+}

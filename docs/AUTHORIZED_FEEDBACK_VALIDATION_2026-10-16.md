@@ -63,9 +63,13 @@ GitHub response byte hashes, redirect refusal, oversized/rate-limited bodies,
 repository/PR identity, source-tree mismatch and divergent ancestry; durable
 worker non-results; and three web consent/projection interactions.
 
-Final focused checks are rerun after the last serialization/projection changes.
-PR CI and merge receipts will be recorded in `CAPABILITY_DELIVERY.md`; this local
-record does not substitute for those existing gates.
+The final focused nine feedback tests and exact-head strict Clippy passed after
+the last serialization/projection changes. Original CI `38826090438` and CodeQL
+`38826088830` passed every applicable gate, including actual Linux Lean, at
+`af066bb598667a1064467978babf6b8f8e8bcf3f`. PR #14 merged on
+2026-10-16 at 00:07:47 UTC as `57b7b90157314768e8c3989e9f4c68916822a4ba`.
+The showcase deployment job was correctly skipped; these receipts do not imply
+a production rollout.
 
 ## Acceptance boundaries
 

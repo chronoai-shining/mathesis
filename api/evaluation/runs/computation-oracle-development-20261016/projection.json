@@ -1,0 +1,25 @@
+{
+  "protocol": "mathesis.rational-projection-amgm.v1",
+  "vectors": [
+    [
+      1,
+      -1,
+      -1
+    ],
+    [
+      -1,
+      1,
+      -1
+    ],
+    [
+      -1,
+      -1,
+      1
+    ]
+  ],
+  "witness": [
+    1,
+    1,
+    1
+  ]
+}

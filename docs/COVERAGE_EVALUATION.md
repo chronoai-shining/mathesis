@@ -205,8 +205,9 @@ uses actual retrieval records, not a model's assertion that it searched, to
 report query status. These diagnostic artifacts cannot enter production as
 review receipts or upgrade Oracle output to independently audited coverage.
 
-The source-informed Oracle acquisition is still running as this increment is
-prepared. It is not a completed source-audit or quality improvement claim.
+The source-informed Oracle acquisition was still running when that increment
+was prepared. Its completed observations follow; neither acquisition is an
+independent source audit.
 
 
 ## Complete reformulation/ranking development comparison
@@ -258,3 +259,32 @@ The four corresponding run directories preserve original upstream source license
 New review rounds pin knowledge contract 3; contracts 0/1/2 retain their prior
 behavior. Independent managed CMA review, human adjudication, held-out quality,
 full manuscript evidence, cost and production deployment remain unmeasured.
+
+## Single development diagnostic with actual finite replay
+
+The [retained computation diagnostic](../api/evaluation/runs/computation-oracle-development-20261016/README.md)
+selects the existing `projection_amgm-original` failure. Its one fresh streaming
+request preserves the complete prior source-informed prompt and inserts the
+actual finite input, Rust replay result and explicit diagnostic scope before
+the unchanged source context. The exact replay is −8/243; an independent Python
+rational contraction and a written argument confirm its correspondence to the
+quoted universal claim at n = N = 3.
+
+| Reading | Conjecture status | Escape | Observed model / effort |
+| --- | --- | --- | --- |
+| Original source-informed request | open | content | gpt_6 / pro |
+| Same request with actual replay evidence | known_false | undetermined | gpt_6 / pro |
+
+The new response completed in 497,415 ms. It identifies the precise hypotheses,
+ordered-product average and negative quadratic form. Model-reported literature
+inspection and computation are not independent audit evidence. The saved stream,
+answer, task identity, input/output hashes and separate local replay can be
+checked with `python3 api/evaluation/verify_computation_diagnostic.py` without a
+provider call.
+
+This single selected development observation supports feeding concrete finite
+evidence into review. It does not establish causal or repeatable improvement,
+change the historical 12-case scores, or satisfy full Oracle/CMA acceptance.
+No holdout case, production manuscript or independent CMA audit was used; cost
+remains unmeasured. The response's proposed reformulation was not executed as
+an additional query.
