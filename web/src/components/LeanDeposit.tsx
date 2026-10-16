@@ -228,199 +228,205 @@ function DepositForm({
           void submit(e);
         }}
       >
-        <Field label="Title" htmlFor="lean-title">
-          <input
-            id="lean-title"
-            required
-            maxLength={1000}
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-          />
-        </Field>
-        <Field label="Original authors (one per line)" htmlFor="lean-authors">
-          <textarea
-            id="lean-authors"
-            required
-            value={authors}
-            onChange={(e) => setAuthors(e.target.value)}
-          />
-        </Field>
-        <Field label="Formalization contributors (one per line)" htmlFor="lean-formalizers">
-          <textarea
-            id="lean-formalizers"
-            value={formalizers}
-            onChange={(e) => setFormalizers(e.target.value)}
-            placeholder="People who wrote the Lean formalization"
-          />
-        </Field>
-        <Field
-          label="Git commit (optional)"
-          htmlFor="lean-revision"
-          hint="Full 40 or 64 character commit hash for the reported source."
-        >
-          <input
-            id="lean-revision"
-            maxLength={64}
-            pattern="[a-fA-F0-9]{40}|[a-fA-F0-9]{64}"
-            value={sourceRevision}
-            onChange={(e) => setSourceRevision(e.target.value)}
-          />
-        </Field>
-        <Field label="Mathematical statement" htmlFor="lean-statement">
-          <textarea
-            id="lean-statement"
-            required
-            maxLength={20000}
-            rows={5}
-            value={statement}
-            onChange={(e) => setStatement(e.target.value)}
-          />
-        </Field>
-        <Field label="Original research or source URL" htmlFor="lean-reference">
-          <input
-            id="lean-reference"
-            type="url"
-            required
-            placeholder="Link to the paper or .lean source at a fixed revision"
-            value={reference}
-            onChange={(e) => setReference(e.target.value)}
-          />
-        </Field>
-        <Field label="Lean / Mathlib version pin" htmlFor="lean-toolchain">
-          <input
-            id="lean-toolchain"
-            required
-            maxLength={200}
-            placeholder="leanprover/lean4:v4.x, Mathlib <revision>"
-            value={toolchain}
-            onChange={(e) => setToolchain(e.target.value)}
-          />
-        </Field>
-        <Field label="Source license" htmlFor="lean-license">
-          <input
-            id="lean-license"
-            required
-            maxLength={200}
-            placeholder="e.g. Apache-2.0"
-            value={license}
-            onChange={(e) => setLicense(e.target.value)}
-          />
-        </Field>
-        <fieldset className="project-intake">
-          <legend>Complete Lean project</legend>
-          <p className="hint">
-            Upload a source ZIP / tar.gz or choose a project folder. Up to 512 modules and 8 MB of
-            Lean source; directory structure and pinned configuration are preserved. Build caches
-            and .git are excluded from folder intake.
-          </p>
-          <Field label="Project archive" htmlFor="lean-project-archive">
+        <section className="submission-manuscript" aria-labelledby="lean-work-heading">
+          <h2 id="lean-work-heading">Work & attribution</h2>
+          <Field label="Title" htmlFor="lean-title">
             <input
-              id="lean-project-archive"
-              type="file"
-              accept=".zip,.tar.gz,.tgz"
-              disabled={busy}
-              onChange={(e) => {
-                if (e.target.files?.length) void importProject(Array.from(e.target.files));
-              }}
+              id="lean-title"
+              required
+              maxLength={1000}
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
             />
           </Field>
-          <Field label="Project folder" htmlFor="lean-project-folder">
-            <input
-              id="lean-project-folder"
-              type="file"
-              multiple
-              ref={(node) => {
-                if (node) node.setAttribute('webkitdirectory', '');
-              }}
-              disabled={busy}
-              onChange={(e) => {
-                if (e.target.files?.length) void importProject(Array.from(e.target.files));
-              }}
+          <Field label="Original authors (one per line)" htmlFor="lean-authors">
+            <textarea
+              id="lean-authors"
+              required
+              value={authors}
+              onChange={(e) => setAuthors(e.target.value)}
             />
           </Field>
-          {project ? (
-            <div role="status">
-              <p>
-                {Object.keys(project.modules).length} modules ·{' '}
-                {Object.keys(project.project_files).length} configuration / documentation files
-              </p>
-              <details>
-                <summary>Project files</summary>
-                <ul>
-                  {Object.keys(project.project_files)
-                    .concat(
-                      Object.keys(project.modules).map(
-                        (name) => `${name.replaceAll('.', '/')}.lean`,
-                      ),
-                    )
-                    .map((path) => (
-                      <li key={path}>
-                        <code>{path}</code>
-                      </li>
-                    ))}
-                </ul>
-              </details>
-              <button
-                type="button"
-                className="button button-quiet button-small"
-                onClick={() => {
-                  setProject(null);
-                  setPreflight(null);
+          <Field label="Formalization contributors (one per line)" htmlFor="lean-formalizers">
+            <textarea
+              id="lean-formalizers"
+              value={formalizers}
+              onChange={(e) => setFormalizers(e.target.value)}
+              placeholder="People who wrote the Lean formalization"
+            />
+          </Field>
+          <Field
+            label="Git commit (optional)"
+            htmlFor="lean-revision"
+            hint="Full 40 or 64 character commit hash for the reported source."
+          >
+            <input
+              id="lean-revision"
+              maxLength={64}
+              pattern="[a-fA-F0-9]{40}|[a-fA-F0-9]{64}"
+              value={sourceRevision}
+              onChange={(e) => setSourceRevision(e.target.value)}
+            />
+          </Field>
+          <Field label="Mathematical statement" htmlFor="lean-statement">
+            <textarea
+              id="lean-statement"
+              required
+              maxLength={20000}
+              rows={5}
+              value={statement}
+              onChange={(e) => setStatement(e.target.value)}
+            />
+          </Field>
+          <Field label="Original research or source URL" htmlFor="lean-reference">
+            <input
+              id="lean-reference"
+              type="url"
+              required
+              placeholder="Link to the paper or .lean source at a fixed revision"
+              value={reference}
+              onChange={(e) => setReference(e.target.value)}
+            />
+          </Field>
+          <Field label="Lean / Mathlib version pin" htmlFor="lean-toolchain">
+            <input
+              id="lean-toolchain"
+              required
+              maxLength={200}
+              placeholder="leanprover/lean4:v4.x, Mathlib <revision>"
+              value={toolchain}
+              onChange={(e) => setToolchain(e.target.value)}
+            />
+          </Field>
+          <Field label="Source license" htmlFor="lean-license">
+            <input
+              id="lean-license"
+              required
+              maxLength={200}
+              placeholder="e.g. Apache-2.0"
+              value={license}
+              onChange={(e) => setLicense(e.target.value)}
+            />
+          </Field>
+        </section>
+        <section className="submission-options" aria-labelledby="lean-files-heading">
+          <h2 id="lean-files-heading">Source & verification</h2>
+          <fieldset className="project-intake">
+            <legend>Complete Lean project</legend>
+            <p className="hint">
+              Upload a source ZIP / tar.gz or choose a project folder. Up to 512 modules and 8 MB of
+              Lean source; directory structure and pinned configuration are preserved. Build caches
+              and .git are excluded from folder intake.
+            </p>
+            <Field label="Project archive" htmlFor="lean-project-archive">
+              <input
+                id="lean-project-archive"
+                type="file"
+                accept=".zip,.tar.gz,.tgz"
+                disabled={busy}
+                onChange={(e) => {
+                  if (e.target.files?.length) void importProject(Array.from(e.target.files));
                 }}
-              >
-                Remove project
-              </button>
-            </div>
-          ) : null}
-        </fieldset>
-        <Field
-          label="Solution.lean / standalone source (up to 1 MB)"
-          htmlFor="lean-source"
-          hint="Optional for a source deposit. To verify a project, supply an adapter importing Target and your project modules, with theorem wishpool_solution : wishpool_target_prop. Original project modules remain intact."
-        >
-          <input
-            id="lean-source"
-            type="file"
-            accept=".lean"
-            required={!project}
-            onChange={(e) => {
-              setPreflight(null);
-              setFile(e.target.files?.[0] ?? null);
+              />
+            </Field>
+            <Field label="Project folder" htmlFor="lean-project-folder">
+              <input
+                id="lean-project-folder"
+                type="file"
+                multiple
+                ref={(node) => {
+                  if (node) node.setAttribute('webkitdirectory', '');
+                }}
+                disabled={busy}
+                onChange={(e) => {
+                  if (e.target.files?.length) void importProject(Array.from(e.target.files));
+                }}
+              />
+            </Field>
+            {project ? (
+              <div role="status">
+                <p>
+                  {Object.keys(project.modules).length} modules ·{' '}
+                  {Object.keys(project.project_files).length} configuration / documentation files
+                </p>
+                <details>
+                  <summary>Project files</summary>
+                  <ul>
+                    {Object.keys(project.project_files)
+                      .concat(
+                        Object.keys(project.modules).map(
+                          (name) => `${name.replaceAll('.', '/')}.lean`,
+                        ),
+                      )
+                      .map((path) => (
+                        <li key={path}>
+                          <code>{path}</code>
+                        </li>
+                      ))}
+                  </ul>
+                </details>
+                <button
+                  type="button"
+                  className="button button-quiet button-small"
+                  onClick={() => {
+                    setProject(null);
+                    setPreflight(null);
+                  }}
+                >
+                  Remove project
+                </button>
+              </div>
+            ) : null}
+          </fieldset>
+          <Field
+            label="Solution.lean / standalone source (up to 1 MB)"
+            htmlFor="lean-source"
+            hint="Optional for a source deposit. To verify a project, supply an adapter importing Target and your project modules, with theorem wishpool_solution : wishpool_target_prop. Original project modules remain intact."
+          >
+            <input
+              id="lean-source"
+              type="file"
+              accept=".lean"
+              required={!project}
+              onChange={(e) => {
+                setPreflight(null);
+                setFile(e.target.files?.[0] ?? null);
+              }}
+            />
+          </Field>
+          <Field
+            label="Supporting Lean modules (optional)"
+            htmlFor="lean-modules"
+            hint="Up to 512 modules, 8 MB total. Choose a folder or archive above to preserve nested paths. Mathlib comes from the confirmed toolchain; custom dependencies and Lake scripts are not executed."
+          >
+            <input
+              id="lean-modules"
+              type="file"
+              accept=".lean"
+              multiple
+              onChange={(e) => setSupporting(Array.from(e.target.files ?? []))}
+            />
+          </Field>
+          <button
+            type="button"
+            className="button button-quiet"
+            disabled={busy}
+            onClick={() => {
+              void check();
             }}
-          />
-        </Field>
-        <Field
-          label="Supporting Lean modules (optional)"
-          htmlFor="lean-modules"
-          hint="Up to 512 modules, 8 MB total. Choose a folder or archive above to preserve nested paths. Mathlib comes from the confirmed toolchain; custom dependencies and Lake scripts are not executed."
-        >
-          <input
-            id="lean-modules"
-            type="file"
-            accept=".lean"
-            multiple
-            onChange={(e) => setSupporting(Array.from(e.target.files ?? []))}
-          />
-        </Field>
-        <button
-          type="button"
-          className="button button-quiet"
-          disabled={busy}
-          onClick={() => {
-            void check();
-          }}
-        >
-          Run compatibility preflight
-        </button>
-        {preflight ? <PreflightReport report={preflight} /> : null}
-        <InlineError error={error} />
-        <button className="button" type="submit" disabled={busy}>
-          {busy
-            ? 'Submitting…'
-            : target
-              ? 'Submit and request verification'
-              : 'Submit formalization'}
-        </button>
+          >
+            Run compatibility preflight
+          </button>
+          {preflight ? <PreflightReport report={preflight} /> : null}
+          <InlineError error={error} />
+          <button className="button" type="submit" disabled={busy}>
+            {busy
+              ? 'Submitting…'
+              : target
+                ? 'Submit and request verification'
+                : 'Submit formalization'}
+          </button>
+        </section>
       </form>
       {received ? (
         <p className="notice notice-info" role="status">

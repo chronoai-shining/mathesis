@@ -1,6 +1,6 @@
 /* Research first: a short introduction followed by the publication archive. */
 .archive-intro {
-  padding: 1.5rem 0 2.5rem;
+  padding: 0.5rem 0 2rem;
   border-bottom: 1px solid var(--rule);
 }
 .archive-intro .eyebrow,
@@ -34,10 +34,10 @@
 }
 .archive-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 17.5rem;
+  grid-template-columns: minmax(0, 1fr);
   align-items: start;
-  gap: 4rem;
-  padding-top: 2.5rem;
+  gap: 2rem;
+  padding-top: 2rem;
 }
 .archive-main {
   min-width: 0;
@@ -112,8 +112,8 @@
   max-width: 34rem;
 }
 .archive-guide {
-  border-left: 1px solid var(--rule);
-  padding-left: var(--space-6);
+  border-top: 1px solid var(--rule);
+  padding-top: var(--space-5);
 }
 .home .archive-guide h2 {
   font-size: 1.35rem;
@@ -133,13 +133,30 @@
   font-size: 0.8rem;
   line-height: 1.8;
 }
-@media (max-width: 64rem) {
-  .archive-layout {
-    grid-template-columns: minmax(0, 1fr) 15rem;
-    gap: var(--space-6);
+@media (min-width: 64rem) {
+  .archive-main {
+    display: grid;
+    grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+    gap: clamp(2rem, 4vw, 5rem);
+    align-items: start;
+  }
+  .archive-section + .archive-section {
+    margin-top: 0;
   }
   .archive-guide {
-    padding-left: var(--space-5);
+    display: grid;
+    grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+    column-gap: clamp(2rem, 4vw, 5rem);
+  }
+  .archive-guide > :not(.archive-review-note) {
+    grid-column: 1;
+  }
+  .archive-review-note {
+    grid-column: 2;
+    grid-row: 1 / span 4;
+    margin: 0;
+    padding: 0;
+    border: 0;
   }
 }
 @media (max-width: 48rem) {

@@ -494,7 +494,7 @@ export function ReportView({
   submission: Submission;
 }) {
   return (
-    <div className="report">
+    <div className="report referee-report">
       <h3>Referee report</h3>
       {report.recommendation ? (
         <Badge tone="accent" title="Referee assessment; the publication criteria decide acceptance">
@@ -508,31 +508,35 @@ export function ReportView({
         recorded separately.
       </p>
       <Markdown text={report.summary} />
-      {report.strengths.length > 0 ? (
-        <>
-          <h4>Strengths</h4>
-          <MarkdownList items={report.strengths} />
-        </>
-      ) : null}
-      {(['major', 'minor'] as const).map((severity) => {
-        const concerns = report.concerns.filter((concern) => concern.severity === severity);
-        if (concerns.length === 0) return null;
-        return (
-          <div key={severity}>
-            <h4>{SEVERITY_LABELS[severity]}</h4>
-            <ul>
-              {concerns.map((concern, i) => (
-                <li key={i}>
-                  {concern.claim ? (
-                    <StatementRef id={concern.claim} submission={submission} />
-                  ) : null}
-                  <Markdown text={concern.issue} />
-                </li>
-              ))}
-            </ul>
-          </div>
-        );
-      })}
+      <div className="report-discussion">
+        {report.strengths.length > 0 ? (
+          <section className="report-strengths" aria-label="Strengths">
+            <h4>Strengths</h4>
+            <MarkdownList items={report.strengths} />
+          </section>
+        ) : null}
+        <div className="report-concerns">
+          {(['major', 'minor'] as const).map((severity) => {
+            const concerns = report.concerns.filter((concern) => concern.severity === severity);
+            if (concerns.length === 0) return null;
+            return (
+              <div key={severity}>
+                <h4>{SEVERITY_LABELS[severity]}</h4>
+                <ul>
+                  {concerns.map((concern, i) => (
+                    <li key={i}>
+                      {concern.claim ? (
+                        <StatementRef id={concern.claim} submission={submission} />
+                      ) : null}
+                      <Markdown text={concern.issue} />
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            );
+          })}
+        </div>
+      </div>
       {report.claims.length > 0 ? (
         <>
           <h4>Per-statement readings</h4>

@@ -31,7 +31,7 @@ main {
   width: 100%;
   max-width: var(--page);
   margin: 0 auto;
-  padding: 2.75rem var(--gutter) 4rem;
+  padding: 2rem var(--gutter) 3rem;
 }
 
 h1,
@@ -434,9 +434,9 @@ img {
 
 /* ---------- notices ---------- */
 .notice {
-  border: 1px solid var(--rule-strong);
-  border-left-width: 4px;
-  border-radius: var(--radius);
+  border: 0;
+  border-left: 3px solid var(--rule-strong);
+  border-radius: 0;
   background: var(--surface);
   padding: var(--space-3) var(--space-4);
   margin: var(--space-4) 0;
@@ -627,10 +627,11 @@ legend {
 .author-card {
   display: grid;
   gap: var(--space-2);
-  padding: var(--space-3);
-  border: 1px solid var(--rule);
-  border-radius: var(--radius);
-  background: var(--surface);
+  padding: var(--space-4) 0;
+  border: 0;
+  border-top: 1px solid var(--rule);
+  border-radius: 0;
+  background: transparent;
 }
 
 .radio-list {
@@ -1052,10 +1053,11 @@ legend {
   margin: 0;
 }
 .report {
-  border: 1px solid var(--rule);
-  border-radius: var(--radius);
-  background: var(--surface);
-  padding: var(--space-3) var(--space-4);
+  border: 0;
+  border-top: 1px solid var(--rule);
+  border-radius: 0;
+  background: transparent;
+  padding: var(--space-4) 0;
   margin-bottom: var(--space-3);
 }
 .report-replaced,
@@ -1105,11 +1107,12 @@ legend {
   margin-top: var(--space-6);
 }
 .tool-form {
-  border: 1px solid var(--rule);
-  border-radius: var(--radius);
-  padding: var(--space-4);
+  border: 0;
+  border-top: 1px solid var(--rule);
+  border-radius: 0;
+  padding: var(--space-4) 0;
   margin-bottom: var(--space-4);
-  background: var(--surface);
+  background: transparent;
 }
 .tool-form h3 {
   margin-bottom: var(--space-3);
@@ -1207,9 +1210,9 @@ legend {
 }
 .citation {
   font-family: var(--font-serif);
-  background: var(--surface-sunk);
-  padding: var(--space-3) var(--space-4);
-  border-radius: var(--radius);
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
   overflow-wrap: anywhere;
 }
 
@@ -1637,8 +1640,9 @@ legend {
 .referee-progress > li {
   min-width: 0;
   padding: var(--space-2) var(--space-3);
-  background: var(--surface-sunk);
-  border-radius: var(--radius);
+  background: transparent;
+  border-radius: 0;
+  border-top: 2px solid var(--rule);
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -1766,10 +1770,10 @@ legend {
 .standing {
   --tone: var(--accent);
   --tone-soft: var(--accent-soft);
-  background: var(--surface);
-  border: 1px solid var(--rule);
+  background: transparent;
+  border: 0;
   border-left: 4px solid var(--tone);
-  border-radius: var(--radius);
+  border-radius: 0;
   padding: var(--space-5) var(--space-5) var(--space-4);
   margin: var(--space-5) 0 var(--space-6);
 }
@@ -2112,19 +2116,16 @@ legend {
   text-decoration: underline;
 }
 .entry-list > li {
-  padding: var(--space-5);
-  border: 1px solid var(--rule);
-  border-radius: var(--radius);
-  background: var(--surface);
-  margin-bottom: var(--space-3);
+  padding: var(--space-4) 0;
+  border: 0;
+  border-bottom: 1px solid var(--rule);
+  border-radius: 0;
+  background: transparent;
+  margin: 0;
   min-width: 0;
-  transition:
-    border-color 160ms ease,
-    box-shadow 160ms ease;
 }
 .entry-list > li:has(.entry-title):hover {
   border-color: var(--rule-strong);
-  box-shadow: var(--shadow);
 }
 .entry-title a {
   color: inherit;
@@ -2347,7 +2348,7 @@ input[type='file']::file-selector-button {
     margin-left: auto;
   }
   .entry-list > li {
-    padding: 1.25rem;
+    padding: var(--space-4) 0;
   }
   .user-button {
     max-width: min(14rem, 45vw);
@@ -2363,11 +2364,12 @@ input[type='file']::file-selector-button {
 
 /* Archive discovery: one clear search, with secondary metadata filters. */
 .archive-search {
-  padding: 1.5rem;
+  padding: var(--space-4) 0;
   margin: 0 0 2rem;
-  border: 1px solid var(--rule);
-  border-radius: 12px;
-  background: var(--surface);
+  border: 0;
+  border-top: 1px solid var(--rule);
+  border-radius: 0;
+  background: transparent;
 }
 .archive-search label {
   display: grid;
@@ -2465,9 +2467,10 @@ input[type='file']::file-selector-button {
   margin-block: 1.5rem;
 }
 .finding-card {
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 1rem 1.25rem;
+  border: 0;
+  border-top: 1px solid var(--rule);
+  border-radius: 0;
+  padding: 1rem 0;
   margin-block: 0.75rem;
   overflow-wrap: anywhere;
 }
@@ -2507,9 +2510,10 @@ input[type='file']::file-selector-button {
   overflow-wrap: anywhere;
 }
 .confirmation-navigation {
-  padding: 1rem;
-  border: 1px solid var(--rule);
-  border-radius: 0.75rem;
+  padding: var(--space-4) 0;
+  border: 0;
+  border-top: 1px solid var(--rule);
+  border-radius: 0;
   margin: 1.5rem 0;
 }
 .confirmation-progress {

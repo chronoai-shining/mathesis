@@ -228,11 +228,12 @@ export function PaperView({ paper }: { paper: PublicPaper }) {
         </header>
 
         {s.abstract_text ? (
-          <section aria-labelledby="abstract-h">
+          <section aria-labelledby="abstract-h" className="paper-abstract">
             <h2 id="abstract-h">Abstract</h2>
             <LatexText source={s.abstract_text} className="abstract" />
           </section>
         ) : null}
+        <Citation paper={s} />
         {paper.new_content?.length ? (
           <section aria-labelledby="new-content-h" className="new-content">
             <h2 id="new-content-h">
@@ -307,7 +308,6 @@ export function PaperView({ paper }: { paper: PublicPaper }) {
         ))}
 
         {claims.length ? <ErrorReports record={s.record} /> : null}
-        <Citation paper={s} />
       </article>
     </MacrosProvider>
   );

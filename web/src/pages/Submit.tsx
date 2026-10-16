@@ -73,7 +73,7 @@ export function SubmitPage({
   const [intake, setIntake] = useState<'research' | 'lean' | 'review'>(initialIntake ?? 'research');
   const { session, person } = useSession();
   return (
-    <div className="page narrow-page">
+    <div className="page submission-page">
       <header className="page-head">
         <div>
           <h1>
@@ -317,7 +317,7 @@ export function SubmitForm({ reviewOnly = false }: { reviewOnly?: boolean } = {}
   };
 
   return (
-    <form className="form" onSubmit={submit} aria-label="Submit work" noValidate>
+    <form className="form submission-form" onSubmit={submit} aria-label="Submit work" noValidate>
       {reviewOnly ? (
         <div className="notice notice-info">
           <strong>Private research feedback</strong>
@@ -327,259 +327,266 @@ export function SubmitForm({ reviewOnly = false }: { reviewOnly?: boolean } = {}
           </p>
         </div>
       ) : null}
-      <Field
-        label="What should the review focus on? (optional)"
-        htmlFor="review-scope"
-        hint="Name the statements, proof steps or literature questions that matter most. All confirmed statements still receive an audit reading."
-      >
-        <textarea
-          id="review-scope"
-          maxLength={5000}
-          rows={3}
-          value={reviewScope}
-          onChange={(e) => setReviewScope(e.target.value)}
-        />
-      </Field>
-      <fieldset className="submission-choices">
-        <legend>What are you sharing?</legend>
-        {(['paper', 'note', 'conjecture'] as const).map((value) => (
-          <label key={value} className="radio">
-            <input
-              type="radio"
-              name="submission-kind"
-              checked={kind === value}
-              onChange={() => setKind(value)}
-            />
-            <span>
-              {value === 'paper' ? 'Paper' : value === 'note' ? 'Short note' : 'Conjecture'}
-            </span>
-          </label>
-        ))}
-      </fieldset>
-      {kind === 'conjecture' ? (
+      <section className="submission-manuscript" aria-labelledby="manuscript-heading">
+        <h2 id="manuscript-heading">Manuscript</h2>
         <fieldset className="submission-choices">
-          <legend>How would you like to enter it?</legend>
-          <label className="radio">
-            <input
-              type="radio"
-              name="conjecture-mode"
-              checked={mode === 'upload'}
-              onChange={() => setMode('upload')}
-            />
-            Upload LaTeX
-          </label>
-          <label className="radio">
-            <input
-              type="radio"
-              name="conjecture-mode"
-              checked={mode === 'type'}
-              onChange={() => setMode('type')}
-            />
-            Type it
-          </label>
-        </fieldset>
-      ) : null}
-      {typed ? (
-        <>
-          <Field label="Title" htmlFor="conjecture-title">
-            <input
-              id="conjecture-title"
-              value={title}
-              maxLength={1000}
-              onChange={(e) => setTitle(e.target.value)}
-            />
-          </Field>
-          <Field label="Author" htmlFor="conjecture-author">
-            <input
-              id="conjecture-author"
-              value={authorName}
-              onChange={(e) => setAuthorName(e.target.value)}
-            />
-          </Field>
-          <Field
-            label="Statement"
-            htmlFor="conjecture-statement"
-            hint="TeX math is welcome. At most 20,000 characters."
-          >
-            <textarea
-              id="conjecture-statement"
-              rows={6}
-              maxLength={20000}
-              value={statement}
-              onChange={(e) => setStatement(e.target.value)}
-            />
-          </Field>
-          {statement ? (
-            <div className="typed-statement-preview" aria-label="Statement preview">
-              <LatexText source={statement} />
-            </div>
-          ) : null}
-          <Field label="Background (optional)" htmlFor="conjecture-background">
-            <textarea
-              id="conjecture-background"
-              rows={4}
-              maxLength={50000}
-              value={background}
-              onChange={(e) => setBackground(e.target.value)}
-            />
-          </Field>
-          <Field
-            label="Origin (optional)"
-            htmlFor="conjecture-origin"
-            hint="My own, or a work or URL as you know it."
-          >
-            <input
-              id="conjecture-origin"
-              maxLength={2000}
-              value={origin}
-              onChange={(e) => setOrigin(e.target.value)}
-            />
-          </Field>
-        </>
-      ) : (
-        <>
-          <Field
-            label="LaTeX source"
-            htmlFor="source-file"
-            hint="A single .tex file, or a .zip or .tar.gz archive with the main file, bibliography and figures. At most 30 MB."
-          >
-            <input
-              id="source-file"
-              type="file"
-              accept={SOURCE_ACCEPT}
-              required
-              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-            />
-          </Field>
-          <Field
-            label="PDF manuscript or reading copy (optional)"
-            htmlFor="pdf-copy"
-            hint="Useful when your manuscript comes from Word or PDF. LaTeX is still required for automatic statement extraction, compilation and review. At most 30 MB."
-          >
-            <input
-              id="pdf-copy"
-              type="file"
-              accept="application/pdf,.pdf"
-              onChange={(e) => setPdfCopy(e.target.files?.[0] ?? null)}
-            />
-          </Field>
-          {pdfCopy ? (
-            <p className="small" aria-live="polite">
-              {pdfCopy.name} · {formatBytes(pdfCopy.size)}
-              {pdfProblem ? <span className="form-error"> — {pdfProblem}</span> : null}
-            </p>
-          ) : null}
-          <EvidencePicker value={evidence} onChange={setEvidence} />
-          {file ? (
-            <p className="small" aria-live="polite">
-              {file.name} · {formatBytes(file.size)}
-              {fileProblem ? <span className="form-error"> — {fileProblem}</span> : null}
-            </p>
-          ) : null}
-          <fieldset className="author-fields">
-            <legend>Authors (optional)</legend>
-            <p className="hint">
-              Leave this blank to read the author list from the manuscript. Add details here when
-              the PDF or source does not contain them; these entries replace the source author list.
-            </p>
-            {authors.map((author, index) => (
-              <AuthorFields
-                key={index}
-                index={index}
-                author={author}
-                canRemove={authors.length > 1}
-                onChange={(next) =>
-                  setAuthors((current) => current.map((item, i) => (i === index ? next : item)))
-                }
-                onRemove={() => setAuthors((current) => current.filter((_, i) => i !== index))}
+          <legend>What are you sharing?</legend>
+          {(['paper', 'note', 'conjecture'] as const).map((value) => (
+            <label key={value} className="radio">
+              <input
+                type="radio"
+                name="submission-kind"
+                checked={kind === value}
+                onChange={() => setKind(value)}
               />
-            ))}
-            <button
-              type="button"
-              className="button button-quiet button-small"
-              onClick={() => setAuthors((current) => [...current, emptyAuthor()])}
-            >
-              Add another author
-            </button>
+              <span>
+                {value === 'paper' ? 'Paper' : value === 'note' ? 'Short note' : 'Conjecture'}
+              </span>
+            </label>
+          ))}
+        </fieldset>
+        {kind === 'conjecture' ? (
+          <fieldset className="submission-choices">
+            <legend>How would you like to enter it?</legend>
+            <label className="radio">
+              <input
+                type="radio"
+                name="conjecture-mode"
+                checked={mode === 'upload'}
+                onChange={() => setMode('upload')}
+              />
+              Upload LaTeX
+            </label>
+            <label className="radio">
+              <input
+                type="radio"
+                name="conjecture-mode"
+                checked={mode === 'type'}
+                onChange={() => setMode('type')}
+              />
+              Type it
+            </label>
           </fieldset>
-        </>
-      )}
-      {!reviewOnly ? (
-        <label className="checkbox">
-          <input
-            type="checkbox"
-            checked={makePublic}
-            onChange={(e) => setMakePublic(e.target.checked)}
+        ) : null}
+        {typed ? (
+          <>
+            <Field label="Title" htmlFor="conjecture-title">
+              <input
+                id="conjecture-title"
+                value={title}
+                maxLength={1000}
+                onChange={(e) => setTitle(e.target.value)}
+              />
+            </Field>
+            <Field label="Author" htmlFor="conjecture-author">
+              <input
+                id="conjecture-author"
+                value={authorName}
+                onChange={(e) => setAuthorName(e.target.value)}
+              />
+            </Field>
+            <Field
+              label="Statement"
+              htmlFor="conjecture-statement"
+              hint="TeX math is welcome. At most 20,000 characters."
+            >
+              <textarea
+                id="conjecture-statement"
+                rows={6}
+                maxLength={20000}
+                value={statement}
+                onChange={(e) => setStatement(e.target.value)}
+              />
+            </Field>
+            {statement ? (
+              <div className="typed-statement-preview" aria-label="Statement preview">
+                <LatexText source={statement} />
+              </div>
+            ) : null}
+            <Field label="Background (optional)" htmlFor="conjecture-background">
+              <textarea
+                id="conjecture-background"
+                rows={4}
+                maxLength={50000}
+                value={background}
+                onChange={(e) => setBackground(e.target.value)}
+              />
+            </Field>
+            <Field
+              label="Origin (optional)"
+              htmlFor="conjecture-origin"
+              hint="My own, or a work or URL as you know it."
+            >
+              <input
+                id="conjecture-origin"
+                maxLength={2000}
+                value={origin}
+                onChange={(e) => setOrigin(e.target.value)}
+              />
+            </Field>
+          </>
+        ) : (
+          <>
+            <Field
+              label="LaTeX source"
+              htmlFor="source-file"
+              hint="A single .tex file, or a .zip or .tar.gz archive with the main file, bibliography and figures. At most 30 MB."
+            >
+              <input
+                id="source-file"
+                type="file"
+                accept={SOURCE_ACCEPT}
+                required
+                onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+              />
+            </Field>
+            <Field
+              label="PDF manuscript or reading copy (optional)"
+              htmlFor="pdf-copy"
+              hint="Useful when your manuscript comes from Word or PDF. LaTeX is still required for automatic statement extraction, compilation and review. At most 30 MB."
+            >
+              <input
+                id="pdf-copy"
+                type="file"
+                accept="application/pdf,.pdf"
+                onChange={(e) => setPdfCopy(e.target.files?.[0] ?? null)}
+              />
+            </Field>
+            {pdfCopy ? (
+              <p className="small" aria-live="polite">
+                {pdfCopy.name} · {formatBytes(pdfCopy.size)}
+                {pdfProblem ? <span className="form-error"> — {pdfProblem}</span> : null}
+              </p>
+            ) : null}
+            <EvidencePicker value={evidence} onChange={setEvidence} />
+            {file ? (
+              <p className="small" aria-live="polite">
+                {file.name} · {formatBytes(file.size)}
+                {fileProblem ? <span className="form-error"> — {fileProblem}</span> : null}
+              </p>
+            ) : null}
+            <fieldset className="author-fields">
+              <legend>Authors (optional)</legend>
+              <p className="hint">
+                Leave this blank to read the author list from the manuscript. Add details here when
+                the PDF or source does not contain them; these entries replace the source author
+                list.
+              </p>
+              {authors.map((author, index) => (
+                <AuthorFields
+                  key={index}
+                  index={index}
+                  author={author}
+                  canRemove={authors.length > 1}
+                  onChange={(next) =>
+                    setAuthors((current) => current.map((item, i) => (i === index ? next : item)))
+                  }
+                  onRemove={() => setAuthors((current) => current.filter((_, i) => i !== index))}
+                />
+              ))}
+              <button
+                type="button"
+                className="button button-quiet button-small"
+                onClick={() => setAuthors((current) => [...current, emptyAuthor()])}
+              >
+                Add another author
+              </button>
+            </fieldset>
+          </>
+        )}
+      </section>
+      <section className="submission-options" aria-labelledby="review-options-heading">
+        <h2 id="review-options-heading">Review & publication</h2>
+        <Field
+          label="What should the review focus on? (optional)"
+          htmlFor="review-scope"
+          hint="Name the statements, proof steps or literature questions that matter most. All confirmed statements still receive an audit reading."
+        >
+          <textarea
+            id="review-scope"
+            maxLength={5000}
+            rows={3}
+            value={reviewScope}
+            onChange={(e) => setReviewScope(e.target.value)}
           />
-          <span>Make public after acceptance</span>
-        </label>
-      ) : null}
-      <p className="hint">Reviews and letters are only shown to you.</p>
-
-      <fieldset className="radio-list">
-        <legend>AI use in this work</legend>
-        <p className="hint">
-          Choose the closest description. Add fuller disclosure directly in the manuscript if
-          needed.
-        </p>
-        {AI_USES.map((level) => (
-          <label key={level} className="radio">
+        </Field>
+        {!reviewOnly ? (
+          <label className="checkbox">
             <input
-              type="radio"
-              name="ai-level"
-              value={level}
-              checked={aiLevel === level}
-              onChange={() => setAiLevel(level)}
+              type="checkbox"
+              checked={makePublic}
+              onChange={(e) => setMakePublic(e.target.checked)}
+            />
+            <span>Make public after acceptance</span>
+          </label>
+        ) : null}
+        <p className="hint">Reviews and letters are only shown to you.</p>
+
+        <fieldset className="radio-list">
+          <legend>AI use in this work</legend>
+          <p className="hint">
+            Choose the closest description. Add fuller disclosure directly in the manuscript if
+            needed.
+          </p>
+          {AI_USES.map((level) => (
+            <label key={level} className="radio">
+              <input
+                type="radio"
+                name="ai-level"
+                value={level}
+                checked={aiLevel === level}
+                onChange={() => setAiLevel(level)}
+              />
+              <span>
+                <strong>{AI_USE_LABELS[level]}</strong> — {AI_USE_DESCRIPTIONS[level]}
+              </span>
+            </label>
+          ))}
+        </fieldset>
+
+        <div className="form-row">
+          <Field label="MSC 2020 codes (optional)" htmlFor="msc" hint="e.g. 11B83, 05D10">
+            <input id="msc" value={msc} onChange={(e) => setMsc(e.target.value)} />
+          </Field>
+          <Field
+            label="DOI (optional)"
+            htmlFor="doi"
+            hint="If the paper already has one, e.g. 10.48550/arXiv.2609.33421"
+          >
+            <input id="doi" value={doi} onChange={(e) => setDoi(e.target.value)} />
+          </Field>
+        </div>
+
+        {!reviewOnly ? (
+          <label className="checkbox">
+            <input
+              type="checkbox"
+              checked={openToContributors}
+              onChange={(e) => setOpen(e.target.checked)}
             />
             <span>
-              <strong>{AI_USE_LABELS[level]}</strong> — {AI_USE_DESCRIPTIONS[level]}
+              Let volunteer contributors help analyse the paper. They will see the statements, the
+              title and the abstract while the paper is in review. You can change this later.
             </span>
           </label>
-        ))}
-      </fieldset>
+        ) : null}
 
-      <div className="form-row">
-        <Field label="MSC 2020 codes (optional)" htmlFor="msc" hint="e.g. 11B83, 05D10">
-          <input id="msc" value={msc} onChange={(e) => setMsc(e.target.value)} />
-        </Field>
-        <Field
-          label="DOI (optional)"
-          htmlFor="doi"
-          hint="If the paper already has one, e.g. 10.48550/arXiv.2609.33421"
-        >
-          <input id="doi" value={doi} onChange={(e) => setDoi(e.target.value)} />
-        </Field>
-      </div>
-
-      {!reviewOnly ? (
         <label className="checkbox">
           <input
             type="checkbox"
-            checked={openToContributors}
-            onChange={(e) => setOpen(e.target.checked)}
+            checked={consent}
+            onChange={(e) => setConsent(e.target.checked)}
+            required
           />
-          <span>
-            Let volunteer contributors help analyse the paper. They will see the statements, the
-            title and the abstract while the paper is in review. You can change this later.
-          </span>
+          <span>{PROCESSING_CONSENT_TEXT}</span>
         </label>
-      ) : null}
-
-      <label className="checkbox">
-        <input
-          type="checkbox"
-          checked={consent}
-          onChange={(e) => setConsent(e.target.checked)}
-          required
-        />
-        <span>{PROCESSING_CONSENT_TEXT}</span>
-      </label>
-      <div className="button-row">
-        <button type="submit" className="button" disabled={busy}>
-          {busy ? 'Uploading…' : 'Upload and read statements'}
-        </button>
-      </div>
-      <InlineError error={error} />
+        <div className="button-row">
+          <button type="submit" className="button" disabled={busy}>
+            {busy ? 'Uploading…' : 'Upload and read statements'}
+          </button>
+        </div>
+        <InlineError error={error} />
+      </section>
     </form>
   );
 }
