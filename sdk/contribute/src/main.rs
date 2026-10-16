@@ -72,6 +72,44 @@ fn main() -> ExitCode {
         ["papers", query] => print(client.papers(&serde_json::json!({"q": query}))),
         ["paper", record] => print(client.paper(record)),
         ["review", id] => print(client.review(id)),
+        ["feedback-observation", id, key, request] => {
+            print(client.feedback_observation(id, key, request))
+        }
+        ["feedbacks", id] => print(client.feedbacks(id)),
+        ["feedback", id, key] => print(client.feedback(id, key)),
+        ["export-feedback", id, key] => print(client.export_feedback(id, key)),
+        ["revoke-feedback", id, key, reason] => print(client.revoke_feedback(id, key, reason)),
+        [
+            command @ ("preview-feedback" | "prepare-feedback"),
+            id,
+            file,
+        ] => match read_json(file) {
+            Ok(body) => print(if *command == "preview-feedback" {
+                client.preview_feedback(id, &body)
+            } else {
+                client.prepare_feedback(id, &body)
+            }),
+            Err(error) => {
+                eprintln!("{error}");
+                ExitCode::FAILURE
+            }
+        },
+        [
+            command @ ("authorize-feedback" | "feedback-readback"),
+            id,
+            key,
+            file,
+        ] => match read_json(file) {
+            Ok(body) => print(if *command == "authorize-feedback" {
+                client.authorize_feedback(id, key, &body)
+            } else {
+                client.feedback_readback(id, key, &body)
+            }),
+            Err(error) => {
+                eprintln!("{error}");
+                ExitCode::FAILURE
+            }
+        },
         ["knowledge-capabilities"] => print(client.knowledge_capabilities()),
         ["binding-profile", person] => print(client.binding_profile(person, None)),
         ["binding-profile", person, before] => print(client.binding_profile(person, Some(before))),
@@ -246,7 +284,7 @@ fn main() -> ExitCode {
         },
         _ => {
             eprintln!(
-                "usage: mathesis-contribute formalization-opportunities [query] | formalizations | formalization-project <id> | papers [query] | paper <record> | review <submission-id> | knowledge-capabilities | binding-profile <person> [cursor] | bindings [cursor] | private-bindings <submission-id> | binding <submission-id> <board-id> | publish-binding <submission-id> <summary.json> | revoke-binding <submission-id> <board-id> <reason> | contribute-binding <submission-id> <board-id> <binding.json> | challenge-binding <submission-id> <board-id> <challenge.json> | research <submission-id> | adopt-research <submission-id> <obligation.json> | research-attempt <submission-id> <obligation-id> <attempt.json> | research-attempt-status <submission-id> <obligation-id> <attempt-id> | recheck-research <submission-id> <obligation-id> <attempt-id> | stop-research <submission-id> <obligation-id> <reason> | knowledge-response <submission-id> <receipt-id> | respond-review <submission-id> <response.json> | verification-bundle <record> <claim> <attempt> | preflight-formalization <deposit.json> | submit-formalization <deposit.json> | formalization <id> | verify-formalization <id> <record> <claim> [Solution.lean] | conjectures | target <record> <claim> | attempt <record> <claim> <file> [--as-agent NAME] | attempt-status <id> | report <record> <report.json> | report-status <id> | tasks [kind] | show <task> | lease <task> | release <task> | submit <task> <result.json> | mcp"
+                "usage: mathesis-contribute formalization-opportunities [query] | formalizations | formalization-project <id> | papers [query] | paper <record> | review <submission-id> | feedbacks <submission> | feedback <submission> <proposal> | preview-feedback <submission> <route.json> | prepare-feedback <submission> <proposal.json> | authorize-feedback <submission> <proposal> <authorization.json> | revoke-feedback <submission> <proposal> <reason> | export-feedback <submission> <proposal> | feedback-readback <submission> <proposal> <observation.json> | feedback-observation <submission> <proposal> <request> | knowledge-capabilities | binding-profile <person> [cursor] | bindings [cursor] | private-bindings <submission-id> | binding <submission-id> <board-id> | publish-binding <submission-id> <summary.json> | revoke-binding <submission-id> <board-id> <reason> | contribute-binding <submission-id> <board-id> <binding.json> | challenge-binding <submission-id> <board-id> <challenge.json> | research <submission-id> | adopt-research <submission-id> <obligation.json> | research-attempt <submission-id> <obligation-id> <attempt.json> | research-attempt-status <submission-id> <obligation-id> <attempt-id> | recheck-research <submission-id> <obligation-id> <attempt-id> | stop-research <submission-id> <obligation-id> <reason> | knowledge-response <submission-id> <receipt-id> | respond-review <submission-id> <response.json> | verification-bundle <record> <claim> <attempt> | preflight-formalization <deposit.json> | submit-formalization <deposit.json> | formalization <id> | verify-formalization <id> <record> <claim> [Solution.lean] | conjectures | target <record> <claim> | attempt <record> <claim> <file> [--as-agent NAME] | attempt-status <id> | report <record> <report.json> | report-status <id> | tasks [kind] | show <task> | lease <task> | release <task> | submit <task> <result.json> | mcp"
             );
             ExitCode::from(2)
         }
@@ -358,7 +396,16 @@ mod tests {
                 "publish-binding",
                 "revoke-binding",
                 "contribute-binding",
-                "challenge-binding"
+                "challenge-binding",
+                "feedbacks",
+                "feedback",
+                "preview-feedback",
+                "prepare-feedback",
+                "authorize-feedback",
+                "revoke-feedback",
+                "export-feedback",
+                "feedback-readback",
+                "feedback-observation"
             ]
         );
         assert!(

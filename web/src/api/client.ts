@@ -1,3 +1,11 @@
+import type {
+  FeedbackKind,
+  FeedbackPreview,
+  FeedbackProposal,
+  FeedbackView,
+  FeedbackExport,
+  FeedbackReadbackRequest,
+} from './types';
 import type { BindingProfileEntry } from './types';
 import type {
   PrivateBindingView,
@@ -245,6 +253,27 @@ export function versionBody(source: File, note: string, processingConsent?: stri
 }
 
 export interface ApiClient {
+  feedbackObservation(
+    id: string,
+    key: string,
+    request: string,
+    o?: RequestOptions,
+  ): Promise<Record<string, unknown>>;
+  feedbacks(id: string, o?: RequestOptions): Promise<FeedbackProposal[]>;
+  feedback(id: string, key: string, o?: RequestOptions): Promise<FeedbackView>;
+  previewFeedback(id: string, input: FeedbackKind): Promise<FeedbackPreview>;
+  prepareFeedback(
+    id: string,
+    input: { kind: FeedbackKind; preview_digest: string; preparation_consent: string },
+  ): Promise<FeedbackView>;
+  authorizeFeedback(
+    id: string,
+    key: string,
+    input: { digest: string; license: string; consent: string; rights_asserted: boolean },
+  ): Promise<FeedbackView>;
+  revokeFeedback(id: string, key: string, reason: string): Promise<{ revoked: boolean }>;
+  exportFeedback(id: string, key: string): Promise<FeedbackExport>;
+  feedbackReadback(id: string, key: string, input: FeedbackReadbackRequest): Promise<FeedbackView>;
   bindingProfile(
     person: string,
     before?: string,
@@ -475,6 +504,19 @@ export function createApiClient(fetchImpl: FetchLike = (input, init) => fetch(in
   const page = (p: PageParams) => ({ before: p.before, limit: p.limit });
 
   const client: ApiClient = {
+    feedbackObservation: (id, key, r, o) =>
+      request('GET', sub(id, `/feedback/${seg(key)}/observations/${seg(r)}`), undefined, o),
+    feedbacks: (id, o) => request('GET', sub(id, '/feedback'), undefined, o),
+    feedback: (id, key, o) => request('GET', sub(id, `/feedback/${seg(key)}`), undefined, o),
+    previewFeedback: (id, input) => request('POST', sub(id, '/feedback/preview'), input),
+    prepareFeedback: (id, input) => request('POST', sub(id, '/feedback'), input),
+    authorizeFeedback: (id, key, input) =>
+      request('POST', sub(id, `/feedback/${seg(key)}/authorize`), input),
+    revokeFeedback: (id, key, reason) =>
+      request('POST', sub(id, `/feedback/${seg(key)}/revoke`), { reason }),
+    exportFeedback: (id, key) => request('POST', sub(id, `/feedback/${seg(key)}/export`), {}),
+    feedbackReadback: (id, key, input) =>
+      request('POST', sub(id, `/feedback/${seg(key)}/readback`), input),
     bindingProfile: (person, before, o) =>
       request(
         'GET',

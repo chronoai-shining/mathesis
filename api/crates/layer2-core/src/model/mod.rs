@@ -69,3 +69,6 @@ pub use knowledge_capabilities::*;
 
 mod binding;
 pub use binding::*;
+
+mod feedback;
+pub use feedback::*;

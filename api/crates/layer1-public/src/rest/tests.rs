@@ -1218,3 +1218,184 @@ async fn binding_routes_hide_private_inspections_reject_client_verdicts_and_enfo
     let (_, profile, _) = call(&router, "GET", "/binding-contributors/outsider", None, None).await;
     assert!(profile["items"].as_array().unwrap().is_empty());
 }
+
+#[tokio::test]
+async fn feedback_routes_require_exact_rights_and_never_accept_an_observation_verdict() {
+    use mathesis_core::{
+        ids::SubmissionId,
+        model::*,
+        ports::{RecordStore, SubmissionStore},
+    };
+    let stores = Arc::new(MemoryStores::default());
+    let app = App::new(
+        stores.ports(Arc::new(SystemClock), Arc::new(OneTheorem)),
+        Policy::default(),
+        BTreeSet::new(),
+    );
+    let router =
+        crate::router(app.clone()).layer(middleware::from_fn_with_state(app.clone(), test_auth));
+    let (_, uploaded, _) = upload(&router, "author", b"paper").await;
+    let id = SubmissionId::from(uploaded["id"].as_str().unwrap());
+    let mut p = SubmissionStore::get(stores.as_ref(), &id)
+        .await
+        .unwrap()
+        .unwrap();
+    p.status = SubmissionStatus::Accepted {
+        record: "WP-2026-0001".into(),
+    };
+    p.analysis_visibility = Visibility::Public;
+    p.claims = p.extracted.clone();
+    p.claims_revision = 1;
+    p.reports.push(StageReport {
+        stage: Stage::Escape,
+        outcome: Outcome::Pass,
+        summary: "PRIVATE summary".into(),
+        payload: StagePayload::Escape {
+            assessments: vec![EscapeAssessment {
+                methodology: None,
+                conjecture: None,
+                correctness: Some(Correctness::Correct),
+                claim: p.claims[0].id.clone(),
+                shape: ProofShape::Content,
+                witnesses: vec!["Public content witness".into()],
+                rationale: "PRIVATE rationale".into(),
+                escape_rate: None,
+            }],
+        },
+        evidence: vec![],
+        reviewer: ReviewerIdentity::Human {
+            person: "fixture-editor".into(),
+        },
+        claims_revision: 1,
+        filed_at: mathesis_core::ports::Clock::now(&SystemClock),
+    });
+    SubmissionStore::replace(stores.as_ref(), &p, p.revision)
+        .await
+        .unwrap();
+    RecordStore::insert(
+        stores.as_ref(),
+        &Record {
+            kind: p.kind,
+            id: "WP-2026-0001".into(),
+            publication: None,
+            submission: id.clone(),
+            title: p.title.clone(),
+            authors: p.authors.clone(),
+            basis: mathesis_core::policy::AdmissionBasis::EscapeWitness,
+            accepted_by: "fixture-editor".into(),
+            accepted_at: mathesis_core::ports::Clock::now(&SystemClock),
+        },
+    )
+    .await
+    .unwrap();
+    let path = format!("/submissions/{id}/feedback");
+    let kind =
+        serde_json::json!({"kind":"witness_formalization","claim":p.claims[0].id,"witness":0});
+    assert_eq!(
+        call(&router, "GET", &path, None, None).await.0,
+        StatusCode::UNAUTHORIZED
+    );
+    assert_eq!(
+        call(
+            &router,
+            "POST",
+            &format!("{path}/preview"),
+            Some("outsider"),
+            Some(kind.clone())
+        )
+        .await
+        .0,
+        StatusCode::NOT_FOUND
+    );
+    let (status, preview, _) = call(
+        &router,
+        "POST",
+        &format!("{path}/preview"),
+        Some("author"),
+        Some(kind.clone()),
+    )
+    .await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(!preview.to_string().contains("PRIVATE"));
+    let (status,v,_)=call(&router,"POST",&path,Some("author"),Some(serde_json::json!({"kind":kind,"preview_digest":preview["digest"],"preparation_consent":FEEDBACK_PREPARATION_CONSENT}))).await;
+    assert_eq!(status, StatusCode::OK);
+    let key = v["proposal"]["id"].as_str().unwrap();
+    let item = format!("{path}/{key}");
+    assert_eq!(
+        call(&router, "GET", &item, Some("outsider"), None).await.0,
+        StatusCode::NOT_FOUND
+    );
+    assert_eq!(
+        call(
+            &router,
+            "POST",
+            &format!("{item}/export"),
+            Some("author"),
+            None
+        )
+        .await
+        .0,
+        StatusCode::CONFLICT
+    );
+    let grant = serde_json::json!({"digest":preview["digest"],"license":FEEDBACK_LICENSE,"consent":FEEDBACK_EXPORT_CONSENT,"rights_asserted":true});
+    assert_eq!(
+        call(
+            &router,
+            "POST",
+            &format!("{item}/authorize"),
+            Some("author"),
+            Some(grant)
+        )
+        .await
+        .0,
+        StatusCode::OK
+    );
+    let (status, export, _) = call(
+        &router,
+        "POST",
+        &format!("{item}/export"),
+        Some("author"),
+        None,
+    )
+    .await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(export["payload"], preview["payload"]);
+    assert!(!export.to_string().contains("PRIVATE"));
+    assert_eq!(call(&router,"POST",&format!("{item}/readback"),Some("author"),Some(serde_json::json!({"pull_request":9,"index_revision":format!("sha256:{}","a".repeat(64)),"declarations":[],"observation_key":"x","merged":true}))).await.0,StatusCode::UNPROCESSABLE_ENTITY);
+    assert_eq!(
+        call(
+            &router,
+            "POST",
+            &format!("{item}/observed"),
+            Some("author"),
+            Some(serde_json::json!({"accepted":true}))
+        )
+        .await
+        .0,
+        StatusCode::NOT_FOUND
+    );
+    assert_eq!(
+        call(
+            &router,
+            "POST",
+            &format!("{item}/revoke"),
+            Some("author"),
+            Some(serde_json::json!({"reason":"Stop new exports"}))
+        )
+        .await
+        .0,
+        StatusCode::OK
+    );
+    assert_eq!(
+        call(
+            &router,
+            "POST",
+            &format!("{item}/export"),
+            Some("author"),
+            None
+        )
+        .await
+        .0,
+        StatusCode::CONFLICT
+    );
+}

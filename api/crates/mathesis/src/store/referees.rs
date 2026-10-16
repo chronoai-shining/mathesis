@@ -22,6 +22,7 @@ impl MongoStore {
         if bytes.len() <= INLINE_BYTES {
             let mut document = to_document(file)?;
             document.insert("binding_directory", !file.binding_boards.is_empty());
+            document.insert("feedback_directory", !file.feedback_proposals.is_empty());
             return Ok((document, None));
         }
         let snapshot =
@@ -29,6 +30,7 @@ impl MongoStore {
         let document = doc! {
             "id": file.id.as_str(),
             "binding_directory": !file.binding_boards.is_empty(),
+            "feedback_directory": !file.feedback_proposals.is_empty(),
             "revision": file.revision as i64,
             "storage_format": "gridfs-json-v1",
             "snapshot": to_document(&snapshot)?,
@@ -172,6 +174,47 @@ impl RefereeStore for MongoStore {
                     .map(|s| SubmissionId(s.into()))
                     .map_err(|_| {
                         CoreError::Unavailable("invalid binding directory identity".into())
+                    })
+            })
+            .collect::<CoreResult<Vec<_>>>()?;
+        let more = items.len() > limit as usize;
+        items.truncate(limit as usize);
+        let next_before = if more {
+            items.last().map(ToString::to_string)
+        } else {
+            None
+        };
+        Ok(Listing { items, next_before })
+    }
+
+    async fn feedback_sources(
+        &self,
+        limit: u32,
+        before: Option<String>,
+    ) -> CoreResult<Listing<SubmissionId>> {
+        use futures::TryStreamExt;
+        let mut filter = doc! {"feedback_directory":true};
+        if let Some(before) = before {
+            filter.insert("id", doc! {"$lt":before});
+        }
+        let docs = self
+            .raw(REFEREE_FILES)
+            .find(filter)
+            .projection(doc! {"id":1,"_id":0})
+            .sort(doc! {"id":-1})
+            .limit(i64::from(limit) + 1)
+            .await
+            .map_err(unavailable)?
+            .try_collect::<Vec<_>>()
+            .await
+            .map_err(unavailable)?;
+        let mut items = docs
+            .into_iter()
+            .map(|d| {
+                d.get_str("id")
+                    .map(|s| SubmissionId(s.into()))
+                    .map_err(|_| {
+                        CoreError::Unavailable("invalid feedback directory identity".into())
                     })
             })
             .collect::<CoreResult<Vec<_>>>()?;

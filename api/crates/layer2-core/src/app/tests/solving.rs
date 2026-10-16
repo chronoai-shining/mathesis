@@ -33,7 +33,7 @@ impl Verifier for FakeVerifier {
     }
 }
 use sha2::Digest;
-async fn world(limit: usize) -> World {
+pub(super) async fn world(limit: usize) -> World {
     let stores = Arc::new(MemoryStores::default());
     let mut ports = stores.ports(Arc::new(SystemClock), Arc::new(FakeReader));
     ports.verifier = Arc::new(FakeVerifier);
@@ -47,7 +47,11 @@ async fn world(limit: usize) -> World {
         stores,
     }
 }
-async fn target(w: &World, author: &Caller, reviewer: &Caller) -> (Submission, RecordId) {
+pub(super) async fn target(
+    w: &World,
+    author: &Caller,
+    reviewer: &Caller,
+) -> (Submission, RecordId) {
     let paper = displayed_conjecture(w, author, reviewer).await;
     let s = w
         .app

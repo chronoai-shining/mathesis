@@ -3,6 +3,7 @@ import type { TaskKind } from '../api/types';
 export type Route =
   | { kind: 'home' }
   | { kind: 'bindings' }
+  | { kind: 'feedback'; id: string; key: string }
   | { kind: 'binding_profile'; person: string }
   | { kind: 'binding'; id: string; key: string }
   | { kind: 'papers' }
@@ -112,6 +113,8 @@ export function parseRoute(pathname: string, search = ''): Route {
   }
   if (segments.length === 4 && first === 'papers' && segments[2] === 'statements')
     return { kind: 'statement', record: second as string, claim: segments[3] as string };
+  if (segments.length === 3 && first === 'feedback')
+    return { kind: 'feedback', id: second as string, key: segments[2] as string };
   if (segments.length === 3 && first === 'bindings')
     return { kind: 'binding', id: second as string, key: segments[2] as string };
   if (segments.length === 3 && first === 'conjectures')
@@ -139,6 +142,8 @@ const seg = encodeURIComponent;
 
 export function routePath(route: Route): string {
   switch (route.kind) {
+    case 'feedback':
+      return `/feedback/${seg(route.id)}/${seg(route.key)}`;
     case 'binding_profile':
       return `/binding-contributors/${seg(route.person)}`;
     case 'bindings':

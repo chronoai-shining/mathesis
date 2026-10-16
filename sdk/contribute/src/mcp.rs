@@ -12,6 +12,7 @@ const PROTOCOL_VERSION: &str = "2025-06-18";
 
 fn tools() -> Value {
     let string = |description: &str| json!({ "type": "string", "description": description });
+    let mut feedback_tools = json!([{"name": "feedbacks", "description": "List private immutable proposals and their authorization/observation history", "inputSchema": {"type": "object", "properties": {"id": {"type": "string"}}, "required": ["id"]}}, {"name": "feedback", "description": "Read the exact package as a rights holder or author/staff; inactive payloads are withheld", "inputSchema": {"type": "object", "properties": {"id": {"type": "string"}, "key": {"type": "string"}}, "required": ["id", "key"]}}, {"name": "preview-feedback", "description": "Submitter previews a six-channel proposal from current public evidence; route is a FeedbackKind object", "inputSchema": {"type": "object", "properties": {"id": {"type": "string"}, "route": {"type": "object"}}, "required": ["id", "route"]}}, {"name": "prepare-feedback", "description": "Prepare only after exact digest preview and feedback-prepare-2026-10-16 consent; does not authorize export", "inputSchema": {"type": "object", "properties": {"id": {"type": "string"}, "proposal": {"type": "object"}}, "required": ["id", "proposal"]}}, {"name": "authorize-feedback", "description": "Required rights holder separately asserts rights and approves the exact digest under Apache-2.0 and feedback-export-2026-10-16; no automatic consent", "inputSchema": {"type": "object", "properties": {"id": {"type": "string"}, "key": {"type": "string"}, "authorization": {"type": "object"}}, "required": ["id", "key", "authorization"]}}, {"name": "revoke-feedback", "description": "A required rights holder stops new serving/export/readback; issued licenses and history persist", "inputSchema": {"type": "object", "properties": {"id": {"type": "string"}, "key": {"type": "string"}, "reason": {"type": "string"}}, "required": ["id", "key", "reason"]}}, {"name": "export-feedback", "description": "Download the exact licensed package after all signatures; performs no upstream write", "inputSchema": {"type": "object", "properties": {"id": {"type": "string"}, "key": {"type": "string"}}, "required": ["id", "key"]}}, {"name": "feedback-readback", "description": "Request actual read-only observation of an upstream PR and exact admitted source declarations; accepts no success claim", "inputSchema": {"type": "object", "properties": {"id": {"type": "string"}, "key": {"type": "string"}, "observation": {"type": "object"}}, "required": ["id", "key", "observation"]}}]);
     let binding_tools = json!([
         {"name":"binding-profile","description":"Read current public contributions and effective binding credit with permanent discussion/contribution identities; revoked/private sources are excluded.","inputSchema":{"type":"object","properties":{"person":{"type":"string"},"before":{"type":"string"}},"required":["person"]}},
         {"name": "bindings", "description": "List current author-approved public binding summaries", "inputSchema": {"type": "object", "properties": {"before": {"type": "string"}}, "required": []}},
@@ -86,10 +87,15 @@ fn tools() -> Value {
             "inputSchema": { "type": "object", "properties": { "task_id": string("Task id") }, "required": ["task_id"] }
         }
     ]);
+    feedback_tools.as_array_mut().unwrap().push(json!({"name":"feedback-observation","description":"Read checksummed raw observation evidence as an authorized rights holder or author/staff","inputSchema":{"type":"object","properties":{"id":{"type":"string"},"key":{"type":"string"},"request":{"type":"string"}},"required":["id","key","request"]}}));
     common
         .as_array_mut()
         .unwrap()
         .extend(binding_tools.as_array().unwrap().iter().cloned());
+    common
+        .as_array_mut()
+        .unwrap()
+        .extend(feedback_tools.as_array().unwrap().iter().cloned());
     common
 }
 
@@ -112,6 +118,15 @@ fn call(client: &Client, name: &str, args: &Value) -> Result<Value, String> {
         "papers" => client.papers(args),
         "paper" => client.paper(required("record")?),
         "review" => client.review(required("id")?),
+        "feedback-observation"=>client.feedback_observation(required("id")?,required("key")?,required("request")?),
+        "feedbacks"=>client.feedbacks(required("id")?),
+        "feedback"=>client.feedback(required("id")?,required("key")?),
+        "preview-feedback"=>client.preview_feedback(required("id")?,&args["route"]),
+        "prepare-feedback"=>client.prepare_feedback(required("id")?,&args["proposal"]),
+        "authorize-feedback"=>client.authorize_feedback(required("id")?,required("key")?,&args["authorization"]),
+        "revoke-feedback"=>client.revoke_feedback(required("id")?,required("key")?,required("reason")?),
+        "export-feedback"=>client.export_feedback(required("id")?,required("key")?),
+        "feedback-readback"=>client.feedback_readback(required("id")?,required("key")?,&args["observation"]),
         "knowledge-capabilities" => client.knowledge_capabilities(),
         "binding-profile" => client.binding_profile(required("person")?,args["before"].as_str()),
         "bindings" => client.bindings(args["before"].as_str()),

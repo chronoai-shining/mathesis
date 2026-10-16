@@ -2148,6 +2148,487 @@
           }
         }
       }
+    },
+    "/submissions/{id}/feedback": {
+      "get": {
+        "summary": "List private proposal authorization and observation history",
+        "description": "No upstream writes. Separate Apache-2.0 export consent is required from every listed owner. Source versions, payload digests, current evidence and revocation are rechecked. Readback records PR merge, source ancestry, exact declarations, explicit module provenance and original freeze status separately; no client success, equivalence, registration or freeze claim is accepted. Previously issued licenses and append-only history persist.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current protected result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FeedbackProposal"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sign in required"
+          },
+          "404": {
+            "description": "Not available to caller or source inaccessible"
+          },
+          "409": {
+            "description": "Evidence changed, consent missing or history full"
+          },
+          "422": {
+            "description": "Invalid input"
+          }
+        }
+      },
+      "post": {
+        "summary": "Prepare the exact previewed immutable proposal",
+        "description": "No upstream writes. Separate Apache-2.0 export consent is required from every listed owner. Source versions, payload digests, current evidence and revocation are rechecked. Readback records PR merge, source ancestry, exact declarations, explicit module provenance and original freeze status separately; no client success, equivalence, registration or freeze claim is accepted. Previously issued licenses and append-only history persist.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current protected result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackView"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sign in required"
+          },
+          "404": {
+            "description": "Not available to caller or source inaccessible"
+          },
+          "409": {
+            "description": "Evidence changed, consent missing or history full"
+          },
+          "422": {
+            "description": "Invalid input"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewFeedbackProposal"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/submissions/{id}/feedback/preview": {
+      "post": {
+        "summary": "Preview a proposal from current accepted public evidence",
+        "description": "No upstream writes. Separate Apache-2.0 export consent is required from every listed owner. Source versions, payload digests, current evidence and revocation are rechecked. Readback records PR merge, source ancestry, exact declarations, explicit module provenance and original freeze status separately; no client success, equivalence, registration or freeze claim is accepted. Previously issued licenses and append-only history persist.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current protected result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackPreview"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sign in required"
+          },
+          "404": {
+            "description": "Not available to caller or source inaccessible"
+          },
+          "409": {
+            "description": "Evidence changed, consent missing or history full"
+          },
+          "422": {
+            "description": "Invalid input"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FeedbackKind"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/submissions/{id}/feedback/{key}": {
+      "get": {
+        "summary": "Rights holders inspect the exact current proposal; authors retain private history",
+        "description": "No upstream writes. Separate Apache-2.0 export consent is required from every listed owner. Source versions, payload digests, current evidence and revocation are rechecked. Readback records PR merge, source ancestry, exact declarations, explicit module provenance and original freeze status separately; no client success, equivalence, registration or freeze claim is accepted. Previously issued licenses and append-only history persist.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current protected result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackView"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sign in required"
+          },
+          "404": {
+            "description": "Not available to caller or source inaccessible"
+          },
+          "409": {
+            "description": "Evidence changed, consent missing or history full"
+          },
+          "422": {
+            "description": "Invalid input"
+          }
+        }
+      }
+    },
+    "/submissions/{id}/feedback/{key}/authorize": {
+      "post": {
+        "summary": "Required rights holder approves the exact digest and asserts applicable rights",
+        "description": "No upstream writes. Separate Apache-2.0 export consent is required from every listed owner. Source versions, payload digests, current evidence and revocation are rechecked. Readback records PR merge, source ancestry, exact declarations, explicit module provenance and original freeze status separately; no client success, equivalence, registration or freeze claim is accepted. Previously issued licenses and append-only history persist.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current protected result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackView"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sign in required"
+          },
+          "404": {
+            "description": "Not available to caller or source inaccessible"
+          },
+          "409": {
+            "description": "Evidence changed, consent missing or history full"
+          },
+          "422": {
+            "description": "Invalid input"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FeedbackAuthorization"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/submissions/{id}/feedback/{key}/export": {
+      "post": {
+        "summary": "Download only after all required exact authorizations",
+        "description": "No upstream writes. Separate Apache-2.0 export consent is required from every listed owner. Source versions, payload digests, current evidence and revocation are rechecked. Readback records PR merge, source ancestry, exact declarations, explicit module provenance and original freeze status separately; no client success, equivalence, registration or freeze claim is accepted. Previously issued licenses and append-only history persist.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current protected result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackExport"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sign in required"
+          },
+          "404": {
+            "description": "Not available to caller or source inaccessible"
+          },
+          "409": {
+            "description": "Evidence changed, consent missing or history full"
+          },
+          "422": {
+            "description": "Invalid input"
+          }
+        }
+      }
+    },
+    "/submissions/{id}/feedback/{key}/revoke": {
+      "post": {
+        "summary": "A rights holder revokes new serving, exports and observations",
+        "description": "No upstream writes. Separate Apache-2.0 export consent is required from every listed owner. Source versions, payload digests, current evidence and revocation are rechecked. Readback records PR merge, source ancestry, exact declarations, explicit module provenance and original freeze status separately; no client success, equivalence, registration or freeze claim is accepted. Previously issued licenses and append-only history persist.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current protected result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "revoked": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "revoked"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sign in required"
+          },
+          "404": {
+            "description": "Not available to caller or source inaccessible"
+          },
+          "409": {
+            "description": "Evidence changed, consent missing or history full"
+          },
+          "422": {
+            "description": "Invalid input"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000
+                  }
+                },
+                "required": [
+                  "reason"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "/submissions/{id}/feedback/{key}/readback": {
+      "post": {
+        "summary": "Request actual read-only observation of an upstream PR and admitted source",
+        "description": "No upstream writes. Separate Apache-2.0 export consent is required from every listed owner. Source versions, payload digests, current evidence and revocation are rechecked. Readback records PR merge, source ancestry, exact declarations, explicit module provenance and original freeze status separately; no client success, equivalence, registration or freeze claim is accepted. Previously issued licenses and append-only history persist.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current protected result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackView"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sign in required"
+          },
+          "404": {
+            "description": "Not available to caller or source inaccessible"
+          },
+          "409": {
+            "description": "Evidence changed, consent missing or history full"
+          },
+          "422": {
+            "description": "Invalid input"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FeedbackReadbackRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/submissions/{id}/feedback/{key}/observations/{request}": {
+      "get": {
+        "summary": "Read checksummed raw observation evidence",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "request",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Actual saved public transport/source evidence; historical failures remain explicit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not authorized or unavailable"
+          },
+          "503": {
+            "description": "Missing or corrupt saved evidence"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -3063,6 +3544,12 @@
           },
           "knowledge_capabilities": {
             "$ref": "#/components/schemas/KnowledgeCapabilities"
+          },
+          "feedback_proposals": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FeedbackProposal"
+            }
           }
         },
         "required": [
@@ -4798,6 +5285,763 @@
           "credited",
           "latest_verdict"
         ]
+      },
+      "FourSlotProposal": {
+        "type": "object",
+        "properties": {
+          "escape_from": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 5000
+          },
+          "readout_via": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 5000
+          },
+          "realization": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 5000
+          },
+          "escape_continues": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 5000
+          }
+        },
+        "required": [
+          "escape_from",
+          "readout_via",
+          "realization",
+          "escape_continues"
+        ],
+        "additionalProperties": false
+      },
+      "FeedbackKind": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "const": "open_problem"
+              },
+              "claim": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "kind",
+              "claim"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "const": "verified_solution"
+              },
+              "claim": {
+                "type": "string"
+              },
+              "attempt": {
+                "type": "string",
+                "maxLength": 200
+              }
+            },
+            "required": [
+              "kind",
+              "claim",
+              "attempt"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "const": "library_binding"
+              },
+              "board": {
+                "type": "string",
+                "maxLength": 200
+              },
+              "contribution": {
+                "type": "string",
+                "maxLength": 200
+              }
+            },
+            "required": [
+              "kind",
+              "board",
+              "contribution"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "const": "witness_formalization"
+              },
+              "claim": {
+                "type": "string"
+              },
+              "witness": {
+                "type": "integer",
+                "minimum": 0
+              }
+            },
+            "required": [
+              "kind",
+              "claim",
+              "witness"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "const": "dtr_registration"
+              },
+              "claim": {
+                "type": "string"
+              },
+              "attempt": {
+                "type": "string",
+                "maxLength": 200
+              },
+              "slots": {
+                "$ref": "#/components/schemas/FourSlotProposal"
+              }
+            },
+            "required": [
+              "kind",
+              "claim",
+              "attempt",
+              "slots"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "const": "erratum"
+              },
+              "report": {
+                "type": "string",
+                "maxLength": 200
+              },
+              "upstream": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/KnowledgeDeclarationRef"
+                },
+                "minItems": 1,
+                "maxItems": 20
+              }
+            },
+            "required": [
+              "kind",
+              "report",
+              "upstream"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "FeedbackSource": {
+        "type": "object",
+        "properties": {
+          "submission": {
+            "type": "string"
+          },
+          "record": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer"
+          },
+          "claims_revision": {
+            "type": "integer"
+          },
+          "source_digest": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "submission",
+          "record",
+          "version",
+          "claims_revision",
+          "source_digest"
+        ],
+        "additionalProperties": false
+      },
+      "FeedbackPreview": {
+        "type": "object",
+        "properties": {
+          "digest": {
+            "type": "string"
+          },
+          "producer": {
+            "type": "string"
+          },
+          "source": {
+            "$ref": "#/components/schemas/FeedbackSource"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/FeedbackKind"
+          },
+          "required_signers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "license": {
+            "const": "Apache-2.0"
+          },
+          "payload": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "digest",
+          "producer",
+          "source",
+          "kind",
+          "required_signers",
+          "license",
+          "payload"
+        ],
+        "additionalProperties": false
+      },
+      "NewFeedbackProposal": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/FeedbackKind"
+          },
+          "preview_digest": {
+            "type": "string"
+          },
+          "preparation_consent": {
+            "const": "feedback-prepare-2026-10-16"
+          }
+        },
+        "required": [
+          "kind",
+          "preview_digest",
+          "preparation_consent"
+        ],
+        "additionalProperties": false
+      },
+      "FeedbackAuthorization": {
+        "type": "object",
+        "properties": {
+          "digest": {
+            "type": "string"
+          },
+          "license": {
+            "const": "Apache-2.0"
+          },
+          "consent": {
+            "const": "feedback-export-2026-10-16"
+          },
+          "rights_asserted": {
+            "const": true
+          }
+        },
+        "required": [
+          "digest",
+          "license",
+          "consent",
+          "rights_asserted"
+        ],
+        "additionalProperties": false
+      },
+      "FeedbackReadbackRequest": {
+        "type": "object",
+        "properties": {
+          "pull_request": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100000000
+          },
+          "index_revision": {
+            "type": "string",
+            "pattern": "^sha256:[a-f0-9]{64}$"
+          },
+          "declarations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/KnowledgeDeclarationRef"
+            },
+            "minItems": 1,
+            "maxItems": 20
+          },
+          "observation_key": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          }
+        },
+        "required": [
+          "pull_request",
+          "index_revision",
+          "declarations",
+          "observation_key"
+        ],
+        "additionalProperties": false
+      },
+      "FeedbackDeclarationObservation": {
+        "type": "object",
+        "properties": {
+          "identity": {
+            "$ref": "#/components/schemas/KnowledgeDeclarationRef"
+          },
+          "present": {
+            "type": "boolean"
+          },
+          "source_sha256": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "freeze_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "frozen_node_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "package_marker_present": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "identity",
+          "present",
+          "source_sha256",
+          "freeze_status",
+          "frozen_node_id",
+          "package_marker_present"
+        ],
+        "additionalProperties": false
+      },
+      "FeedbackObservation": {
+        "type": "object",
+        "properties": {
+          "request": {
+            "type": "string"
+          },
+          "pull_request": {
+            "type": "integer"
+          },
+          "upstream_repository": {
+            "type": "string"
+          },
+          "upstream_base": {
+            "type": "string"
+          },
+          "reference_state": {
+            "type": "string"
+          },
+          "merge_commit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "merged_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "consumed_source_commit": {
+            "type": "string"
+          },
+          "consumed_source_tree": {
+            "type": "string"
+          },
+          "snapshot": {
+            "type": "string"
+          },
+          "index_revision": {
+            "type": "string"
+          },
+          "merge_in_consumed_source": {
+            "type": "boolean"
+          },
+          "declarations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FeedbackDeclarationObservation"
+            }
+          },
+          "evidence": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "bytes": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "sha256": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "bytes",
+              "sha256"
+            ],
+            "additionalProperties": false
+          },
+          "observed_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "limits": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "request",
+          "pull_request",
+          "upstream_repository",
+          "upstream_base",
+          "reference_state",
+          "merge_commit",
+          "merged_at",
+          "consumed_source_commit",
+          "consumed_source_tree",
+          "snapshot",
+          "index_revision",
+          "merge_in_consumed_source",
+          "declarations",
+          "evidence",
+          "observed_at",
+          "limits"
+        ],
+        "additionalProperties": false
+      },
+      "FeedbackEvent": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "event": {
+                "const": "authorized"
+              },
+              "by": {
+                "type": "string"
+              },
+              "digest": {
+                "type": "string"
+              },
+              "license": {
+                "type": "string"
+              },
+              "consent": {
+                "type": "string"
+              },
+              "rights_asserted": {
+                "type": "boolean"
+              },
+              "at": {
+                "type": "string",
+                "format": "date-time"
+              }
+            },
+            "required": [
+              "event",
+              "by",
+              "digest",
+              "license",
+              "consent",
+              "rights_asserted",
+              "at"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "event": {
+                "const": "revoked"
+              },
+              "by": {
+                "type": "string"
+              },
+              "reason": {
+                "type": "string"
+              },
+              "at": {
+                "type": "string",
+                "format": "date-time"
+              }
+            },
+            "required": [
+              "event",
+              "by",
+              "reason",
+              "at"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "event": {
+                "const": "exported"
+              },
+              "by": {
+                "type": "string"
+              },
+              "at": {
+                "type": "string",
+                "format": "date-time"
+              }
+            },
+            "required": [
+              "event",
+              "by",
+              "at"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "event": {
+                "const": "readback_requested"
+              },
+              "id": {
+                "type": "string"
+              },
+              "request": {
+                "$ref": "#/components/schemas/FeedbackReadbackRequest"
+              },
+              "by": {
+                "type": "string"
+              },
+              "at": {
+                "type": "string",
+                "format": "date-time"
+              }
+            },
+            "required": [
+              "event",
+              "id",
+              "request",
+              "by",
+              "at"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "event": {
+                "const": "observed"
+              },
+              "observation": {
+                "$ref": "#/components/schemas/FeedbackObservation"
+              }
+            },
+            "required": [
+              "event",
+              "observation"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "FeedbackProposal": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "digest": {
+            "type": "string"
+          },
+          "producer": {
+            "type": "string"
+          },
+          "source": {
+            "$ref": "#/components/schemas/FeedbackSource"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/FeedbackKind"
+          },
+          "payload": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "bytes": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "sha256": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "bytes",
+              "sha256"
+            ],
+            "additionalProperties": false
+          },
+          "required_signers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "prepared_by": {
+            "type": "string"
+          },
+          "prepared_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "preparation_consent": {
+            "type": "string"
+          },
+          "events": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FeedbackEvent"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "digest",
+          "producer",
+          "source",
+          "kind",
+          "payload",
+          "required_signers",
+          "prepared_by",
+          "prepared_at",
+          "preparation_consent",
+          "events"
+        ],
+        "additionalProperties": false
+      },
+      "FeedbackView": {
+        "type": "object",
+        "properties": {
+          "proposal": {
+            "$ref": "#/components/schemas/FeedbackProposal"
+          },
+          "payload": {
+            "anyOf": [
+              {
+                "type": "object",
+                "additionalProperties": true
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "revoked",
+              "source_or_evidence_changed",
+              "authorized",
+              "awaiting_authorizations"
+            ]
+          }
+        },
+        "required": [
+          "proposal",
+          "payload",
+          "state"
+        ],
+        "additionalProperties": false
+      },
+      "FeedbackExport": {
+        "type": "object",
+        "properties": {
+          "protocol": {
+            "const": "mathesis.feedback-proposal.v1"
+          },
+          "proposal": {
+            "type": "string"
+          },
+          "digest": {
+            "type": "string"
+          },
+          "payload": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "authorizations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FeedbackEvent"
+            }
+          },
+          "proposal_markdown": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "protocol",
+          "proposal",
+          "digest",
+          "payload",
+          "authorizations",
+          "proposal_markdown"
+        ],
+        "additionalProperties": false
       }
     }
   }

@@ -21,6 +21,7 @@ pub struct ReviewReport {
     pub claims: Vec<Claim>,
     pub review: RefereeView,
     pub research: ResearchView,
+    pub feedback_proposals: Vec<FeedbackProposal>,
     pub binding_discussions: PrivateBindingView,
     pub knowledge_capabilities: KnowledgeCapabilities,
 }
@@ -52,6 +53,7 @@ impl App {
             schema_version: 3,
             knowledge_capabilities: self.knowledge_capabilities(),
             research: self.research_obligations(caller, id).await?,
+            feedback_proposals: self.feedback_proposals(caller, id).await?,
             binding_discussions: self.private_bindings(caller, id).await?,
             evidence_by_version: submission
                 .versions
@@ -105,6 +107,29 @@ impl ReviewReport {
                     out,
                     "- {} · {} bytes · SHA-256 {} — {}",
                     file.descriptor.path, file.bytes, file.sha256, file.descriptor.description
+                );
+            }
+        }
+        for p in &self.feedback_proposals {
+            let _ = writeln!(
+                out,
+                "\n## Authorized feedback proposal {}\n\nProducer: {} · Digest: {}\n\nRequired signers: {} · Authorized: {} · Revoked: {}\n\nThe immutable package is available through the protected proposal interface while its source and consent remain current. Upstream observations are source facts, not mathematical certificates.\n",
+                p.id,
+                p.producer,
+                p.digest,
+                p.required_signers
+                    .iter()
+                    .map(ToString::to_string)
+                    .collect::<Vec<_>>()
+                    .join(", "),
+                p.authorized(),
+                p.revoked()
+            );
+            for event in &p.events {
+                let _ = writeln!(
+                    out,
+                    "\n```json\n{}\n```\n",
+                    serde_json::to_string_pretty(event).unwrap_or_default()
                 );
             }
         }

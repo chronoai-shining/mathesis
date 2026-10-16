@@ -5250,3 +5250,168 @@ async fn binding_worker_requires_complete_saved_sources_and_revocation_cancels_l
         w.worker.binding_audit_job(&job).await.unwrap();
     }
 }
+
+#[tokio::test]
+async fn feedback_worker_persists_an_unavailable_observation_without_fabricating_acceptance() {
+    use mathesis_core::{
+        model::*,
+        ports::{BlobStore, RecordStore, RefereeStore, ReviewQueue, SubmissionStore},
+    };
+    let mut w = World::new(vec![], true).await;
+    w.worker.knowledge = None;
+    w.paper.status = SubmissionStatus::Accepted {
+        record: "WP-2026-0001".into(),
+    };
+    w.paper.analysis_visibility = Visibility::Public;
+    w.paper.reports.push(StageReport {
+        stage: Stage::Escape,
+        outcome: Outcome::Pass,
+        summary: "PRIVATE fixture".into(),
+        payload: StagePayload::Escape {
+            assessments: vec![EscapeAssessment {
+                methodology: None,
+                conjecture: None,
+                correctness: Some(Correctness::Correct),
+                claim: "C1".into(),
+                shape: ProofShape::Content,
+                witnesses: vec!["Exact public witness".into()],
+                rationale: "PRIVATE fixture".into(),
+                escape_rate: None,
+            }],
+        },
+        evidence: vec![],
+        reviewer: ReviewerIdentity::Human {
+            person: "fixture-editor".into(),
+        },
+        claims_revision: w.paper.claims_revision,
+        filed_at: chrono::Utc::now(),
+    });
+    SubmissionStore::replace(w.stores.as_ref(), &w.paper, w.paper.revision)
+        .await
+        .unwrap();
+    RecordStore::insert(
+        w.stores.as_ref(),
+        &Record {
+            kind: w.paper.kind,
+            id: "WP-2026-0001".into(),
+            publication: None,
+            submission: w.paper.id.clone(),
+            title: w.paper.title.clone(),
+            authors: w.paper.authors.clone(),
+            basis: mathesis_core::policy::AdmissionBasis::EscapeWitness,
+            accepted_by: "fixture-editor".into(),
+            accepted_at: chrono::Utc::now(),
+        },
+    )
+    .await
+    .unwrap();
+    let kind = FeedbackKind::WitnessFormalization {
+        claim: "C1".into(),
+        witness: 0,
+    };
+    let preview = w
+        .worker
+        .app
+        .preview_feedback(&w.author, &w.paper.id, kind.clone())
+        .await
+        .unwrap();
+    let view = w
+        .worker
+        .app
+        .prepare_feedback(
+            &w.author,
+            &w.paper.id,
+            NewFeedbackProposal {
+                kind,
+                preview_digest: preview.digest.clone(),
+                preparation_consent: FEEDBACK_PREPARATION_CONSENT.into(),
+            },
+        )
+        .await
+        .unwrap();
+    let key = &view.proposal.id;
+    w.worker
+        .app
+        .authorize_feedback(
+            &w.author,
+            &w.paper.id,
+            key,
+            FeedbackAuthorization {
+                digest: preview.digest,
+                license: FEEDBACK_LICENSE.into(),
+                consent: FEEDBACK_EXPORT_CONSENT.into(),
+                rights_asserted: true,
+            },
+        )
+        .await
+        .unwrap();
+    w.worker
+        .app
+        .export_feedback(&w.author, &w.paper.id, key)
+        .await
+        .unwrap();
+    let hash = |s: &str| mathesis_review::knowledge::sha256(s.as_bytes());
+    w.worker
+        .app
+        .request_feedback_readback(
+            &w.author,
+            &w.paper.id,
+            key,
+            FeedbackReadbackRequest {
+                pull_request: 9,
+                index_revision: hash("index"),
+                observation_key: "first".into(),
+                declarations: vec![KnowledgeDeclarationRef {
+                    snapshot: hash("snapshot"),
+                    module_path: "Fixture.lean".into(),
+                    declaration_name_key: "fixture".into(),
+                    statement_id: hash("statement"),
+                    type_digest: hash("type"),
+                }],
+            },
+        )
+        .await
+        .unwrap();
+    ReviewQueue::enqueue(w.stores.as_ref(), &w.paper.id, JobKind::FeedbackReadback)
+        .await
+        .unwrap();
+    let job = loop {
+        let j = w.jobs.claim().await.unwrap().unwrap();
+        if j.kind == JobKind::FeedbackReadback {
+            break j;
+        }
+        w.jobs.complete(&j).await.unwrap();
+    };
+    w.worker.feedback_readback_job(&job).await.unwrap();
+    w.worker.feedback_readback_job(&job).await.unwrap();
+    let file = RefereeStore::get(w.stores.as_ref(), &w.paper.id)
+        .await
+        .unwrap()
+        .unwrap();
+    let events = &file.feedback_proposals[0].events;
+    let observations = events
+        .iter()
+        .filter_map(|e| match e {
+            FeedbackEvent::Observed { observation } => Some(observation),
+            _ => None,
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(observations.len(), 1);
+    let o = observations[0];
+    assert_eq!(o.reference_state, "unavailable");
+    assert!(!o.merge_in_consumed_source);
+    assert!(!o.declarations[0].present);
+    let bytes = BlobStore::get(w.stores.as_ref(), &o.evidence.id)
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(
+        hash(std::str::from_utf8(&bytes).unwrap()),
+        format!("sha256:{}", o.evidence.sha256)
+    );
+    assert!(
+        String::from_utf8(bytes)
+            .unwrap()
+            .contains("knowledge source unavailable")
+    );
+}

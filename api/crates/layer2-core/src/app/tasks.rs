@@ -566,6 +566,7 @@ impl App {
         self.reconcile_attempts().await?;
         self.reconcile_research().await?;
         self.reconcile_bindings().await?;
+        self.reconcile_feedback().await?;
         self.refresh_dependency_counts().await?;
         let now = self.ports.clock.now();
         let mut outcome = Reconciliation::default();

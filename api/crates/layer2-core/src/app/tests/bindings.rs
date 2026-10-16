@@ -1,6 +1,6 @@
 use super::*;
 use crate::ports::{JobKind, LeasedJob};
-async fn fixture() -> (
+pub(super) async fn fixture() -> (
     World,
     Caller,
     Caller,
@@ -70,7 +70,7 @@ fn inspection(p: &PendingBindingAudit, verdict: BindingVerdict) -> BindingInspec
         evidence_complete: true,
     }
 }
-async fn audit(w: &World, r: &Caller, p: &Submission, verdict: BindingVerdict) {
+pub(super) async fn audit(w: &World, r: &Caller, p: &Submission, verdict: BindingVerdict) {
     let next = w
         .app
         .pending_binding_audit(r, &p.id)

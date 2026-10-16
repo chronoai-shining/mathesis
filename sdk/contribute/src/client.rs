@@ -198,6 +198,73 @@ impl Client {
     pub fn knowledge_capabilities(&self) -> ApiResult<Value> {
         self.get("/knowledge/capabilities")
     }
+    pub fn feedback_observation(&self, id: &str, key: &str, request: &str) -> ApiResult<Value> {
+        self.get(&format!(
+            "/submissions/{}/feedback/{}/observations/{}",
+            segment(id),
+            segment(key),
+            segment(request)
+        ))
+    }
+    pub fn feedbacks(&self, id: &str) -> ApiResult<Value> {
+        self.get(&format!("/submissions/{}/feedback", segment(id)))
+    }
+    pub fn feedback(&self, id: &str, key: &str) -> ApiResult<Value> {
+        self.get(&format!(
+            "/submissions/{}/feedback/{}",
+            segment(id),
+            segment(key)
+        ))
+    }
+    pub fn preview_feedback(&self, id: &str, body: &Value) -> ApiResult<Value> {
+        self.post(
+            &format!("/submissions/{}/feedback/preview", segment(id)),
+            body,
+        )
+    }
+    pub fn prepare_feedback(&self, id: &str, body: &Value) -> ApiResult<Value> {
+        self.post(&format!("/submissions/{}/feedback", segment(id)), body)
+    }
+    pub fn authorize_feedback(&self, id: &str, key: &str, body: &Value) -> ApiResult<Value> {
+        self.post(
+            &format!(
+                "/submissions/{}/feedback/{}/authorize",
+                segment(id),
+                segment(key)
+            ),
+            body,
+        )
+    }
+    pub fn revoke_feedback(&self, id: &str, key: &str, reason: &str) -> ApiResult<Value> {
+        self.post(
+            &format!(
+                "/submissions/{}/feedback/{}/revoke",
+                segment(id),
+                segment(key)
+            ),
+            &serde_json::json!({"reason":reason}),
+        )
+    }
+    pub fn export_feedback(&self, id: &str, key: &str) -> ApiResult<Value> {
+        self.post(
+            &format!(
+                "/submissions/{}/feedback/{}/export",
+                segment(id),
+                segment(key)
+            ),
+            &serde_json::json!({}),
+        )
+    }
+    pub fn feedback_readback(&self, id: &str, key: &str, body: &Value) -> ApiResult<Value> {
+        self.post(
+            &format!(
+                "/submissions/{}/feedback/{}/readback",
+                segment(id),
+                segment(key)
+            ),
+            body,
+        )
+    }
     pub fn bindings(&self, before: Option<&str>) -> ApiResult<Value> {
         self.send(
             self.http.get(format!("{}/bindings", self.base)).query(

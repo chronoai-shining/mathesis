@@ -1,3 +1,4 @@
+import { FeedbackPage } from './pages/Feedback';
 import { BindingsPage, BindingPage, BindingProfilePage } from './pages/Bindings';
 import { FormalizationsPage } from './pages/Formalizations';
 import { useEffect } from 'react';
@@ -26,6 +27,8 @@ import { routePath, type Route } from './routing/routes';
 
 function titleFor(route: Route): string {
   switch (route.kind) {
+    case 'feedback':
+      return 'Knowledge proposal';
     case 'binding_profile':
       return 'Binding contributions';
     case 'bindings':
@@ -83,6 +86,8 @@ function titleFor(route: Route): string {
 
 function Page({ route }: { route: Route }) {
   switch (route.kind) {
+    case 'feedback':
+      return <FeedbackPage key={routePath(route)} id={route.id} proposalKey={route.key} />;
     case 'binding_profile':
       return <BindingProfilePage key={route.person} person={route.person} />;
     case 'bindings':

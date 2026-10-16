@@ -248,3 +248,31 @@ fn empty_index_still_retains_its_selected_ranker_identity() {
             .is_none()
     );
 }
+
+#[test]
+fn readback_uses_full_identity_complete_source_and_an_exact_provenance_line() {
+    let marker = format!("Mathesis-Proposal: {}", sha256(b"exact proposal"));
+    let source = format!(
+        "{}\n-- {marker}\ntheorem exact := 0",
+        "prefix ".repeat(MAX_EXCERPT_BYTES)
+    );
+    let d = declaration("A.lean", "exact", &source);
+    let mut changed = d.identity.clone();
+    changed.type_sha256 = sha256(b"changed type");
+    let index = SearchIndex::new(
+        SourceIndex::build(publication(), vec![d.clone()], |_| {
+            Ok(source.as_bytes().to_vec())
+        })
+        .unwrap(),
+    )
+    .unwrap();
+    let (p, found) = index.observe_declarations(&[d.identity.clone(), changed], &marker);
+    assert_eq!(p, publication());
+    assert_eq!(found[0].0.as_ref().unwrap().identity, d.identity);
+    assert!(found[0].1);
+    assert!(found[1].0.is_none());
+    assert!(!found[1].1);
+    let (_, found) = index.observe_declarations(&[d.identity], &format!("{marker}extra"));
+    assert!(found[0].0.is_some());
+    assert!(!found[0].1);
+}

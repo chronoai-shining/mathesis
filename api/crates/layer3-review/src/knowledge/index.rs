@@ -359,6 +359,39 @@ impl SearchIndex {
         })
     }
 
+    /// Exact lookup in complete, hash-checked admitted module text. Marker
+    /// presence is source provenance only, never semantic equivalence.
+    pub fn observe_declarations(
+        &self,
+        requested: &[super::DeclarationIdentity],
+        marker: &str,
+    ) -> (
+        PublicationIdentity,
+        Vec<(Option<PublishedDeclaration>, bool)>,
+    ) {
+        let found = requested
+            .iter()
+            .map(|id| {
+                self.index
+                    .modules
+                    .iter()
+                    .find(|m| m.path == id.module_path)
+                    .and_then(|m| {
+                        m.declarations.iter().find(|d| d.identity == *id).map(|d| {
+                            (
+                                Some(d.clone()),
+                                m.source.lines().any(|line| {
+                                    line.trim().trim_start_matches("--").trim() == marker
+                                }),
+                            )
+                        })
+                    })
+                    .unwrap_or((None, false))
+            })
+            .collect();
+        (self.index.publication.clone(), found)
+    }
+
     pub fn identity(&self) -> (&str, &str) {
         (&self.index.publication.bundle_digest, &self.index.revision)
     }

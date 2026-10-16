@@ -38,6 +38,20 @@ impl SourceRanking {
 
 #[async_trait::async_trait]
 pub(crate) trait KnowledgeSource: Send + Sync {
+    async fn observe_declarations(
+        &self,
+        _revision: &str,
+        _requested: &[knowledge::DeclarationIdentity],
+        _marker: &str,
+    ) -> CoreResult<(
+        PublicationIdentity,
+        Vec<(Option<knowledge::PublishedDeclaration>, bool)>,
+    )> {
+        Err(CoreError::Unavailable(
+            "exact admitted declaration observation unavailable".into(),
+        ))
+    }
+
     async fn pin(&self) -> CoreResult<IndexPin>;
     async fn query(
         &self,
@@ -304,6 +318,21 @@ impl Knowledge {
 
 #[async_trait::async_trait]
 impl KnowledgeSource for Knowledge {
+    async fn observe_declarations(
+        &self,
+        revision: &str,
+        requested: &[knowledge::DeclarationIdentity],
+        marker: &str,
+    ) -> CoreResult<(
+        PublicationIdentity,
+        Vec<(Option<knowledge::PublishedDeclaration>, bool)>,
+    )> {
+        Ok(self
+            .index(revision)
+            .await?
+            .observe_declarations(requested, marker))
+    }
+
     async fn pin(&self) -> CoreResult<IndexPin> {
         let stored = self
             .store
