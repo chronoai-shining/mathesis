@@ -26,9 +26,11 @@ jobs:
           done
       - name: infra contains only the fixed file list
         run: |
-          expected="infra/api/Dockerfile infra/api/configmap.yaml infra/api/deployment.yaml infra/api/secret.yaml infra/api/service.yaml infra/web/Dockerfile infra/web/deployment.yaml infra/web/nginx.conf infra/web/service.yaml infra/worker/deployment.yaml infra/worker/pvc.yaml infra/verifier/Dockerfile infra/verifier/Lean.Dockerfile infra/verifier/lean-toolchain infra/verifier/lakefile.toml infra/verifier/deployment.yaml"
+          expected="infra/api/Dockerfile infra/api/configmap.yaml infra/api/deployment.yaml infra/api/secret.yaml infra/api/service.yaml infra/web/Dockerfile infra/web/deployment.yaml infra/web/nginx.conf infra/web/service.yaml infra/worker/deployment.yaml infra/worker/pvc.yaml infra/verifier/Dockerfile infra/verifier/Lean.Dockerfile infra/verifier/lean-toolchain infra/verifier/lakefile.toml infra/verifier/deployment.yaml infra/chronocd/render.py infra/chronocd/test_render.py"
           actual=$(find infra -type f | sort | tr '\n' ' ')
           [ "$(echo $expected | tr ' ' '\n' | sort | tr '\n' ' ')" = "$actual" ] || { echo "::error::infra/ diverged: $actual"; exit 1; }
+      - name: ChronoCD deployment contract
+        run: python3 -B -m unittest discover -s infra/chronocd -v
       - name: Layer dependency rule
         run: |
           production_dependencies() {

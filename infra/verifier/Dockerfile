@@ -4,6 +4,7 @@
 ARG LEAN_IMAGE
 FROM ${LEAN_IMAGE} AS lean
 FROM rust:1.95-slim-bookworm AS build
+ARG CARGO_BUILD_JOBS=2
 WORKDIR /src
 COPY api/ ./
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
