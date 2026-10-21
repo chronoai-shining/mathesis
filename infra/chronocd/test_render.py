@@ -39,6 +39,8 @@ class RenderTests(unittest.TestCase):
         self.assertEqual(verifier["egress"], "none")
         self.assertEqual(verifier["expose"], "internal")
         self.assertEqual(verifier["ingress_from"], ["wishpool-api", "mathesis-worker"])
+        self.assertEqual(verifier["resources"]["memory_limit"], "8Gi")
+        self.assertEqual(verifier["volumes"], [{"name": "scratch", "mount_path": "/scratch", "type": "emptydir", "size": "24Gi"}])
         for field in ("secret_keys", "addon_env", "routes"):
             self.assertNotIn(field, verifier)
 

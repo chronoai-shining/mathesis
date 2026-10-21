@@ -57,7 +57,10 @@ Nginx proxies `/api/` and `/auth/` with the existing upload limits and timeouts.
 The one-replica worker has a persistent TeX cache. The credential-free Lean
 verifier accepts traffic only from the API/worker and has no outbound network.
 Requests including one surge per service total 1.74 CPU and 3648 MiB; storage is
-1 GiB and at most eight service pods. Check other apps' usage before applying.
+1 GiB of persistent storage and at most eight service pods. The verifier also
+needs 24 GiB of ephemeral scratch space for its full per-request workspace copy
+and retains the existing verifier manifest's 8 GiB memory limit. Check node
+capacity and other apps' usage before applying.
 
 ## Sign-in credentials: owner action required
 

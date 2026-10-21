@@ -90,9 +90,9 @@ def render(image_prefix, image_tag, public_url, admin_subject):
         },
         "resources": {
             "cpu_request": "500m", "memory_request": "1Gi",
-            "cpu_limit": "2", "memory_limit": "4Gi",
+            "cpu_limit": "2", "memory_limit": "8Gi",
         },
-        "volumes": [{"name": "scratch", "mount_path": "/scratch", "type": "emptydir", "size": "4Gi"}],
+        "volumes": [{"name": "scratch", "mount_path": "/scratch", "type": "emptydir", "size": "24Gi"}],
     }
     return {"addons": {"mongodb": {}}, "services": services}
 
