@@ -21,6 +21,11 @@ owner's GitHub connection for private package pulls through the approved NyxID
 credential flow. Do not paste tokens into chat or commit registry credentials.
 Package publication does not itself deploy anything.
 
+The API CI job uses Ubuntu 22.04 while MongoDB 8.0 rejects Linux kernels 6.19
+and newer (MongoDB SERVER-121912). Its MongoDB service must pass a ping health
+check before the job starts. Keep this compatibility constraint until a tested
+MongoDB release supports the newer runner kernel; do not skip database tests.
+
 ## Account and configuration
 
 Use the installed `chrono-cd` Ornn skill and the authorized NyxID CLI:

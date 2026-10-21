@@ -55,7 +55,7 @@ jobs:
 
   api:
     name: API (fmt, clippy, tests, deny)
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-22.04
     defaults:
       run:
         working-directory: api
@@ -63,6 +63,11 @@ jobs:
       mongo:
         image: mongo:8.0
         ports: ["27017:27017"]
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'quit(db.adminCommand({ping:1}).ok ? 0 : 1)'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 12
     env:
       WISHPOOL_TEST_MONGODB_URI: mongodb://127.0.0.1:27017
       WISHPOOL_TEST_TEX_BIN: /usr/bin
