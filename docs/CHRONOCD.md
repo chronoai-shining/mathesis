@@ -74,6 +74,28 @@ Create a **confidential** NyxID developer application with scopes
 developer-client API requires a human user session and rejects agent API keys;
 additional proxy-service authorization does not bypass this restriction.
 
+For this fork deployment, an owner-only helper creates the confidential client
+and provisions both services without printing credentials. On your own computer
+(not in the CMA agent's Sandbox), with Python 3 and the NyxID CLI installed, run:
+
+```bash
+nyxid login --profile mathesis-owner --base-url https://nyx-api.chrono-ai.fun
+python3 docs/chronocd_setup_nyxid.py
+```
+
+Sign in as the owner of `mathesis/mathesis`. The helper checks that identity,
+uses the exact deployed callback, and sends secrets over stdin rather than command
+arguments. It retains a mode-0600 recovery file at `~/.mathesis-oidc-private.json`
+outside Git; rerun the same command to resume a partial setup without creating
+another client. Store the recovery file securely or remove it after successful
+verification. Never upload it or paste its contents into chat. If you already
+created the OAuth client, use `--existing` to enter its ID and saved secret into
+hidden prompts on your own terminal. No existing client is rotated or deleted.
+
+The helper configures credentials only: it does not approve quota, verify login,
+enable automatic reviews, or prove the application is ready. Run its offline
+safety tests with `python3 -B -m unittest discover -s docs -p 'test_chronocd_setup_nyxid.py'`.
+
 Provision `CHRONO_NYXID_CLIENT_ID` and `CHRONO_NYXID_CLIENT_SECRET` into both
 `wishpool-api` and `mathesis-worker` through ChronoCD's service secrets endpoint
 or an owner-controlled secret provisioning flow:
