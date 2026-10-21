@@ -1,0 +1,95 @@
+name: ChronoCD images
+
+on:
+  push:
+    branches: [develop, main, cma/chrono-cd]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: chronocd-images-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  images:
+    name: Publish ${{ matrix.service }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        service: [api, web]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Image namespace
+        run: echo "IMAGE_PREFIX=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/mathesis" >> "$GITHUB_ENV"
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: infra/${{ matrix.service }}/Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: ${{ env.IMAGE_PREFIX }}-${{ matrix.service }}:sha-${{ github.sha }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          cache-from: type=gha,scope=mathesis-${{ matrix.service }}
+          cache-to: type=gha,mode=max,scope=mathesis-${{ matrix.service }}
+
+  verifier:
+    name: Publish tested Lean verifier
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Image namespace
+        run: echo "IMAGE_PREFIX=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/mathesis" >> "$GITHUB_ENV"
+      - name: Make room for the pinned Mathlib workspace
+        run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        id: lean
+        with:
+          context: .
+          file: infra/verifier/Lean.Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: ${{ env.IMAGE_PREFIX }}-lean:sha-${{ github.sha }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          cache-from: type=gha,scope=mathesis-lean
+          cache-to: type=gha,mode=max,scope=mathesis-lean
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: infra/verifier/Dockerfile
+          platforms: linux/amd64
+          push: true
+          build-args: LEAN_IMAGE=${{ env.IMAGE_PREFIX }}-lean@${{ steps.lean.outputs.digest }}
+          tags: ${{ env.IMAGE_PREFIX }}-verifier:sha-${{ github.sha }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          cache-from: type=gha,scope=mathesis-verifier
+          cache-to: type=gha,mode=max,scope=mathesis-verifier

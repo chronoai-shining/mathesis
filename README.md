@@ -183,6 +183,12 @@ a cleared environment (`PATH`, `HOME` only) and disabled sandbox network. It is
 never the default. Legacy `WISHPOOL_ADVISOR=codex|chat` remains explicit
 compatibility configuration; chat advice cannot perform the required audit.
 
+## Deploy with ChronoCD
+
+See [the ChronoCD runbook](docs/CHRONOCD.md) for commit-pinned GHCR images,
+managed MongoDB, production sign-in, isolated verification and readiness checks.
+The integration was prepared by CMA operating on behalf of the repository user.
+
 ## Sign in with NyxID
 
 1. In NyxID (<https://nyx.chrono-ai.fun>), **Developer → New application**:

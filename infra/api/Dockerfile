@@ -3,6 +3,7 @@
 # the worker compiles uploaded LaTeX as arXiv does, so the runtime carries
 # TeX Live (pdfLaTeX, XeLaTeX, LuaLaTeX, BibTeX and the common packages).
 FROM rust:1.95-slim-bookworm AS build
+ARG CARGO_BUILD_JOBS=2
 WORKDIR /src
 RUN apt-get update && apt-get install -y --no-install-recommends cmake clang pkg-config && rm -rf /var/lib/apt/lists/*
 COPY api/ ./
